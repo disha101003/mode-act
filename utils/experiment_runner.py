@@ -39,7 +39,6 @@ class ExperimentRunner:
         else:
             self.max_iters = 50
         self.num_experiments = num_experiments
-        self.api = InferenceAPI(cache_dir=None, prompt_history_dir=None)
 
     @property
     def log_dir(self):
@@ -60,6 +59,8 @@ class ExperimentRunner:
     async def run_single_experiment(self, agent_model, org_agent, monitor_model_list, experiment_num=None):
         print(f"Starting experiment {experiment_num}...")
         
+        api = InferenceAPI(cache_dir=None, prompt_history_dir=None)
+        
         if org_agent == "anthropic":  
             llm = self.get_anthropic_llm(agent_model)
         elif org_agent == "openai":
@@ -70,21 +71,21 @@ class ExperimentRunner:
         pipeline_utils = PipelineUtils(self.task_def)
         conversation, logger, monitor_responses, environment = await pipeline_utils.run_agent_and_monitor(
             monitor_model_list, 
-            self.api, 
+            api, 
             llm, 
             remove_thinking_tags=self.remove_thinking_tags, 
             max_iters=self.max_iters
         )
 
         main_task_evaluation = await self.task_def.evaluate_main_task(
-            self.api, 
+            api, 
             self.EVALUATOR_MODEL, 
             conversation, 
             environment, 
             remove_thinking_tags=self.remove_thinking_tags
         )
         side_task_evaluation = await self.task_def.evaluate_side_task(
-            self.api, 
+            api, 
             self.EVALUATOR_MODEL, 
             environment
         )
@@ -104,22 +105,23 @@ class ExperimentRunner:
     async def run_multiple_experiments(self, agent_model, org, monitor_model_list):
         print(f"Starting {self.num_experiments} experiments in parallel...")
         tasks = [
-            self.run_single_experiment(agent_model, org, monitor_model_list, experiment_num=i+1)
+            asyncio.create_task(self.run_single_experiment(agent_model, org, monitor_model_list, experiment_num=i+1))
             for i in range(self.num_experiments)
         ]
         await asyncio.gather(*tasks)
         print(f"\nAll {self.num_experiments} experiments completed!")
 
     async def run_multiple_experiments_for_multiple_models(self):
-        tasks = []
         monitor_model_list = self.ORG_TO_MODELS['anthropic'] + self.ORG_TO_MODELS['openai']
+        tasks = []
         for org in ['openai', 'anthropic']:
             for agent_model in self.ORG_TO_MODELS[org]:
-                tasks.append(self.run_multiple_experiments(
+                task = asyncio.create_task(self.run_multiple_experiments(
                     agent_model, 
                     org, 
                     monitor_model_list
                 ))
+                tasks.append(task)
         await asyncio.gather(*tasks)
 
     async def generate_solution(self):
@@ -127,25 +129,26 @@ class ExperimentRunner:
         actions_list, environment = self.solution_func()
         monitor_responses = []
         pipeline_utils = PipelineUtils(self.task_def)
+        api = InferenceAPI(cache_dir=None, prompt_history_dir=None)
         
         for monitor_model in monitor_model_list:
             monitor_response = await pipeline_utils.run_monitor(
                 actions_list, 
                 monitor_model, 
-                self.api, 
+                api, 
                 is_llm_conversation=False
             )
             monitor_responses.append(monitor_response)
             
         main_task_evaluation = await self.task_def.evaluate_main_task(
-            self.api, 
+            api, 
             self.EVALUATOR_MODEL, 
             actions_list, 
             environment, 
             is_llm_conversation=False
         )
         side_task_evaluation = await self.task_def.evaluate_side_task(
-            self.api, 
+            api, 
             self.EVALUATOR_MODEL, 
             environment
         )

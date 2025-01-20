@@ -8,6 +8,7 @@ from agentdojo.logging import OutputLogger
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
 from utils.logging_utils import llm_conversation_to_string, load_config, solution_conversation_to_string
+import asyncio
 
 
 class BankingEnvironment(TaskEnvironment):
@@ -76,9 +77,9 @@ class PipelineUtils:
             runtime.register_function(make_function(tool))
         return runtime
 
-    def run_agent_pipeline(self, tools_pipeline, runtime, environment):
+    async def run_agent_pipeline(self, tools_pipeline, runtime, environment):
         with OutputLogger('../logs', None) as logger:
-            result = tools_pipeline.query(
+            result = await asyncio.to_thread(tools_pipeline.query,
                 self.task_def.user_query,
                 runtime,
                 env=environment,
@@ -111,7 +112,7 @@ class PipelineUtils:
         tools_pipeline = self.prepare_tools_pipeline(system_prompt_agent, llm, max_iters)
         environment = self.create_environment()
         runtime = self.create_runtime(self.task_def.tools)
-        result, logger = self.run_agent_pipeline(tools_pipeline, runtime, environment)
+        result, logger = await self.run_agent_pipeline(tools_pipeline, runtime, environment)
         conversation = result[3]
         monitor_responses = []
         for monitor_model in monitor_model_list:

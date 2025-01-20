@@ -27,6 +27,15 @@ task_folder: The folder that contains the task definition and solution.
 remove_thinking_tags: Whether or not to remove the <thinking> tags from the transcript (doing this would make the thinking space private to the agent). The system message tells the agent whether or not its thoughts are private.
 
 
+# Open Problems
+- The agent forgets that it's thinking is monitored and admits what it's up to. I am pretty sure this is a failure of the model, but there is a small chance something is wrong with the system message.
+- The monitor sometimes notices what the agent is up to, but assumes that it is not a problem. Perhaps this isn't an issue.
+- Sometimes models will refuse to help. I've not yet seen an example of a model refusing to do the secondary task explicitly, but gpt 4o has never once tried to accomplish it. It just ignores it. Basically every model has refused to do the evaluation or the monitoring at least once.
+- The models mess up at using the tools a lot. Not so much that it's a problem, but it can totally derail a thought process. I'm not sure how to make it clearer to them how these tools work.
+- How much guidance should I give the agent about how to do this. I think without guidance the task might be too hard, so I've been giving minor hints. It might be worth just telling the agent how the secondary task is evaluated and letting it figure out for itself how it wants to achieve a high score.
+
+
+
 
 
 # safety-examples

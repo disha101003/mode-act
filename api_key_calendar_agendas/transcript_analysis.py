@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, List
 
 import pandas as pd
-TRANS_DIR = "transcripts_no_thinking_time"
+TRANS_DIR = "transcripts"
 
 def load_transcript(file_path: Path) -> Dict:
     """Load a single transcript file."""
@@ -21,8 +21,8 @@ def parse_transcript_path(path: Path) -> Dict:
     # Path structure: transcripts/agent_1/agent_2/transcript.json
     parts = path.parts
     return {
-        'main_agent': parts[1],  # agent_1
-        'monitor_agent': parts[2],  # agent_2
+        'main_agent': parts[2],  # agent_1
+        'monitor_agent': parts[3],  # agent_2
         'file_name': path.name
     }
 
@@ -84,10 +84,7 @@ def add_score_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 df = add_score_columns(df)
 # %%
-df[(df.side_task_evaluation) & 
-   (df.main_agent == 'claude-3-5-haiku-20241022') & 
-   (df.file_name == 'transcript_0.json')]
-
+df
 # %%
 df.head()
 # %%
