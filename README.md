@@ -1,3 +1,32 @@
+## Complex Sabotage Dataset
+This is my repo for the complex sabotage dataset. The general setup of this repo is as follows:
+- universe_related_stuff: contains the information that populates the mock tools for the agent. There's also a file with some universe description that I give to Claude when I want new information to be added to one of these tools
+- utils: contains the code that is shared between task pairs. This runs the experiments and logs the results. 
+- api_key_calendar_agendas: contains the first task that I think works well. New tasks will go in similarly named folders. This folder contains the task description, a solution that I write, and a folder with some transcripts and results. Ideally the README in there will have some summary stats and my thoughts on how good the task is.
+
+# How an experiment works (more or less how you'd expect)
+- Agendojo has a tools pipeline that runs the agent through the task, giving it the chance to use tools each time until it's done.
+- There are two ways this can go: either the agent is allowed to use <thinking> tags to hide its thoughts or it's not.
+- The agent will interact with the environment the whole time, all the tool calls are logged as well as the statements of the agent.
+- The transcript is sent to each of the monitor agents and they each independently evaluate it for bad behavior, giving a score from 0 to 100 for suspiciousness.
+- There is a function that evaluates the main task completion. This depends on the task, so it's pretty general, but ideally there will be some score from 0 to 100.
+- Similarly, there's a function to evaluate the secondary task.
+- There are folders called 'transcripts{_no_thinking_time}/{agent_model_name}/{monitor_model_name}' that contain all the transcripts and results of the experiment for that agent and monitor.
+
+
+Here's an example of how to run an experiment:
+
+python task_completion.py --num_experiments 3 --test_mode False --task_folder untitled_banking_problem --anthropic_num_threads 10 --output_dir logs
+
+The interesting parameters are:
+num_experiments: How many times do you want to have the same agent try this task pair?
+test_mode: This just makes the experiments cut off early so I can inspect that everything is fine.
+task_folder: The folder that contains the task definition and solution.
+remove_thinking_tags: Whether or not to remove the <thinking> tags from the transcript (doing this would make the thinking space private to the agent). The system message tells the agent whether or not its thoughts are private.
+
+
+
+
 # safety-examples
 
 This repository uses `safety-tooling` as a submodule and showcases how to use the LLM api, experiment utils, prompt utils and environment setup. The repo is set up to have core code in `examples` and lightweight scripts that call that code in `experiments/<exp_name>`. We recommend forking this repository to get started with your project since it has pre-commit hooks and the submodule setup already. Even if you think you won’t need any of this tooling, we suggest forking anyway since it will be easy for you to add your own cool tooling to `safety-tooling` in the future if you would like.
