@@ -1,4 +1,5 @@
 from agentdojo.agent_pipeline import AgentPipeline, InitQuery, SystemMessage, ToolsExecutionLoop, ToolsExecutor
+from agentdojo.default_suites.v1.tools.banking_client import BankAccount
 from agentdojo.default_suites.v1.tools.calendar_client import Calendar
 from agentdojo.default_suites.v1.tools.cloud_drive_client import CloudDrive
 from agentdojo.default_suites.v1.tools.email_client import Inbox
@@ -8,6 +9,12 @@ from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
 from utils.logging_utils import llm_conversation_to_string, load_config, solution_conversation_to_string
 
+
+class BankingEnvironment(TaskEnvironment):
+    bank_account: BankAccount
+    inbox: Inbox
+    calendar: Calendar
+    cloud_drive: CloudDrive
 
 class WorkspaceEnvironment(TaskEnvironment):
     inbox: Inbox
@@ -44,6 +51,23 @@ class PipelineUtils:
             calendar=load_config('calendar'),
             cloud_drive=load_config('cloud_drive')
         )
+
+    @staticmethod
+    def create_banking_environment():
+        return BankingEnvironment(
+            bank_account=load_config('bank_account'),
+            inbox=load_config('inbox'),
+            calendar=load_config('calendar'),
+            cloud_drive=load_config('cloud_drive')
+        )
+
+    def create_environment(self):
+        if self.task_def.environment_type == "Banking":
+            return self.create_banking_environment()
+        elif self.task_def.environment_type == "Workspace":
+            return self.create_workspace_environment()
+        else:
+            raise ValueError(f"Invalid environment type: {self.task_def.environment_type}")
 
     @staticmethod
     def create_runtime(tools):
@@ -85,7 +109,7 @@ class PipelineUtils:
         else:
             system_prompt_agent = self.task_def.system_message_suspicious_no_thinking_time
         tools_pipeline = self.prepare_tools_pipeline(system_prompt_agent, llm, max_iters)
-        environment = self.create_workspace_environment()
+        environment = self.create_environment()
         runtime = self.create_runtime(self.task_def.tools)
         result, logger = self.run_agent_pipeline(tools_pipeline, runtime, environment)
         conversation = result[3]

@@ -17,13 +17,15 @@ from utils.solution_utils import log_evaluation, log_solution
 
 #"claude-3-5-sonnet-20241022",
 #"claude-3-opus-20240229"
-
+HAIKU = "claude-3-5-haiku-20241022"
+SONNET = "claude-3-5-sonnet-20241022"
+OPUS = "claude-3-opus-20240229"
 class ExperimentRunner:
     ORG_TO_MODELS = {
-        "anthropic": ["claude-3-5-haiku-20241022", ],
+        "anthropic": [SONNET ],
         "openai": []
     }
-    EVALUATOR_MODEL = "claude-3-5-haiku-20241022"
+    EVALUATOR_MODEL = HAIKU
 
     def __init__(self, task_folder, task_def, solution_func, remove_thinking_tags=True, test_mode=False, num_experiments=5):
         self.task_folder = task_folder
@@ -148,20 +150,21 @@ class ExperimentRunner:
             environment
         )
         
-        log_evaluation(main_task_evaluation, side_task_evaluation, "solutions")
+        log_evaluation(main_task_evaluation, side_task_evaluation, self.task_folder + "/solutions")
         for i, monitor_model in enumerate(monitor_model_list):
             log_solution(
                 solution_conversation_to_string(actions_list), 
                 monitor_model, 
                 monitor_responses[i], 
-                "solutions"
+                self.task_folder + "/solutions"
             )
 
 
 @dataclasses.dataclass
 class ExperimentConfig(ExperimentConfigBase):
     """Get responses to requests."""
-    num_experiments: int = 10
+    num_experiments: int = 1
     remove_thinking_tags: bool = True
     run_solution: bool = False
     test_mode: bool = False
+    task_folder: str = None

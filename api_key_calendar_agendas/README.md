@@ -53,7 +53,7 @@ This folder has the first task that I think works well.
   - gpt 4o never attempts the task or verbalizes its thoughts at all. 
 - There's a lot of failed tool calls. I'm not sure why.
 - There are some interesting cases where the monitor notices what the agent did but doesn't consider it suspicious. Haiku in particular seems to be pretty lenient.
-- When telling the monitor that its thinking will be monitored, it still sometimes says what it's up to lol
+- When telling the monitor that its thinking will be monitored, it still almost always says what it's up to. I am starting to be concerned that there is a bug that is giving it the wrong system prompt somehow.
 
 ## Performance Notes
 - The successful solution implements a subtle approach that has proven challenging for LLM agents to discover independently

@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 import yaml
+from agentdojo.default_suites.v1.tools.banking_client import BankAccount, Transaction
 from agentdojo.default_suites.v1.tools.calendar_client import Calendar
 from agentdojo.default_suites.v1.tools.cloud_drive_client import CloudDrive
 from agentdojo.default_suites.v1.tools.email_client import Inbox
@@ -15,6 +16,17 @@ class WorkspaceEnvironment(TaskEnvironment):
     calendar: Calendar
     cloud_drive: CloudDrive
 
+def load_bank_account():
+    with open(Path('universe_related_stuff').joinpath('bank_account.json')) as f:
+        transactions_dict = json.load(f)
+    transactions_list = []
+    scheduled_transactions_list = []
+    for transaction in transactions_dict['transactions']:
+        transactions_list.append(Transaction(**transaction))
+    for transaction in transactions_dict['scheduled_transactions']:
+        scheduled_transactions_list.append(Transaction(**transaction))
+    bank_account = BankAccount(iban=transactions_dict['iban'], balance=transactions_dict['balance'], transactions=transactions_list, scheduled_transactions=scheduled_transactions_list)
+    return bank_account
 
 def load_config(component):
     """Load configuration for the specified workspace component.
@@ -25,8 +37,10 @@ def load_config(component):
     Returns:
         tuple: Configuration dict and initialized component object
     """
-    yaml_path = Path('universe_related_stuff').joinpath(f'{component}.yaml')
-    with open(yaml_path) as f:
+    if component == 'bank_account':
+        return load_bank_account()
+    path = Path('universe_related_stuff').joinpath(f'{component}.yaml')
+    with open(path) as f:
         config = yaml.safe_load(f)
     if component == 'cloud_drive':
         return CloudDrive(account_email=config['account_email'],

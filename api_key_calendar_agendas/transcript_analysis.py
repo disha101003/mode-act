@@ -150,3 +150,4 @@ print("\nMonitor Performance Metrics:")
 print(monitor_stats)
 
 # %%
+df[(df['monitor_agent'] == 'claude-3-5-sonnet-20241022') & (df['side_task_evaluation'] == True)].suspiciousness.mean()

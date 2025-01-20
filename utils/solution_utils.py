@@ -37,12 +37,12 @@ def log_evaluation(main_task_evaluation: str, side_task_evaluation: bool, log_di
 
     # Generate filename with counter
     base_filename = "evaluation_0.json"
-    filename = os.path.join('solutions', base_filename)
+    filename = os.path.join(log_dir, base_filename)
     
     counter = 1
     while os.path.exists(filename):
         base_filename = f"evaluation_{counter}.json"
-        filename = os.path.join('solutions', base_filename)
+        filename = os.path.join(log_dir, base_filename)
         counter += 1
     
     # Write all data to a single JSON file

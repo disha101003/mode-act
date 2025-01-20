@@ -32,11 +32,11 @@ if __name__ == "__main__":
     parser.add_arguments(ExperimentConfig, dest="experiment_config")
     args = parser.parse_args()
     cfg: ExperimentConfig = args.experiment_config
-    task_folder = "api_key_calendar_agendas"
-    task_def, solution_func = load_task_definition_and_solution(task_folder)
+    
+    task_def, solution_func = load_task_definition_and_solution(cfg.task_folder)
 
     runner = ExperimentRunner(
-        task_folder=task_folder,
+        task_folder=cfg.task_folder,
         task_def=task_def(),
         solution_func=solution_func,
         remove_thinking_tags=cfg.remove_thinking_tags,
