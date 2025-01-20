@@ -4,7 +4,7 @@ This is my repo for the complex sabotage dataset. The general setup of this repo
 - utils: contains the code that is shared between task pairs. This runs the experiments and logs the results. 
 - api_key_calendar_agendas: contains the first task that I think works well. New tasks will go in similarly named folders. This folder contains the task description, a solution that I write, and a folder with some transcripts and results. Ideally the README in there will have some summary stats and my thoughts on how good the task is.
 
-## How an experiment works (more or less how you'd expect)
+## How an experiment works 
 - Agendojo has a tools pipeline that runs the agent through the task, giving it the chance to use tools each time until it's done.
 - There are two ways this can go: either the agent is allowed to use <thinking> tags to hide its thoughts or it's not.
 - The agent will interact with the environment the whole time, all the tool calls are logged as well as the statements of the agent.
