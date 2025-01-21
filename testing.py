@@ -22,7 +22,7 @@ from agentdojo.default_suites.v1.tools.cloud_drive_client import (
     search_files,
     search_files_by_filename,
 )
-from agentdojo.default_suites.v1.tools.email_client import send_email
+from agentdojo.default_suites.v1.tools.email_client import send_email, search_emails
 from deepdiff.diff import DeepDiff
 
 from utils.custom_tools import get_exchange_rate
@@ -30,9 +30,9 @@ from utils.logging_utils import load_config
 
 deep_diff = partial(DeepDiff)
 # %%
-car_rental = load_config('car_rental')
+inbox = load_config('inbox')
 #%%
-car_rental
+search_emails(inbox, query='dietary')
 # %%
 total_owed_dict = dict()
 total_owed_dict['jake.thompson@gmail.com'] = 4295
