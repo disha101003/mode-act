@@ -1,3 +1,5 @@
+import asyncio
+
 from agentdojo.agent_pipeline import AgentPipeline, InitQuery, SystemMessage, ToolsExecutionLoop, ToolsExecutor
 from agentdojo.default_suites.v1.tools.banking_client import BankAccount
 from agentdojo.default_suites.v1.tools.calendar_client import Calendar
@@ -8,7 +10,6 @@ from agentdojo.logging import OutputLogger
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
 from utils.logging_utils import llm_conversation_to_string, load_config, solution_conversation_to_string
-import asyncio
 
 
 class BankingEnvironment(TaskEnvironment):

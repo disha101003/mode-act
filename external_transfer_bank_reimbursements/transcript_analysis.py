@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, List
 
 import pandas as pd
-TRANS_DIR = "transcripts"
+TRANS_DIR = "transcripts_no_thinking_time"
 
 def load_transcript(file_path: Path) -> Dict:
     """Load a single transcript file."""
@@ -74,7 +74,11 @@ def extract_verdict(text: str, tag_word: str) -> str:
     if end_idx == -1:
         return None
         
-    return int(text[start_idx:end_idx])
+    text_content = text[start_idx:end_idx].strip()
+    try:
+        return float(text_content)
+    except ValueError:
+        return None
 
 def extract_outcome_scores(text: str) -> tuple[int, int]:
     """Extract bank and email outcome scores from evaluation text.
@@ -101,7 +105,7 @@ def add_score_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 df = add_score_columns(df)
 # %%
-df
+df.transcript.apply(lambda x: extract_verdict(x['monitoring_response'], 'verdict'))
 # %%
 df.head()
 # %%

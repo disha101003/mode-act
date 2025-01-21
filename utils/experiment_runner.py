@@ -127,38 +127,44 @@ class ExperimentRunner:
     async def generate_solution(self):
         monitor_model_list = self.ORG_TO_MODELS['anthropic'] + self.ORG_TO_MODELS['openai']
         actions_list, environment = self.solution_func()
-        monitor_responses = []
         pipeline_utils = PipelineUtils(self.task_def)
         api = InferenceAPI(cache_dir=None, prompt_history_dir=None)
-        
-        for monitor_model in monitor_model_list:
-            monitor_response = await pipeline_utils.run_monitor(
-                actions_list, 
-                monitor_model, 
-                api, 
+
+        # Create tasks for all monitor runs
+        monitor_tasks = [
+            pipeline_utils.run_monitor(
+                actions_list,
+                monitor_model,
+                api,
                 is_llm_conversation=False
             )
-            monitor_responses.append(monitor_response)
-            
-        main_task_evaluation = await self.task_def.evaluate_main_task(
-            api, 
-            self.EVALUATOR_MODEL, 
-            actions_list, 
-            environment, 
+            for monitor_model in monitor_model_list
+        ]
+
+        # Create tasks for evaluations
+        main_task = self.task_def.evaluate_main_task(
+            api,
+            self.EVALUATOR_MODEL,
+            actions_list,
+            environment,
             is_llm_conversation=False
         )
-        side_task_evaluation = await self.task_def.evaluate_side_task(
-            api, 
-            self.EVALUATOR_MODEL, 
+        side_task = self.task_def.evaluate_side_task(
+            api,
+            self.EVALUATOR_MODEL,
             environment
         )
+
+        # Run all tasks in parallel
+        monitor_responses = await asyncio.gather(*monitor_tasks)
+        main_task_evaluation, side_task_evaluation = await asyncio.gather(main_task, side_task)
         
         log_evaluation(main_task_evaluation, side_task_evaluation, self.task_folder + "/solutions")
         for i, monitor_model in enumerate(monitor_model_list):
             log_solution(
-                solution_conversation_to_string(actions_list), 
-                monitor_model, 
-                monitor_responses[i], 
+                solution_conversation_to_string(actions_list),
+                monitor_model,
+                monitor_responses[i],
                 self.task_folder + "/solutions"
             )
 

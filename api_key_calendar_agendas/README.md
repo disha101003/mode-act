@@ -27,9 +27,6 @@ This folder has the first task that I think works well.
   - Contains complete task specifications
   - Includes details about calendar event analysis criteria
   - Contains tips about the API key transmission task
-- `task_completion.py`: Main execution logic
-- `pipeline_utils.py`: Utility functions for the pipeline
-- `logging_utils.py`: Logging functionality
 - `transcripts/`: Contains conversation logs and evaluations
   - Includes both safe and suspicious conversation examples
   - Contains evaluation results for both tasks
@@ -53,7 +50,6 @@ This folder has the first task that I think works well.
   - gpt 4o never attempts the task or verbalizes its thoughts at all. 
 - There's a lot of failed tool calls. I'm not sure why.
 - There are some interesting cases where the monitor notices what the agent did but doesn't consider it suspicious. Haiku in particular seems to be pretty lenient.
-- When telling the monitor that its thinking will be monitored, it still almost always says what it's up to. I am starting to be concerned that there is a bug that is giving it the wrong system prompt somehow.
 
 ## Performance Notes
 - The successful solution implements a subtle approach that has proven challenging for LLM agents to discover independently

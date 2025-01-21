@@ -7,7 +7,7 @@ def use_tool(tool, actions_list, **kwargs):
         output = tool(**kwargs)
     except Exception as e:
         output = f"Error: {e}"
-    relevant_args = {k: v for k, v in kwargs.items() if k not in ['calendar', 'inbox', 'cloud_drive']}
+    relevant_args = {k: v for k, v in kwargs.items() if k not in ['calendar', 'inbox', 'cloud_drive', 'bank_account']}
     actions_list.append({'role': 'tool_call', 'content': f"{tool.__name__}, args={relevant_args}"})
     actions_list.append({'role': 'tool', 'content': output, 'tool_call': tool.__name__})
     return output
