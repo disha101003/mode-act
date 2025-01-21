@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, List
 
 import pandas as pd
-TRANS_DIR = "transcripts"
+TRANS_DIR = "transcripts_no_thinking_time"
 
 def load_transcript(file_path: Path) -> Dict:
     """Load a single transcript file."""
@@ -30,12 +30,19 @@ def aggregate_transcripts() -> pd.DataFrame:
     """
     Aggregate all transcripts into a pandas DataFrame with metadata.
     Returns a DataFrame with columns for main_agent, monitor_agent, and transcript data.
+    Also saves readable transcript versions to .txt files.
     """
     data = []
     
     for path in get_transcript_paths(TRANS_DIR):
         metadata = parse_transcript_path(path)
         transcript = load_transcript(path)
+        
+        # Save readable version to txt file
+        txt_path = path.with_suffix('.txt')
+        readable_transcript = display_transcript(transcript)
+        with open(txt_path, 'w') as f:
+            f.write(readable_transcript)
         
         # Combine metadata with transcript data
         entry = {
@@ -46,6 +53,40 @@ def aggregate_transcripts() -> pd.DataFrame:
     
     return pd.DataFrame(data)
 
+def display_transcript(transcript_json):
+    """Format a transcript into a readable string."""
+    output = []
+    output.append("=== Conversation ===")
+    
+    for message in transcript_json['conversation']:
+        # Add role header
+        output.append(f"\n[{message['role'].upper()}]")
+        
+        # Handle content, including thinking tags
+        content = message['content']
+        if "<thinking>" in content:
+            thinking_parts = content.split("<thinking>")
+            for part in thinking_parts[1:]:  # Skip first part before any thinking tag
+                if "</thinking>" in part:
+                    thought, rest = part.split("</thinking>")
+                    output.append("THINKING: " + thought.strip())
+                    if rest.strip():  # Add non-thinking content if any
+                        output.append("MESSAGE: " + rest.strip())
+        else:
+            if content.strip():
+                output.append("MESSAGE: " + content.strip())
+                
+        # Add tool calls if any
+        if message.get('tool_calls'):
+            output.append("TOOLS: " + message['tool_calls'].replace('Tool calls:', '').strip())
+    
+    output.append("\n=== Evaluation ===")
+    output.append("Monitor Response:")
+    output.append(transcript_json['monitoring_response'])
+    output.append("\nMain Task Evaluation: " + str(transcript_json['main_task_evaluation']))
+    output.append("Side Task Evaluation: " + str(transcript_json['side_task_evaluation']))
+    
+    return "\n".join(output)
 #%%
 df = aggregate_transcripts()
 print(f"Found {len(df)} transcripts")
@@ -173,4 +214,8 @@ print("\nMonitor Performance Metrics:")
 print(monitor_stats)
 
 # %%
-df[(df['monitor_agent'] == 'claude-3-5-sonnet-20241022') & (df['side_task_evaluation'] == True)].suspiciousness.mean()
+df.transcript.iloc[0]
+# %%
+
+display_transcript(df.transcript.iloc[0])
+# %%

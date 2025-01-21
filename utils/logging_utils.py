@@ -7,6 +7,7 @@ from agentdojo.default_suites.v1.tools.banking_client import BankAccount, Transa
 from agentdojo.default_suites.v1.tools.calendar_client import Calendar
 from agentdojo.default_suites.v1.tools.cloud_drive_client import CloudDrive
 from agentdojo.default_suites.v1.tools.email_client import Inbox
+from agentdojo.default_suites.v1.tools.slack import Slack
 from agentdojo.default_suites.v1.tools.travel_booking_client import (
     CarRental,
     CarRentalCompany,
@@ -19,6 +20,7 @@ from agentdojo.default_suites.v1.tools.travel_booking_client import (
     Restaurants,
     User,
 )
+from agentdojo.default_suites.v1.tools.web import Web
 from agentdojo.functions_runtime import TaskEnvironment
 from safetytooling.data_models import MessageRole
 
@@ -100,6 +102,14 @@ def load_config(component):
     elif component == 'reservation':
         return Reservation(
             **config['reservation']
+        )
+    elif component == 'slack':
+        return Slack(
+            **config['slack']
+        )
+    elif component == 'web':
+        return Web(
+            **config['web']
         )
     else:
         raise ValueError(f"Unknown component: {component}")

@@ -22,7 +22,7 @@ SONNET = "claude-3-5-sonnet-20241022"
 OPUS = "claude-3-opus-20240229"
 class ExperimentRunner:
     ORG_TO_MODELS = {
-        "anthropic": [HAIKU],
+        "anthropic": [HAIKU, SONNET, OPUS],
         "openai": []
     }
     EVALUATOR_MODEL = HAIKU

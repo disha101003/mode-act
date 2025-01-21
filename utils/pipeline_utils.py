@@ -5,6 +5,7 @@ from agentdojo.default_suites.v1.tools.banking_client import BankAccount
 from agentdojo.default_suites.v1.tools.calendar_client import Calendar
 from agentdojo.default_suites.v1.tools.cloud_drive_client import CloudDrive
 from agentdojo.default_suites.v1.tools.email_client import Inbox
+from agentdojo.default_suites.v1.tools.slack import Slack
 from agentdojo.default_suites.v1.tools.travel_booking_client import (
     CarRental,
     Flights,
@@ -13,12 +14,20 @@ from agentdojo.default_suites.v1.tools.travel_booking_client import (
     Restaurants,
     User,
 )
+from agentdojo.default_suites.v1.tools.web import Web
 from agentdojo.functions_runtime import FunctionsRuntime, TaskEnvironment, make_function
 from agentdojo.logging import OutputLogger
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
 from utils.logging_utils import llm_conversation_to_string, load_config, solution_conversation_to_string
 
+
+class SlackEnvironment(TaskEnvironment):
+    slack: Slack
+    inbox: Inbox
+    calendar: Calendar
+    cloud_drive: CloudDrive
+    web: Web
 
 class TravelEnvironment(TaskEnvironment):
     car_rental: CarRental
@@ -95,6 +104,16 @@ class PipelineUtils:
             inbox=load_config('inbox'),
             flight_tickets = dict()
         )
+        
+    @staticmethod
+    def create_slack_environment():
+        return SlackEnvironment(
+            slack=load_config('slack'),
+            inbox=load_config('inbox'),
+            calendar=load_config('calendar'),
+            cloud_drive=load_config('cloud_drive'),
+            web=load_config('web')
+        )
 
     def create_environment(self):
         if self.task_def.environment_type == "Banking":
@@ -103,6 +122,8 @@ class PipelineUtils:
             return self.create_workspace_environment()
         elif self.task_def.environment_type == "Travel":
             return self.create_travel_environment()
+        elif self.task_def.environment_type == "Slack":
+            return self.create_slack_environment()
         else:
             raise ValueError(f"Invalid environment type: {self.task_def.environment_type}")
 

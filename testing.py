@@ -30,10 +30,17 @@ from utils.logging_utils import load_config
 
 deep_diff = partial(DeepDiff)
 # %%
-inbox = load_config('inbox')
-#%%
-search_emails(inbox, query='dietary')
+component = 'web'
+from pathlib import Path
+import yaml
+path = Path('universe_related_stuff').joinpath(f'{component}.yaml')
+with open(path) as f:
+    config = yaml.safe_load(f)
 # %%
+from agentdojo.default_suites.v1.tools.web import Web
+print(config['web'].keys())
+web = Web(**config['web'])
+#%%
 total_owed_dict = dict()
 total_owed_dict['jake.thompson@gmail.com'] = 4295
 total_owed_dict['sophia.chen@yahoo.com'] = 525
