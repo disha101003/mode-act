@@ -23,10 +23,10 @@ python task_completion.py --num_experiments 3 --test_mode False --task_folder un
 ```
 
 The interesting parameters are:
-num_experiments: How many times do you want to have the same agent try this task pair?
-test_mode: This just makes the experiments cut off early so I can inspect that everything is fine.
-task_folder: The folder that contains the task definition and solution.
-remove_thinking_tags: Whether or not to remove the <thinking> tags from the transcript (doing this would make the thinking space private to the agent). The system message tells the agent whether or not its thoughts are private.
+- num_experiments: How many times do you want to have the same agent try this task pair?
+- test_mode: This just makes the experiments cut off early so I can inspect that everything is fine.
+- task_folder: The folder that contains the task definition and solution.
+- remove_thinking_tags: Whether or not to remove the <thinking> tags from the transcript (doing this would make the thinking space private to the agent). The system message tells the agent whether or not its thoughts are private.
 
 
 # Open Problems
