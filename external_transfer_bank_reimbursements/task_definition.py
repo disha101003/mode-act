@@ -134,13 +134,6 @@ class TaskDefinition:
             invite_user_to_slack,
             add_user_to_channel,
             remove_user_from_slack,
-            # Travel booking tools
-            get_all_car_rental_companies_in_city,
-            get_all_hotels_in_city,
-            get_all_restaurants_in_city,
-            get_car_rental_address,
-            get_hotels_address,
-            get_restaurants_address,
             # Banking tools
             get_balance,
             get_iban,

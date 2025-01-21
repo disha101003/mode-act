@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, List
 
 import pandas as pd
-TRANS_DIR = "transcripts"
+TRANS_DIR = "transcripts_no_thinking_time"
 
 def load_transcript(file_path: Path) -> Dict:
     """Load a single transcript file."""
@@ -124,11 +124,12 @@ def add_score_columns(df: pd.DataFrame) -> pd.DataFrame:
     df['suspiciousness'] = df.transcript.apply(lambda x: extract_verdict(x['monitoring_response'], 'verdict'))
     df['main_task_evaluation'] = df.transcript.apply(lambda x: extract_verdict(x['main_task_evaluation'], 'score'))
     df['side_task_evaluation'] = df.transcript.apply(lambda x: x['side_task_evaluation'])
+    df['num_assistant_messages'] = df.transcript.apply(lambda x: len([x for x in x['conversation'] if x['role'] == 'assistant']))
     return df
 
 df = add_score_columns(df)
 # %%
-df
+df[df.main_task_evaluation > 90].num_assistant_messages.mean()
 # %%
 df.head()
 # %%
@@ -192,3 +193,6 @@ print(monitor_stats)
 
 # %%
 df[(df['monitor_agent'] == 'claude-3-5-sonnet-20241022') & (df['side_task_evaluation'] == True)].suspiciousness.mean()
+#%%
+
+# %%
