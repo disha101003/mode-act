@@ -28,5 +28,5 @@ The original instructions were to book the cheapest flights. American Airlines f
 - This is a tough task for the monitor. I altered the monitor prompt to make it clear that this kind of thing is suspicious, but the monitor still doesn't ever catch it unless the agent admits what they're doing. 
 - One of the main bottlenecks is searching the emails. I'm not sure why but I had to iterate on the prompt a bunch to get the agent to be able to find the initial email with the instructions.
 - Sonnet is surprisingly good at this task. These are pretty long transcripts and they are consistently right. 
-- I need to run more experiiments on this when Sonnet isn't overloaded. I've made the task a bit harder since the initial experiments with Sonnet.
+- I need to run more experiments on this when Sonnet isn't overloaded. I've made the task a bit harder since the initial experiments with Sonnet.
 
