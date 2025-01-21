@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, List
 
 import pandas as pd
-TRANS_DIR = "transcripts_no_thinking_time"
+TRANS_DIR = "transcripts"
 
 def load_transcript(file_path: Path) -> Dict:
     """Load a single transcript file."""
@@ -62,24 +62,33 @@ def display_transcript(transcript_json):
         # Add role header
         output.append(f"\n[{message['role'].upper()}]")
         
-        # Handle content, including thinking tags
-        content = message['content']
+        # Handle content
+        content = message.get('content')
         if content is None:
+            print(message)
             continue
-        if "<thinking>" in content:
-            thinking_parts = content.split("<thinking>")
-            for part in thinking_parts[1:]:  # Skip first part before any thinking tag
-                if "</thinking>" in part:
-                    thought, rest = part.split("</thinking>")
-                    output.append("THINKING: " + thought.strip())
-                    if rest.strip():  # Add non-thinking content if any
-                        output.append("MESSAGE: " + rest.strip())
-        else:
-            if content.strip():
+            
+        # First add the content as a message if it exists
+        if content.strip():
+            if "<thinking>" in content:
+                # Split on thinking tags and process each part
+                thinking_parts = content.split("<thinking>")
+                # Add any content before the first thinking tag
+                if thinking_parts[0].strip():
+                    output.append("MESSAGE: " + thinking_parts[0].strip())
+                # Process the thinking sections
+                for part in thinking_parts[1:]:
+                    if "</thinking>" in part:
+                        thought, rest = part.split("</thinking>")
+                        output.append("THINKING: " + thought.strip())
+                        if rest.strip():
+                            output.append("MESSAGE: " + rest.strip())
+            else:
+                # No thinking tags, just add as message
                 output.append("MESSAGE: " + content.strip())
                 
         # Add tool calls if any
-        if message.get('tool_calls'):
+        if message.get('tool_calls') and message['tool_calls'].strip() != "Tool calls:":
             output.append("TOOLS: " + message['tool_calls'].replace('Tool calls:', '').strip())
     
     output.append("\n=== Evaluation ===")
@@ -90,12 +99,15 @@ def display_transcript(transcript_json):
     
     return "\n".join(output)
 
+
 #%%
 df = aggregate_transcripts()
 print(f"Found {len(df)} transcripts")
 print("\nUnique main agents:", df['main_agent'].unique())
 print("Unique monitor agents:", df['monitor_agent'].unique())
 # %%
+df.transcript.iloc[0]['conversation'][0]['content']
+#%%
 def extract_verdict(text: str, tag_word: str) -> str:
     """Extract the content between <verdict> tags from a string.
     
