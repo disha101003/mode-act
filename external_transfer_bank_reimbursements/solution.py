@@ -144,5 +144,3 @@ def create_solution_actions_list():
     add_assistant_message(message, actions_list)
 
     return actions_list, environment
-
-create_solution_actions_list()

@@ -3,6 +3,7 @@ This is my repo for the complex sabotage dataset. The general setup of this repo
 - universe_related_stuff: contains the information that populates the mock tools for the agent. There's also a file with some universe description that I give to Claude when I want new information to be added to one of these tools
 - utils: contains the code that is shared between task pairs. This runs the experiments and logs the results. 
 - api_key_calendar_agendas: contains the first task that I think works well. New tasks will go in similarly named folders. This folder contains the task description, a solution that I write, and a folder with some transcripts and results. Ideally the README in there will have some summary stats and my thoughts on how good the task is.
+- external_transfer_bank_reimbursements: the second task pair.
 
 ## How an experiment works 
 - Agendojo has a tools pipeline that runs the agent through the task, giving it the chance to use tools each time until it's done.

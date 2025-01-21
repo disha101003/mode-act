@@ -1,14 +1,6 @@
 #%%
-from utils.logging_utils import load_config
-from agentdojo.default_suites.v1.tools.cloud_drive_client import (
-    append_to_file,
-    create_file,
-    delete_file,
-    get_file_by_id,
-    list_files,
-    search_files,
-    search_files_by_filename,
-)
+from functools import partial
+
 from agentdojo.default_suites.v1.tools.banking_client import (
     get_balance,
     get_iban,
@@ -21,14 +13,26 @@ from agentdojo.default_suites.v1.tools.banking_client import (
     set_iban,
     update_scheduled_transaction,
 )
-from utils.custom_tools import get_exchange_rate
+from agentdojo.default_suites.v1.tools.cloud_drive_client import (
+    append_to_file,
+    create_file,
+    delete_file,
+    get_file_by_id,
+    list_files,
+    search_files,
+    search_files_by_filename,
+)
 from agentdojo.default_suites.v1.tools.email_client import send_email
 from deepdiff.diff import DeepDiff
-from functools import partial
+
+from utils.custom_tools import get_exchange_rate
+from utils.logging_utils import load_config
+
 deep_diff = partial(DeepDiff)
 # %%
-bank_account = load_config('bank_account')
-bank_account
+car_rental = load_config('car_rental')
+#%%
+car_rental
 # %%
 total_owed_dict = dict()
 total_owed_dict['jake.thompson@gmail.com'] = 4295

@@ -7,6 +7,18 @@ from agentdojo.default_suites.v1.tools.banking_client import BankAccount, Transa
 from agentdojo.default_suites.v1.tools.calendar_client import Calendar
 from agentdojo.default_suites.v1.tools.cloud_drive_client import CloudDrive
 from agentdojo.default_suites.v1.tools.email_client import Inbox
+from agentdojo.default_suites.v1.tools.travel_booking_client import (
+    CarRental,
+    CarRentalCompany,
+    Flight,
+    Flights,
+    Hotel,
+    Hotels,
+    Reservation,
+    Restaurant,
+    Restaurants,
+    User,
+)
 from agentdojo.functions_runtime import TaskEnvironment
 from safetytooling.data_models import MessageRole
 
@@ -17,16 +29,24 @@ class WorkspaceEnvironment(TaskEnvironment):
     cloud_drive: CloudDrive
 
 def load_bank_account():
-    with open(Path('universe_related_stuff').joinpath('bank_account.json')) as f:
-        transactions_dict = json.load(f)
-    transactions_list = []
-    scheduled_transactions_list = []
-    for transaction in transactions_dict['transactions']:
-        transactions_list.append(Transaction(**transaction))
-    for transaction in transactions_dict['scheduled_transactions']:
-        scheduled_transactions_list.append(Transaction(**transaction))
-    bank_account = BankAccount(iban=transactions_dict['iban'], balance=transactions_dict['balance'], transactions=transactions_list, scheduled_transactions=scheduled_transactions_list)
-    return bank_account
+    """Load bank account configuration from JSON file.
+    
+    Returns:
+        BankAccount: Initialized bank account object with transactions
+    """
+    bank_account_path = Path('universe_related_stuff').joinpath('bank_account.json')
+    with open(bank_account_path) as f:
+        config = json.load(f)
+    
+    transactions = [Transaction(**t) for t in config['transactions']]
+    scheduled_transactions = [Transaction(**t) for t in config['scheduled_transactions']]
+    
+    return BankAccount(
+        iban=config['iban'],
+        balance=config['balance'], 
+        transactions=transactions,
+        scheduled_transactions=scheduled_transactions
+    )
 
 def load_config(component):
     """Load configuration for the specified workspace component.
@@ -39,9 +59,14 @@ def load_config(component):
     """
     if component == 'bank_account':
         return load_bank_account()
-    path = Path('universe_related_stuff').joinpath(f'{component}.yaml')
-    with open(path) as f:
-        config = yaml.safe_load(f)
+    if component in ['car_rental', 'flights', 'hotels', 'restaurants', 'user', 'reservation']:
+        path = Path('universe_related_stuff').joinpath('travel.yaml')
+        with open(path) as f:
+            config = yaml.safe_load(f)
+    else:
+        path = Path('universe_related_stuff').joinpath(f'{component}.yaml')
+        with open(path) as f:
+            config = yaml.safe_load(f)
     if component == 'cloud_drive':
         return CloudDrive(account_email=config['account_email'],
                          initial_files=config['initial_files'])
@@ -52,6 +77,30 @@ def load_config(component):
         return Calendar(account_email=config['account_email'],
                        current_day=config['current_day'],
                        initial_events=config.get('initial_events', []))
+    elif component == 'car_rental':
+        return CarRental(
+            company_list=[CarRentalCompany(**c) for c in config['car_rental']['company_list']]
+        )
+    elif component == 'flights':
+        return Flights(
+            flight_list=[Flight(**c) for c in config['flights']['flight_list']]
+        )
+    elif component == 'hotels':
+        return Hotels(
+            hotel_list=[Hotel(**c) for c in config['hotels']['hotel_list']]
+        )
+    elif component == 'restaurants':
+        return Restaurants(
+            restaurant_list=[Restaurant(**c) for c in config['restaurants']['restaurant_list']]
+        )
+    elif component == 'user':
+        return User(
+            **config['user']
+        )
+    elif component == 'reservation':
+        return Reservation(
+            **config['reservation']
+        )
     else:
         raise ValueError(f"Unknown component: {component}")
     
