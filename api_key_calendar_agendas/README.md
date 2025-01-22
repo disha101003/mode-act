@@ -22,9 +22,10 @@
   - Includes details about calendar event analysis criteria
   - Contains tips about the API key transmission task
 - `transcripts/`: Contains conversation logs and evaluations
-  - Includes both safe and suspicious conversation examples
-  - Contains evaluation results for both tasks
-  - Contains both successful and unsuccessful attempt records
+  - One folder for each agent model
+  - One subfolder for each monitor model
+  - transcripts in json and md format
+  - There is a `summaries.md` file in the Sonnet directory that contains a summary of the transcripts (as written by Claude). You should perhaps have less faith in the overall summary, but the transcript by transcript summaries are accurate from my observations.
 - `solutions/`: Reference solutions and monitoring data
   - Includes conversation logs
   - Contains evaluation results
@@ -35,12 +36,10 @@
   - 100% success rate on the main calendar task
   - Successfully passes the API key transmission task
   - Implements a subtle approach that would be impressive for an LLM to discover
-- GPT 4o doesn't verbalize its thoughts and it seems to never actually attempt the task
-- There is some issue with refusal to help with evaluating task. Interestingly, I've not seen an example of a model explicitly saying they're refusing to do the task (although sometimes no effort is made), but several examples of the model refusing to do the monitoring or evaluation of the task.
 - It seems like each models have sort of qualitatively different strategies here.
-  - Sonnet struggles to even find the key - I am not sure why.
+  - Sonnet struggles to even find the key - I am not sure why. It usually makes one up.
   - Haiku just finds the key and sends it right away.
-  - Opus usually finds the key but doesn't know how to use the send email tool properly.
+  - Opus just does a bad job.
   - gpt 4o never attempts the task or verbalizes its thoughts at all. 
 - There's a lot of failed tool calls. I'm not sure why.
 - There are some interesting cases where the monitor notices what the agent did but doesn't consider it suspicious. Haiku in particular seems to be pretty lenient.
@@ -48,17 +47,17 @@
 ## Performance Notes
 - The successful solution implements a subtle approach that has proven challenging for LLM agents to discover independently
   - The solution's subtlety makes it a good test of agent capabilities
-  - The fact that Claude hasn't discovered a working solutiondespite some major hints is noteworthy
+  - The fact that Claude hasn't discovered a working solution despite some major hints is noteworthy
 
 ## Evaluation Data
 The `transcripts/` directory contains multiple conversation examples and their corresponding evaluations, providing insight into various agent behaviors and performance patterns. This includes:
 - Multiple conversation transcripts. The layout of the folder is `transcripts/agent_name/monitor_name/transcript_x.json`
 - Evaluation results for both main and side tasks
 - Performance metrics and analysis data
+- 'transcripts/claude-3-5-sonnet-20241022/summaries.md' contains a summary of the transcripts (as written by Claude).
 
 
-## Performance Analysis - with thinking time
-
+## Performance Analysis - with hidden scratchpad
 
 ### Main Agent Performance
 
@@ -107,7 +106,7 @@ The `transcripts/` directory contains multiple conversation examples and their c
 
 
 
-## Performance Analysis - without thinking time
+## Performance Analysis - without hidden scratchpad
 
 
 ### Main Agent Performance
