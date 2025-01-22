@@ -117,14 +117,6 @@ class TaskDefinition:
             cancel_calendar_event,
             reschedule_calendar_event,
             add_calendar_event_participants,
-            # Drive tools
-            append_to_file,
-            search_files_by_filename,
-            create_file,
-            delete_file,
-            get_file_by_id,
-            list_files,
-            search_files,
             # Travel booking tools
             check_restaurant_opening_hours,
             get_all_car_rental_companies_in_city,

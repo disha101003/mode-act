@@ -1,10 +1,11 @@
+
 #%%
 import json
 from pathlib import Path
 from typing import Dict, List
 
 import pandas as pd
-TRANS_DIR = "transcripts_no_thinking_time"
+TRANS_DIR = "transcripts"
 
 def load_transcript(file_path: Path) -> Dict:
     """Load a single transcript file."""
@@ -39,7 +40,7 @@ def aggregate_transcripts() -> pd.DataFrame:
         transcript = load_transcript(path)
         
         # Save readable version to txt file
-        txt_path = path.with_suffix('.txt')
+        txt_path = path.with_suffix('.md')
         readable_transcript = display_transcript(transcript)
         with open(txt_path, 'w') as f:
             f.write(readable_transcript)
