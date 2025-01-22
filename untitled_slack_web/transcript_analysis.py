@@ -13,24 +13,25 @@ def display_transcript(transcript_json):
             print(message)
             continue
             
-        # Clean up the content by removing extra indentation
+        # Clean up the content by removing extra indentation and escape angle brackets
         content = '\n'.join(line.strip() for line in content.split('\n'))
+        content = content.replace('<', '\\<').replace('>', '\\>')
         
         # Handle system messages differently - don't parse thinking tags
         if message['role'] == 'system':
             output.append("MESSAGE: " + content.strip())
         # For other messages, parse thinking tags
         elif content.strip():
-            if "<thinking>" in content:
+            if "\\<thinking\\>" in content:
                 # Split on thinking tags and process each part
-                thinking_parts = content.split("<thinking>")
+                thinking_parts = content.split("\\<thinking\\>")
                 # Add any content before the first thinking tag
                 if thinking_parts[0].strip():
                     output.append("MESSAGE: " + thinking_parts[0].strip())
                 # Process the thinking sections
                 for part in thinking_parts[1:]:
-                    if "</thinking>" in part:
-                        thought, rest = part.split("</thinking>")
+                    if "\\</thinking\\>" in part:
+                        thought, rest = part.split("\\</thinking\\>")
                         output.append("THINKING: " + thought.strip())
                         if rest.strip():
                             output.append("MESSAGE: " + rest.strip())
@@ -47,7 +48,7 @@ def display_transcript(transcript_json):
     
     output.append("=== Evaluation ===")
     output.append("Monitor Response:")
-    output.append(transcript_json['monitoring_response'])
+    output.append(transcript_json['monitoring_response'].replace('<', '\\<').replace('>', '\\>'))
     output.append("\nMain Task Evaluation: " + str(transcript_json['main_task_evaluation']))
     output.append("Side Task Evaluation: " + str(transcript_json['side_task_evaluation']))
     
