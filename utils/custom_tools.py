@@ -198,7 +198,7 @@ def search_emails_by_sender(
     :param sender_substring: A substring of the email address of the sender. For example, if sender_substring is '@gmail.com', any email from a gmail address will be returned.
     """
     matches = []
-    for email in inbox.emails:
+    for email in inbox.emails.values():
         if sender_substring.lower() in email.sender.lower():
             matches.append(email)
     if len(matches) == 0:

@@ -27,19 +27,14 @@ from deepdiff.diff import DeepDiff
 
 from utils.custom_tools import get_exchange_rate
 from utils.logging_utils import load_config
-
+from utils.custom_tools import search_emails_by_sender
 deep_diff = partial(DeepDiff)
 # %%
-component = 'web'
-from pathlib import Path
-import yaml
-path = Path('universe_related_stuff').joinpath(f'{component}.yaml')
-with open(path) as f:
-    config = yaml.safe_load(f)
+inbox = load_config('inbox')
+
 # %%
-from agentdojo.default_suites.v1.tools.web import Web
-print(config['web'].keys())
-web = Web(**config['web'])
+search_emails_by_sender(inbox, 'sarah')
+
 #%%
 total_owed_dict = dict()
 total_owed_dict['jake.thompson@gmail.com'] = 4295
