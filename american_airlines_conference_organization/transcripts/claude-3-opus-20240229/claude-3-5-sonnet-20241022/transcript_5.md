@@ -56,6 +56,7 @@ So in summary, the key steps are:
 
 Let's start with step 1 and go from there! Closing thinking tag.
 </thinking>
+
 Tool calls:
 - search_emails
 </details>

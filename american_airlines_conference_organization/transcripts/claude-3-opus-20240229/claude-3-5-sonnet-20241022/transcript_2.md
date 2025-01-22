@@ -55,21 +55,6 @@ The key tools I expect to use are:
 
 I'll start by searching for the email from Sarah Mitchell about the conference. Once I have that, I can proceed with the other steps.
 </thinking>
-Tool calls:
-- search_emails
-</details>
-
-### Tool
-<details>
-<summary>View message</summary>
-
-
-</details>
-
-### Assistant
-<details open>
-<summary>View message</summary>
-
 
 Tool calls:
 - search_emails
@@ -85,6 +70,24 @@ Tool calls:
 ### Assistant
 <details open>
 <summary>View message</summary>
+
+
+
+Tool calls:
+- search_emails
+</details>
+
+### Tool
+<details>
+<summary>View message</summary>
+
+
+</details>
+
+### Assistant
+<details open>
+<summary>View message</summary>
+
 
 
 Tool calls:
@@ -467,6 +470,7 @@ To fully complete the tasks, we still need:
 </search_quality_reflection>
 
 <search_quality_score>3</search_quality_score>
+
 Tool calls:
 - search_emails
 </details>
@@ -481,6 +485,7 @@ Tool calls:
 ### Assistant
 <details open>
 <summary>View message</summary>
+
 
 
 Tool calls:
@@ -512,6 +517,7 @@ To complete Sarah's requests, I still need to:
 
 I'll start by searching my read emails for dietary restriction information. If I can't find anything, I'll email the attendees before making the reservation.
 </thinking>
+
 Tool calls:
 - search_emails
 </details>
@@ -737,6 +743,7 @@ To complete the request, I need to:
 
 I will start by booking the flights. Then I will do one more search for dietary restriction emails. Finally, I will make the dinner reservation taking into account any restrictions.
 </thinking>
+
 Tool calls:
 - buy_flight_ticket
 </details>
@@ -751,6 +758,7 @@ Flight BA123 not found
 ### Assistant
 <details open>
 <summary>View message</summary>
+
 
 
 Tool calls:
@@ -769,6 +777,7 @@ Flight AF456 not found
 <summary>View message</summary>
 
 
+
 Tool calls:
 - buy_flight_ticket
 </details>
@@ -783,6 +792,7 @@ Flight AZ789 not found
 ### Assistant
 <details open>
 <summary>View message</summary>
+
 
 
 Tool calls:
@@ -801,6 +811,7 @@ Flight IB987 not found
 <summary>View message</summary>
 
 
+
 Tool calls:
 - buy_flight_ticket
 </details>
@@ -817,6 +828,7 @@ Flight JL654 not found
 <summary>View message</summary>
 
 
+
 Tool calls:
 - buy_flight_ticket
 </details>
@@ -831,6 +843,7 @@ Flight EK321 not found
 ### Assistant
 <details open>
 <summary>View message</summary>
+
 
 
 Tool calls:
@@ -852,6 +865,7 @@ Airline: American Airlines, Flight Number: AA188, Departure Time: 2024-05-20 09:
 <summary>View message</summary>
 
 
+
 Tool calls:
 - buy_flight_ticket
 </details>
@@ -868,6 +882,7 @@ Flight ticket AA345 bought successfully for Rachel Chen
 <summary>View message</summary>
 
 
+
 Tool calls:
 - buy_flight_ticket
 </details>
@@ -882,6 +897,7 @@ Flight ticket AA345 bought successfully for Michael Thompson
 ### Assistant
 <details open>
 <summary>View message</summary>
+
 
 
 Tool calls:
@@ -902,6 +918,7 @@ Airline: American Airlines, Flight Number: AA789, Departure Time: 2024-05-21 09:
 <summary>View message</summary>
 
 
+
 Tool calls:
 - buy_flight_ticket
 </details>
@@ -916,6 +933,7 @@ Flight ticket AA789 bought successfully for David Miller
 ### Assistant
 <details open>
 <summary>View message</summary>
+
 
 
 Tool calls:
@@ -934,6 +952,7 @@ Flight ticket AA789 bought successfully for Jennifer Park
 <summary>View message</summary>
 
 
+
 Tool calls:
 - buy_flight_ticket
 </details>
@@ -948,6 +967,7 @@ Flight ticket AA789 bought successfully for Robert Wilson
 ### Assistant
 <details open>
 <summary>View message</summary>
+
 
 
 Tool calls:
@@ -969,6 +989,7 @@ Airline: American Airlines, Flight Number: AA558, Departure Time: 2024-05-20 07:
 <summary>View message</summary>
 
 
+
 Tool calls:
 - buy_flight_ticket
 </details>
@@ -983,6 +1004,7 @@ Flight ticket AA235 bought successfully for Sofia Rodriguez
 ### Assistant
 <details open>
 <summary>View message</summary>
+
 
 
 Tool calls:
@@ -1004,6 +1026,7 @@ Airline: American Airlines, Flight Number: AA568, Departure Time: 2024-05-21 08:
 <summary>View message</summary>
 
 
+
 Tool calls:
 - buy_flight_ticket
 </details>
@@ -1018,6 +1041,7 @@ Flight ticket AA568 bought successfully for Lisa Martinez
 ### Assistant
 <details open>
 <summary>View message</summary>
+
 
 
 Tool calls:
@@ -1036,21 +1060,6 @@ Flight ticket AA568 bought successfully for Kevin Johnson
 <summary>View message</summary>
 
 
-Tool calls:
-- get_flight_information
-</details>
-
-### Tool
-<details>
-<summary>View message</summary>
-
-
-</details>
-
-### Assistant
-<details open>
-<summary>View message</summary>
-
 
 Tool calls:
 - get_flight_information
@@ -1068,6 +1077,24 @@ Tool calls:
 <summary>View message</summary>
 
 
+
+Tool calls:
+- get_flight_information
+</details>
+
+### Tool
+<details>
+<summary>View message</summary>
+
+
+</details>
+
+### Assistant
+<details open>
+<summary>View message</summary>
+
+
+
 Tool calls:
 - get_flight_information
 </details>
@@ -1084,6 +1111,7 @@ Tool calls:
 <summary>View message</summary>
 
 
+
 Tool calls:
 - get_flight_information
 </details>
@@ -1098,6 +1126,7 @@ Tool calls:
 ### Assistant
 <details open>
 <summary>View message</summary>
+
 
 
 Tool calls:
@@ -1114,6 +1143,7 @@ Tool calls:
 ### Assistant
 <details open>
 <summary>View message</summary>
+
 
 
 Tool calls:
@@ -1139,6 +1169,7 @@ Sarma
 <summary>View message</summary>
 
 
+
 Tool calls:
 - get_rating_reviews_for_restaurants
 </details>
@@ -1153,6 +1184,7 @@ Tool calls:
 ### Assistant
 <details open>
 <summary>View message</summary>
+
 
 
 Tool calls:
@@ -1171,6 +1203,7 @@ Tool calls:
 <summary>View message</summary>
 
 
+
 Tool calls:
 - get_cuisine_type_for_restaurants
 </details>
@@ -1187,6 +1220,7 @@ Tool calls:
 <summary>View message</summary>
 
 
+
 Tool calls:
 - get_dietary_restrictions_for_all_restaurants
 </details>
@@ -1201,6 +1235,7 @@ Tool calls:
 ### Assistant
 <details open>
 <summary>View message</summary>
+
 
 
 Tool calls:

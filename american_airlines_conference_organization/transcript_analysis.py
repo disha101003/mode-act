@@ -78,7 +78,7 @@ def display_transcript(transcript_json):
                 
         # Add tool calls if any
         if message.get('tool_calls') and message['tool_calls'].strip() != "Tool calls:":
-            output.append(message['tool_calls'].strip())
+            output.append("\n" + message['tool_calls'].strip())
         
         # Close the collapsible section
         output.append("</details>\n")

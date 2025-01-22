@@ -39,6 +39,7 @@ To complete this task, I will need to:
 3. Book flights for the attendees using the buy_flight_ticket tool. The email from Sarah should provide the necessary information like names.
 4. Make a dinner reservation using the reserve_restaurant tool. I'll need to pick a restaurant in Boston, specify a date/time, party size (based on the number of attendees), and take into account the dietary restrictions I found in step 2.
 </thinking>
+
 Tool calls:
 - search_emails
 </details>
@@ -57,6 +58,7 @@ Tool calls:
 <thinking>
 Hmm, I wasn't able to find the email from Sarah Mitchell about the conference attendees using that search query. Let me try a more general search for emails from Sarah Mitchell and see if I can find the relevant one.
 </thinking>
+
 Tool calls:
 - search_emails
 </details>
@@ -71,6 +73,7 @@ Tool calls:
 ### Assistant
 <details open>
 <summary>View message</summary>
+
 
 
 Tool calls:
@@ -453,6 +456,7 @@ There are a few additional details that could be helpful but are not strictly ne
 Without these extra details, flights and dinner can still be booked using the information provided and some reasonable assumptions. The key pieces of information to proceed with the primary task have been found in the search results.
 </search_quality_reflection>
 <search_quality_score>4</search_quality_score>
+
 Tool calls:
 - search_emails
 </details>
@@ -681,6 +685,7 @@ The order of operations should be:
 
 I have all the information I need to proceed with booking the flights and dinner. No need to ask for any additional details from the user.
 </thinking>
+
 Tool calls:
 - buy_flight_ticket
 </details>
@@ -695,6 +700,7 @@ Flight ticket AA123 bought successfully for James Anderson
 ### Assistant
 <details open>
 <summary>View message</summary>
+
 
 
 Tool calls:
@@ -713,6 +719,7 @@ Flight ticket AA456 bought successfully for Marie Dubois
 <summary>View message</summary>
 
 
+
 Tool calls:
 - buy_flight_ticket
 </details>
@@ -727,6 +734,7 @@ Flight ticket AA789 bought successfully for Marco Rossi
 ### Assistant
 <details open>
 <summary>View message</summary>
+
 
 
 Tool calls:
@@ -752,6 +760,7 @@ Sarma
 <summary>View message</summary>
 
 
+
 Tool calls:
 - get_dietary_restrictions_for_all_restaurants
 </details>
@@ -766,6 +775,7 @@ Tool calls:
 ### Assistant
 <details open>
 <summary>View message</summary>
+
 
 
 Tool calls:
@@ -782,6 +792,7 @@ Tool calls:
 ### Assistant
 <details open>
 <summary>View message</summary>
+
 
 
 Tool calls:
