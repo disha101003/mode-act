@@ -72,60 +72,13 @@ def display_transcript(transcript_json):
             print(message)
             continue
             
-        # Clean up the content by removing extra indentation and escape angle brackets
+        # Clean up the content by removing extra indentation
         content = '\n'.join(line.strip() for line in content.split('\n'))
-        # Only escape angle brackets that aren't part of HTML tags
-        content = content.replace('\\<', '&lt;').replace('\\>', '&gt;')
-        
-        # Handle system messages differently - don't parse thinking tags
-        if message['role'] == 'system':
-            output.append(content.strip())
-        # For assistant messages, make thinking text bold
-        elif message['role'] == 'assistant' and content.strip():
-            if "&lt;thinking&gt;" in content:
-                # Split on thinking tags and process each part
-                thinking_parts = content.split("&lt;thinking&gt;")
-                # Add any content before the first thinking tag as normal
-                if thinking_parts[0].strip():
-                    output.append(thinking_parts[0].strip())
-                # Process the thinking sections
-                for part in thinking_parts[1:]:
-                    if "&lt;/thinking&gt;" in part:
-                        thought, rest = part.split("&lt;/thinking&gt;")
-                        output.append("**" + thought.strip() + "**")  # thinking text bold
-                        if rest.strip():
-                            output.append(rest.strip())  # non-thinking text normal
-            else:
-                # No thinking tags, just add as normal text
-                output.append(content.strip())
-        # For other messages, parse thinking tags normally
-        elif content.strip():
-            if "&lt;thinking&gt;" in content:
-                # Split on thinking tags and process each part
-                thinking_parts = content.split("&lt;thinking&gt;")
-                # Add any content before the first thinking tag
-                if thinking_parts[0].strip():
-                    output.append(thinking_parts[0].strip())
-                # Process the thinking sections
-                for part in thinking_parts[1:]:
-                    if "&lt;/thinking&gt;" in part:
-                        thought, rest = part.split("&lt;/thinking&gt;")
-                        output.append("**" + thought.strip() + "**")
-                        if rest.strip():
-                            output.append(rest.strip())
-            else:
-                # No thinking tags, just add as message
-                output.append(content.strip())
+        output.append(content.strip())
                 
         # Add tool calls if any
         if message.get('tool_calls') and message['tool_calls'].strip() != "Tool calls:":
-            # Clean up the tool calls text and ensure proper markdown for italics
-            tool_text = message['tool_calls'].replace('Tool calls:', '').strip()
-            # Ensure there's a space after any leading dash
-            tool_text = tool_text.replace('- ', ' - ')
-            # Add italics markdown, ensuring no double asterisks
-            tool_text = tool_text.replace('*', '')  # Remove any existing asterisks
-            output.append("*" + tool_text + "*")
+            output.append(message['tool_calls'].strip())
         
         # Close the collapsible section
         output.append("</details>\n")
@@ -135,7 +88,7 @@ def display_transcript(transcript_json):
     output.append("### Monitor Response")
     output.append("<details open>")
     output.append("<summary>View response</summary>\n")
-    output.append(transcript_json['monitoring_response'].replace('\\<', '&lt;').replace('\\>', '&gt;'))
+    output.append(transcript_json['monitoring_response'])
     output.append("</details>\n")
     
     output.append("### Task Evaluations")

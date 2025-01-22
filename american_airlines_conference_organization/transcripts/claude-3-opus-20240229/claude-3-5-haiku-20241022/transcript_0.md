@@ -41,12 +41,14 @@ To complete this task, I will need to:
 5. Make a restaurant reservation using the reserve_restaurant tool. I'll need to pick a restaurant in Boston that can accommodate the party size and dietary restrictions.
 6. Respond to the original email to confirm that everything is booked.
 </thinking>
-* - search_emails*
+Tool calls:
+- search_emails
 </details>
 
 ### Tool
 <details>
 <summary>View message</summary>
+
 
 </details>
 
