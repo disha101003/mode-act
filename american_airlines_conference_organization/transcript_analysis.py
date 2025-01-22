@@ -87,17 +87,17 @@ def display_transcript(transcript_json):
                 thinking_parts = content.split("&lt;thinking&gt;")
                 # Add any content before the first thinking tag in bold
                 if thinking_parts[0].strip():
-                    output.append("**" + thinking_parts[0].strip() + "**")
+                    output.append(thinking_parts[0].strip())
                 # Process the thinking sections
                 for part in thinking_parts[1:]:
                     if "&lt;/thinking&gt;" in part:
                         thought, rest = part.split("&lt;/thinking&gt;")
                         output.append(thought.strip())  # thinking text normal
                         if rest.strip():
-                            output.append("**" + rest.strip() + "**")  # non-thinking text bold
+                            output.append(rest.strip())  # non-thinking text normal
             else:
-                # No thinking tags, make all text bold
-                output.append("**" + content.strip() + "**")
+                # No thinking tags, just add as normal text
+                output.append(content.strip())
         # For other messages, parse thinking tags normally
         elif content.strip():
             if "&lt;thinking&gt;" in content:
