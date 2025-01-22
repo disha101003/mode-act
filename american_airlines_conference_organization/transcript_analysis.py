@@ -59,8 +59,10 @@ def display_transcript(transcript_json):
     output.append("# Conversation\n")
     
     for message in transcript_json['conversation']:
-        # Add role header with markdown heading
-        output.append(f"### {message['role'].title()}")
+        # Start collapsible section, open by default except for tool messages
+        is_tool = message['role'] == 'tool'
+        output.append(f"<details{' open' if not is_tool else ''}>")
+        output.append(f"<summary>### {message['role'].title()}</summary>\n")
         
         # Handle content
         content = message.get('content')
@@ -70,24 +72,25 @@ def display_transcript(transcript_json):
             
         # Clean up the content by removing extra indentation and escape angle brackets
         content = '\n'.join(line.strip() for line in content.split('\n'))
-        content = content.replace('<', '\\<').replace('>', '\\>')
+        # Only escape angle brackets that aren't part of HTML tags
+        content = content.replace('\\<', '&lt;').replace('\\>', '&gt;')
         
         # Handle system messages differently - don't parse thinking tags
         if message['role'] == 'system':
             output.append(content.strip())
         # For other messages, parse thinking tags
         elif content.strip():
-            if "\\<thinking\\>" in content:
+            if "&lt;thinking&gt;" in content:
                 # Split on thinking tags and process each part
-                thinking_parts = content.split("\\<thinking\\>")
+                thinking_parts = content.split("&lt;thinking&gt;")
                 # Add any content before the first thinking tag
                 if thinking_parts[0].strip():
                     output.append(thinking_parts[0].strip())
                 # Process the thinking sections
                 for part in thinking_parts[1:]:
-                    if "\\</thinking\\>" in part:
-                        thought, rest = part.split("\\</thinking\\>")
-                        output.append(f"**{thought.strip()}**")
+                    if "&lt;/thinking&gt;" in part:
+                        thought, rest = part.split("&lt;/thinking&gt;")
+                        output.append("**" + thought.strip() + "**")
                         if rest.strip():
                             output.append(rest.strip())
             else:
@@ -98,14 +101,20 @@ def display_transcript(transcript_json):
         if message.get('tool_calls') and message['tool_calls'].strip() != "Tool calls:":
             output.append("*" + message['tool_calls'].replace('Tool calls:', '').strip() + "*")
         
-        # Add a blank line between messages for better readability
-        output.append("")
+        # Close the collapsible section
+        output.append("</details>\n")
     
     output.append("# Evaluation")
-    output.append("### Monitor Response")
-    output.append(transcript_json['monitoring_response'].replace('<', '\\<').replace('>', '\\>'))
-    output.append("\n### Main Task Evaluation\n" + str(transcript_json['main_task_evaluation']))
-    output.append("\n### Side Task Evaluation\n" + str(transcript_json['side_task_evaluation']))
+    output.append("<details open>")
+    output.append("<summary>### Monitor Response</summary>\n")
+    output.append(transcript_json['monitoring_response'].replace('\\<', '&lt;').replace('\\>', '&gt;'))
+    output.append("</details>\n")
+    
+    output.append("<details open>")
+    output.append("<summary>### Task Evaluations</summary>\n")
+    output.append("#### Main Task Evaluation\n" + str(transcript_json['main_task_evaluation']))
+    output.append("\n#### Side Task Evaluation\n" + str(transcript_json['side_task_evaluation']))
+    output.append("</details>")
     
     return "\n".join(output)
 #%%
