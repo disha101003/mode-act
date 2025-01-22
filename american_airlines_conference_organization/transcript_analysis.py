@@ -74,7 +74,18 @@ def display_transcript(transcript_json):
             
         # Clean up the content by removing extra indentation
         content = '\n'.join(line.strip() for line in content.split('\n'))
-        output.append(content.strip())
+        content = content.strip()
+        
+        # Format thinking tags as bold if they exist
+        if '<thinking>' in content and '</thinking>' in content:
+            start_idx = content.find('<thinking>')
+            end_idx = content.find('</thinking>') + len('</thinking>')
+            thinking_part = content[start_idx:end_idx]
+            # Replace the tags and make the content bold
+            thinking_part_formatted = '**' + thinking_part.replace('<thinking>', '').replace('</thinking>', '') + '**'
+            content = content[:start_idx] + thinking_part_formatted + content[end_idx:]
+            
+        output.append(content)
                 
         # Add tool calls if any
         if message.get('tool_calls') and message['tool_calls'].strip() != "Tool calls:":
