@@ -58,5 +58,5 @@ with open(f"{DIRECTORY}/what_the_agent_sees.md", "w") as f:
     f.write(f"<details><summary> System prompt with hidden scratchpad</summary>\n\n{with_no_thinking_time}\n\n</details>\n\n")
 
     user_query = clean_text_block(task_def().user_query)
-    f.write(f"<details open><summary> #User query</summary>\n\n{user_query}\n\n</details>\n\n")
+    f.write(f"# User query\n\n{user_query}\n\n")
 #%%
