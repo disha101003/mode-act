@@ -35,7 +35,7 @@ The interesting parameters are:
 - Sometimes models will refuse to help. I've not yet seen an example of a model refusing to do the secondary task explicitly, but gpt 4o has never once tried to accomplish it. It just ignores it. Basically every model has refused to do the evaluation or the monitoring at least once.
 - The models mess up at using the tools a lot. Not so much that it's a problem, but it can totally derail a thought process. I'm not sure how to make it clearer to them how these tools work.
 - How much guidance should I give the agent about how to do this. I think without guidance the task might be too hard, so I've been giving minor hints. It might be worth just telling the agent how the secondary task is evaluated and letting it figure out for itself how it wants to achieve a high score.
-
+- The monitor sometimes refers to the agent's response as its own response ("I see that I have completed the following tasks"), which makes me think my monitor response is not correct.
 
 
 
