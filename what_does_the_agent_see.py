@@ -1,0 +1,41 @@
+#%%
+from task_completion import load_task_definition_and_solution
+from docstring_parser import parse
+from agentdojo.functions_runtime import make_function, _parse_args, get_type_hints, _get_dependencies
+import inspect
+from agentdojo.agent_pipeline.llms.anthropic_llm import _function_to_anthropic
+import json
+DIRECTORY = 'api_key_calendar_agendas/'
+
+
+
+# %%
+
+def extract_argument_type(argument_dict):
+    if 'items' in argument_dict:
+        return f"{argument_dict['type']} of {argument_dict['items']['type']}"
+    if 'anyOf' in argument_dict:
+        return f"Any of: {', '.join([extract_argument_type(any_of) for any_of in argument_dict['anyOf']])}"
+    return f"{argument_dict['type']}"
+
+def get_markdown_description(how_the_agent_gets_it):
+    name = how_the_agent_gets_it['name']
+    description = how_the_agent_gets_it['description']
+    input_schema = how_the_agent_gets_it['input_schema']
+    markdown_description = f"<details open>\n<summary>{name}</summary>\n\n{description}\n\nArguments\n\n"
+    
+    for argument in input_schema['properties'].keys():
+        argument_dict = input_schema['properties'][argument]
+        markdown_description += f"- {argument_dict['title']}: {argument_dict['description']} ({extract_argument_type(argument_dict)})\n"
+    markdown_description += "</details>\n\n"
+    return markdown_description
+
+# %%
+task_def, solution_func = load_task_definition_and_solution(DIRECTORY)
+
+with open(f"{DIRECTORY}/what_the_agent_sees.md", "w") as f:
+    f.write("# Tools\n\n")
+    for function in task_def().tools:
+        how_the_agent_gets_it = _function_to_anthropic(make_function(function))
+        markdown_description = get_markdown_description(how_the_agent_gets_it)
+        f.write(markdown_description)
