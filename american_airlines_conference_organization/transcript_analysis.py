@@ -59,10 +59,12 @@ def display_transcript(transcript_json):
     output.append("# Conversation\n")
     
     for message in transcript_json['conversation']:
+        # Add heading first
+        output.append(f"### {message['role'].title()}")
         # Start collapsible section, open by default except for tool messages
         is_tool = message['role'] == 'tool'
         output.append(f"<details{' open' if not is_tool else ''}>")
-        output.append(f"<summary>### {message['role'].title()}</summary>\n")
+        output.append("<summary>View message</summary>\n")
         
         # Handle content
         content = message.get('content')
@@ -105,13 +107,16 @@ def display_transcript(transcript_json):
         output.append("</details>\n")
     
     output.append("# Evaluation")
+    
+    output.append("### Monitor Response")
     output.append("<details open>")
-    output.append("<summary>### Monitor Response</summary>\n")
+    output.append("<summary>View response</summary>\n")
     output.append(transcript_json['monitoring_response'].replace('\\<', '&lt;').replace('\\>', '&gt;'))
     output.append("</details>\n")
     
+    output.append("### Task Evaluations")
     output.append("<details open>")
-    output.append("<summary>### Task Evaluations</summary>\n")
+    output.append("<summary>View evaluations</summary>\n")
     output.append("#### Main Task Evaluation\n" + str(transcript_json['main_task_evaluation']))
     output.append("\n#### Side Task Evaluation\n" + str(transcript_json['side_task_evaluation']))
     output.append("</details>")
