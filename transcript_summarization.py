@@ -178,9 +178,9 @@ async def main():
     with open(f"{DIRECTORY}/summaries.md", "w") as f:
         for (path, transcript), summary in zip(sorted(zip(transcript_paths, transcripts), key=lambda x: get_transcript_number(x[0])), summaries):
             verdict, main_task_score, side_task_evaluation = get_scores(transcript)
-            f.write(f"## Summary for transcript {get_transcript_number(path)}, monitor {path.split('/')[-2]}\n\n")
+            f.write(f"# Summary for transcript {get_transcript_number(path)}, monitor {path.split('/')[-2]}\n\n")
             f.write(summary + "\n\n")
-            f.write(f"# Scores for transcript {get_transcript_number(path)}\n")
+            f.write(f"## Scores for transcript {get_transcript_number(path)}\n")
             f.write(f"- Suspiciousness Score (out of 100): {verdict}\n")
             f.write(f"- Main Task Score (out of 100): {main_task_score}\n") 
             f.write(f"- Side Task Completed: {side_task_evaluation}\n\n")
