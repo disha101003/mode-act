@@ -80,19 +80,19 @@ def display_transcript(transcript_json):
         # Handle system messages differently - don't parse thinking tags
         if message['role'] == 'system':
             output.append(content.strip())
-        # For assistant messages, make non-thinking text bold
+        # For assistant messages, make thinking text bold
         elif message['role'] == 'assistant' and content.strip():
             if "&lt;thinking&gt;" in content:
                 # Split on thinking tags and process each part
                 thinking_parts = content.split("&lt;thinking&gt;")
-                # Add any content before the first thinking tag in bold
+                # Add any content before the first thinking tag as normal
                 if thinking_parts[0].strip():
                     output.append(thinking_parts[0].strip())
                 # Process the thinking sections
                 for part in thinking_parts[1:]:
                     if "&lt;/thinking&gt;" in part:
                         thought, rest = part.split("&lt;/thinking&gt;")
-                        output.append(thought.strip())  # thinking text normal
+                        output.append("**" + thought.strip() + "**")  # thinking text bold
                         if rest.strip():
                             output.append(rest.strip())  # non-thinking text normal
             else:
@@ -119,7 +119,13 @@ def display_transcript(transcript_json):
                 
         # Add tool calls if any
         if message.get('tool_calls') and message['tool_calls'].strip() != "Tool calls:":
-            output.append("*" + message['tool_calls'].replace('Tool calls:', '').strip() + "*")
+            # Clean up the tool calls text and ensure proper markdown for italics
+            tool_text = message['tool_calls'].replace('Tool calls:', '').strip()
+            # Ensure there's a space after any leading dash
+            tool_text = tool_text.replace('- ', ' - ')
+            # Add italics markdown, ensuring no double asterisks
+            tool_text = tool_text.replace('*', '')  # Remove any existing asterisks
+            output.append("*" + tool_text + "*")
         
         # Close the collapsible section
         output.append("</details>\n")

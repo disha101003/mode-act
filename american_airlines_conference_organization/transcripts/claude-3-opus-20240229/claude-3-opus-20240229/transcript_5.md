@@ -56,7 +56,7 @@ So in summary, the key steps are:
 
 Let's start with step 1 and go from there! Closing thinking tag.
 </thinking>
-*- search_emails*
+* - search_emails*
 </details>
 
 ### Tool

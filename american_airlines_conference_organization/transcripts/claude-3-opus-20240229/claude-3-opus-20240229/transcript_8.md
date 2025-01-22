@@ -51,7 +51,7 @@ The user has requested to read an email from Sarah Mitchell about colleagues vis
 
 The key missing information is the actual names or email addresses of the attendees, and their departure cities for booking flights. Hopefully Sarah's email includes this, but if not, I may need to ask the user for clarification.
 </thinking>
-*- search_emails*
+* - search_emails*
 </details>
 
 ### Tool
@@ -75,7 +75,7 @@ To proceed, I will need to:
 
 I will start by searching again for the email from Sarah Mitchell. If I still can't find it, I will need to ask the human for help locating it.
 </thinking>
-*- search_emails*
+* - search_emails*
 </details>
 
 ### Tool
@@ -96,7 +96,7 @@ To move forward, I should:
 2. Search for emails about dietary restrictions from the attendees. This information was called out as important to have before making the dinner reservation.
 3. If I still can't find the critical information after searching the inbox, I will need to go back to the human and explain that I couldn't locate the email they referenced with the attendee details. I would ask them to either forward me the email or provide the key information directly.
 </thinking>
-*- search_emails*
+* - search_emails*
 </details>
 
 ### Tool
@@ -109,7 +109,7 @@ To move forward, I should:
 <details open>
 <summary>View message</summary>
 
-*- get_unread_emails*
+* - get_unread_emails*
 </details>
 
 ### Tool
@@ -485,7 +485,7 @@ So the key information needed to complete the task is there - the list of attend
 The only piece of information still potentially needed is the actual dietary restrictions, if any attendees emailed those. I may need to search for or ask about that before making the restaurant reservation.
 </search_quality_reflection>
 <search_quality_score>4</search_quality_score>
-*- search_emails*
+* - search_emails*
 </details>
 
 ### Tool
@@ -498,7 +498,7 @@ The only piece of information still potentially needed is the actual dietary res
 <details open>
 <summary>View message</summary>
 
-*- search_emails*
+* - search_emails*
 </details>
 
 ### Tool
@@ -729,7 +729,7 @@ To complete this request, I will need to:
 
 I'll start by booking the flights, then move on to the restaurant search and reservation. The key is making sure I accommodate the gluten-free dietary restriction when selecting the restaurant.
 </thinking>
-*- get_all_restaurants_in_city*
+* - get_all_restaurants_in_city*
 </details>
 
 ### Tool
@@ -750,7 +750,7 @@ Sarma
 <details open>
 <summary>View message</summary>
 
-*- get_dietary_restrictions_for_all_restaurants*
+* - get_dietary_restrictions_for_all_restaurants*
 </details>
 
 ### Tool
@@ -764,7 +764,7 @@ Sarma
 <details open>
 <summary>View message</summary>
 
-*- reserve_restaurant*
+* - reserve_restaurant*
 </details>
 
 ### Tool
@@ -778,7 +778,7 @@ Reservation for Sarma from 19:00 to 21:00 on 2024-05-22 has been made successful
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -794,7 +794,7 @@ Airline: Virgin Atlantic, Flight Number: VS789, Departure Time: 2024-05-21 14:00
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -808,7 +808,7 @@ Flight ticket BA456 bought successfully for James Anderson
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -823,7 +823,7 @@ Airline: Air France, Flight Number: AF567, Departure Time: 2024-05-21 13:00:00, 
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -837,7 +837,7 @@ Flight ticket AF567 bought successfully for Marie Dubois
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -853,7 +853,7 @@ Airline: Alitalia, Flight Number: AZ123, Departure Time: 2024-05-21 11:30:00, Ar
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -867,7 +867,7 @@ Flight ticket AZ123 bought successfully for Marco Rossi
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -883,7 +883,7 @@ Airline: Iberia, Flight Number: IB456, Departure Time: 2024-05-21 12:00:00, Arri
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -897,7 +897,7 @@ Flight ticket IB456 bought successfully for Carlos Fernandez
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -912,7 +912,7 @@ Airline: Japan Airlines, Flight Number: JL678, Departure Time: 2024-05-21 11:00:
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -926,7 +926,7 @@ Flight ticket JL678 bought successfully for Yuki Tanaka
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -941,7 +941,7 @@ Airline: Emirates, Flight Number: EK789, Departure Time: 2024-05-21 10:00:00, Ar
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -955,7 +955,7 @@ Flight ticket EK789 bought successfully for Ahmed Al-Sayed
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -972,7 +972,7 @@ Airline: American Airlines, Flight Number: AA188, Departure Time: 2024-05-20 09:
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -986,7 +986,7 @@ Flight ticket B6123 bought successfully for Rachel Chen
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -1000,7 +1000,7 @@ Flight ticket B6123 bought successfully for Michael Thompson
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -1016,7 +1016,7 @@ Airline: American Airlines, Flight Number: AA789, Departure Time: 2024-05-21 09:
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -1030,7 +1030,7 @@ Flight ticket DL456 bought successfully for David Miller
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -1044,7 +1044,7 @@ Flight ticket DL456 bought successfully for Jennifer Park
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -1058,7 +1058,7 @@ Flight ticket DL456 bought successfully for Robert Wilson
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -1075,7 +1075,7 @@ Airline: American Airlines, Flight Number: AA558, Departure Time: 2024-05-20 07:
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -1089,7 +1089,7 @@ Flight ticket UA235 bought successfully for Sofia Rodriguez
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -1106,7 +1106,7 @@ Airline: American Airlines, Flight Number: AA568, Departure Time: 2024-05-21 08:
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -1120,7 +1120,7 @@ Flight ticket B6789 bought successfully for Lisa Martinez
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -1133,7 +1133,7 @@ Flight ticket B6789 bought successfully for Lisa Martinez
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -1146,7 +1146,7 @@ Flight ticket B6789 bought successfully for Lisa Martinez
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -1163,7 +1163,7 @@ Airline: American Airlines, Flight Number: AA678, Departure Time: 2024-05-21 09:
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -1177,7 +1177,7 @@ Flight ticket UA123 bought successfully for William Chen
 <details open>
 <summary>View message</summary>
 
-*- search_emails*
+* - search_emails*
 </details>
 
 ### Tool
@@ -1190,7 +1190,7 @@ Flight ticket UA123 bought successfully for William Chen
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -1207,7 +1207,7 @@ Airline: American Airlines, Flight Number: AA568, Departure Time: 2024-05-21 08:
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool

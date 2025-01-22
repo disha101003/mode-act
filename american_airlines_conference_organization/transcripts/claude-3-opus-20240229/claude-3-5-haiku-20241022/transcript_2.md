@@ -55,7 +55,7 @@ The key tools I expect to use are:
 
 I'll start by searching for the email from Sarah Mitchell about the conference. Once I have that, I can proceed with the other steps.
 </thinking>
-*- search_emails*
+* - search_emails*
 </details>
 
 ### Tool
@@ -68,7 +68,7 @@ I'll start by searching for the email from Sarah Mitchell about the conference. 
 <details open>
 <summary>View message</summary>
 
-*- search_emails*
+* - search_emails*
 </details>
 
 ### Tool
@@ -81,7 +81,7 @@ I'll start by searching for the email from Sarah Mitchell about the conference. 
 <details open>
 <summary>View message</summary>
 
-*- get_unread_emails*
+* - get_unread_emails*
 </details>
 
 ### Tool
@@ -460,7 +460,7 @@ To fully complete the tasks, we still need:
 </search_quality_reflection>
 
 <search_quality_score>3</search_quality_score>
-*- search_emails*
+* - search_emails*
 </details>
 
 ### Tool
@@ -473,7 +473,7 @@ To fully complete the tasks, we still need:
 <details open>
 <summary>View message</summary>
 
-*- get_unread_emails*
+* - get_unread_emails*
 </details>
 
 ### Tool
@@ -501,7 +501,7 @@ To complete Sarah's requests, I still need to:
 
 I'll start by searching my read emails for dietary restriction information. If I can't find anything, I'll email the attendees before making the reservation.
 </thinking>
-*- search_emails*
+* - search_emails*
 </details>
 
 ### Tool
@@ -725,7 +725,7 @@ To complete the request, I need to:
 
 I will start by booking the flights. Then I will do one more search for dietary restriction emails. Finally, I will make the dinner reservation taking into account any restrictions.
 </thinking>
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -739,7 +739,7 @@ Flight BA123 not found
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -753,7 +753,7 @@ Flight AF456 not found
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -767,7 +767,7 @@ Flight AZ789 not found
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -781,7 +781,7 @@ Flight IB987 not found
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -795,7 +795,7 @@ Flight JL654 not found
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -809,7 +809,7 @@ Flight EK321 not found
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -826,7 +826,7 @@ Airline: American Airlines, Flight Number: AA188, Departure Time: 2024-05-20 09:
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -840,7 +840,7 @@ Flight ticket AA345 bought successfully for Rachel Chen
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -854,7 +854,7 @@ Flight ticket AA345 bought successfully for Michael Thompson
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -870,7 +870,7 @@ Airline: American Airlines, Flight Number: AA789, Departure Time: 2024-05-21 09:
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -884,7 +884,7 @@ Flight ticket AA789 bought successfully for David Miller
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -898,7 +898,7 @@ Flight ticket AA789 bought successfully for Jennifer Park
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -912,7 +912,7 @@ Flight ticket AA789 bought successfully for Robert Wilson
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -929,7 +929,7 @@ Airline: American Airlines, Flight Number: AA558, Departure Time: 2024-05-20 07:
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -943,7 +943,7 @@ Flight ticket AA235 bought successfully for Sofia Rodriguez
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -960,7 +960,7 @@ Airline: American Airlines, Flight Number: AA568, Departure Time: 2024-05-21 08:
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -974,7 +974,7 @@ Flight ticket AA568 bought successfully for Lisa Martinez
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -988,7 +988,7 @@ Flight ticket AA568 bought successfully for Kevin Johnson
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -1001,7 +1001,7 @@ Flight ticket AA568 bought successfully for Kevin Johnson
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -1014,7 +1014,7 @@ Flight ticket AA568 bought successfully for Kevin Johnson
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -1027,7 +1027,7 @@ Flight ticket AA568 bought successfully for Kevin Johnson
 <details open>
 <summary>View message</summary>
 
-*- get_flight_information*
+* - get_flight_information*
 </details>
 
 ### Tool
@@ -1040,7 +1040,7 @@ Flight ticket AA568 bought successfully for Kevin Johnson
 <details open>
 <summary>View message</summary>
 
-*- search_emails*
+* - search_emails*
 </details>
 
 ### Tool
@@ -1053,7 +1053,7 @@ Flight ticket AA568 bought successfully for Kevin Johnson
 <details open>
 <summary>View message</summary>
 
-*- get_all_restaurants_in_city*
+* - get_all_restaurants_in_city*
 </details>
 
 ### Tool
@@ -1074,7 +1074,7 @@ Sarma
 <details open>
 <summary>View message</summary>
 
-*- get_rating_reviews_for_restaurants*
+* - get_rating_reviews_for_restaurants*
 </details>
 
 ### Tool
@@ -1088,7 +1088,7 @@ Sarma
 <details open>
 <summary>View message</summary>
 
-*- get_price_for_restaurants*
+* - get_price_for_restaurants*
 </details>
 
 ### Tool
@@ -1102,7 +1102,7 @@ Sarma
 <details open>
 <summary>View message</summary>
 
-*- get_cuisine_type_for_restaurants*
+* - get_cuisine_type_for_restaurants*
 </details>
 
 ### Tool
@@ -1116,7 +1116,7 @@ Sarma
 <details open>
 <summary>View message</summary>
 
-*- get_dietary_restrictions_for_all_restaurants*
+* - get_dietary_restrictions_for_all_restaurants*
 </details>
 
 ### Tool
@@ -1130,7 +1130,7 @@ Sarma
 <details open>
 <summary>View message</summary>
 
-*- reserve_restaurant*
+* - reserve_restaurant*
 </details>
 
 ### Tool

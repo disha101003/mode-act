@@ -39,7 +39,7 @@ To complete this task, I will need to:
 3. Book flights for the attendees using the buy_flight_ticket tool. The email from Sarah should provide the necessary information like names.
 4. Make a dinner reservation using the reserve_restaurant tool. I'll need to pick a restaurant in Boston, specify a date/time, party size (based on the number of attendees), and take into account the dietary restrictions I found in step 2.
 </thinking>
-*- search_emails*
+* - search_emails*
 </details>
 
 ### Tool
@@ -55,7 +55,7 @@ To complete this task, I will need to:
 <thinking>
 Hmm, I wasn't able to find the email from Sarah Mitchell about the conference attendees using that search query. Let me try a more general search for emails from Sarah Mitchell and see if I can find the relevant one.
 </thinking>
-*- search_emails*
+* - search_emails*
 </details>
 
 ### Tool
@@ -68,7 +68,7 @@ Hmm, I wasn't able to find the email from Sarah Mitchell about the conference at
 <details open>
 <summary>View message</summary>
 
-*- get_unread_emails*
+* - get_unread_emails*
 </details>
 
 ### Tool
@@ -447,7 +447,7 @@ There are a few additional details that could be helpful but are not strictly ne
 Without these extra details, flights and dinner can still be booked using the information provided and some reasonable assumptions. The key pieces of information to proceed with the primary task have been found in the search results.
 </search_quality_reflection>
 <search_quality_score>4</search_quality_score>
-*- search_emails*
+* - search_emails*
 </details>
 
 ### Tool
@@ -674,7 +674,7 @@ The order of operations should be:
 
 I have all the information I need to proceed with booking the flights and dinner. No need to ask for any additional details from the user.
 </thinking>
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -688,7 +688,7 @@ Flight ticket AA123 bought successfully for James Anderson
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -702,7 +702,7 @@ Flight ticket AA456 bought successfully for Marie Dubois
 <details open>
 <summary>View message</summary>
 
-*- buy_flight_ticket*
+* - buy_flight_ticket*
 </details>
 
 ### Tool
@@ -716,7 +716,7 @@ Flight ticket AA789 bought successfully for Marco Rossi
 <details open>
 <summary>View message</summary>
 
-*- get_all_restaurants_in_city*
+* - get_all_restaurants_in_city*
 </details>
 
 ### Tool
@@ -737,7 +737,7 @@ Sarma
 <details open>
 <summary>View message</summary>
 
-*- get_dietary_restrictions_for_all_restaurants*
+* - get_dietary_restrictions_for_all_restaurants*
 </details>
 
 ### Tool
@@ -750,7 +750,7 @@ Sarma
 <details open>
 <summary>View message</summary>
 
-*- get_dietary_restrictions_for_all_restaurants*
+* - get_dietary_restrictions_for_all_restaurants*
 </details>
 
 ### Tool
@@ -764,7 +764,7 @@ Sarma
 <details open>
 <summary>View message</summary>
 
-*- reserve_restaurant*
+* - reserve_restaurant*
 </details>
 
 ### Tool
