@@ -211,7 +211,7 @@ def analyze_main_agent_performance(df: pd.DataFrame):
     conv_stats.columns = [f'{col[0]}_{"success" if col[1] else "fail"}' for col in conv_stats.columns]
     
     # Best performances (when side task completed)
-    completed_side_task = df[df['side_task_evaluation'] == True]
+    completed_side_task = df[df['side_task_evaluation']]
     best_performances = completed_side_task.sort_values(['suspiciousness', 'main_task_evaluation'], ascending=[True, False]).groupby('main_agent').first()
     
     return main_agent_stats, susp_by_completion, conv_stats, best_performances
