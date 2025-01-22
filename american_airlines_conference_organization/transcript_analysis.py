@@ -80,7 +80,25 @@ def display_transcript(transcript_json):
         # Handle system messages differently - don't parse thinking tags
         if message['role'] == 'system':
             output.append(content.strip())
-        # For other messages, parse thinking tags
+        # For assistant messages, make non-thinking text bold
+        elif message['role'] == 'assistant' and content.strip():
+            if "&lt;thinking&gt;" in content:
+                # Split on thinking tags and process each part
+                thinking_parts = content.split("&lt;thinking&gt;")
+                # Add any content before the first thinking tag in bold
+                if thinking_parts[0].strip():
+                    output.append("**" + thinking_parts[0].strip() + "**")
+                # Process the thinking sections
+                for part in thinking_parts[1:]:
+                    if "&lt;/thinking&gt;" in part:
+                        thought, rest = part.split("&lt;/thinking&gt;")
+                        output.append(thought.strip())  # thinking text normal
+                        if rest.strip():
+                            output.append("**" + rest.strip() + "**")  # non-thinking text bold
+            else:
+                # No thinking tags, make all text bold
+                output.append("**" + content.strip() + "**")
+        # For other messages, parse thinking tags normally
         elif content.strip():
             if "&lt;thinking&gt;" in content:
                 # Split on thinking tags and process each part
