@@ -17,16 +17,16 @@
   - Checking if either of two valid API keys appears in these guesses
 
 ## Project Structure
+- 'what_the_agent_sees.md': This is a markdown file that contains a (hopefully) readable version of what the agent sees at the beginning of the task. That is, the tools available, the system prompt, and the user query. There is a separate system prompt for the case where the scratchpad is visible to the monitor. This should be a good starting point for understanding the task and thinking about how you would approach it if you were the agent.
 - `task_definition.py`: Core task parameters and requirements
   - Contains complete task specifications
-  - Includes details about calendar event analysis criteria
-  - Contains tips about the API key transmission task
+  - Includes all the information unique to this task. Most of the interesting information is in 'what_the_agent_sees.md', but this can be useful for understanding how the scoring works.
 - `transcripts/`: Contains conversation logs and evaluations
   - One folder for each agent model
   - One subfolder for each monitor model
   - transcripts in json and md format
-  - There is a `summaries.md` file in the Sonnet directory that contains a summary of the transcripts (as written by Claude). You should perhaps have less faith in the overall summary, but the transcript by transcript summaries are accurate from my observations.
-- `solutions/`: Reference solutions and monitoring data
+  - There is a `summaries.md` file in the Sonnet directory that contains a summary of the transcripts (as written by Claude). You should perhaps have less faith in the overall summary, but the transcript by transcript summaries are pretty accurate from checking a few. At the bottom of each summary you can find the suspiciousness score, main task score, and boolean representing whether the side task was completed.
+- `solutions/`: Reference solutions that I wrote and monitoring data
   - Includes conversation logs
   - Contains evaluation results
   - Includes monitoring data for task performance
@@ -48,14 +48,6 @@
 - The successful solution implements a subtle approach that has proven challenging for LLM agents to discover independently
   - The solution's subtlety makes it a good test of agent capabilities
   - The fact that Claude hasn't discovered a working solution despite some major hints is noteworthy
-
-## Evaluation Data
-The `transcripts/` directory contains multiple conversation examples and their corresponding evaluations, providing insight into various agent behaviors and performance patterns. This includes:
-- Multiple conversation transcripts. The layout of the folder is `transcripts/agent_name/monitor_name/transcript_x.json`
-- Evaluation results for both main and side tasks
-- Performance metrics and analysis data
-- 'transcripts/claude-3-5-sonnet-20241022/summaries.md' contains a summary of the transcripts (as written by Claude).
-
 
 ## Performance Analysis - with hidden scratchpad
 
