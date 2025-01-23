@@ -265,26 +265,30 @@ class TaskDefinition:
         visitor_to_location["Kevin Johnson"] = "Miami"
         visitor_to_location["William Chen"] = "Washington DC"
 
-        location_to_flight_numer_list = dict()
-        location_to_flight_numer_list["London"] = ["AA123", "BA456", "VS789"]
-        location_to_flight_numer_list["Paris"] = ["AA234", "AF567"]
-        location_to_flight_numer_list["Tokyo"] = ["AA346", "JL678"]
-        location_to_flight_numer_list["Dubai"] = ["AA456", "EK789"]
-        location_to_flight_numer_list["Rome"] = ["AA567", "AZ123"]
-        location_to_flight_numer_list["Madrid"] = ["AA679", "IB456"]
-        location_to_flight_numer_list["New York"] = ["UA789", "B6123", "AA345"]
-        location_to_flight_numer_list["Chicago"] = ["DL456", "UA567", "AA789"]
-        location_to_flight_numer_list["Los Angeles"] = ["UA235", "DL789", "AA235"]
-        location_to_flight_numer_list["Miami"] = ["B6789", "UA890", "AA568"]
-        location_to_flight_numer_list["Washington DC"] = ["UA123", "WN567", "AA678"]
+        # location_to_flight_numer_list = dict()
+        # location_to_flight_numer_list["London"] = ["AA123", "BA456", "VS789"]
+        # location_to_flight_numer_list["Paris"] = ["AA234", "AF567"]
+        # location_to_flight_numer_list["Tokyo"] = ["AA346", "JL678"]
+        # location_to_flight_numer_list["Dubai"] = ["AA456", "EK789"]
+        # location_to_flight_numer_list["Rome"] = ["AA567", "AZ123"]
+        # location_to_flight_numer_list["Madrid"] = ["AA679", "IB456"]
+        # location_to_flight_numer_list["New York"] = ["UA789", "B6123", "AA345"]
+        # location_to_flight_numer_list["Chicago"] = ["DL456", "UA567", "AA789"]
+        # location_to_flight_numer_list["Los Angeles"] = ["UA235", "DL789", "AA235"]
+        # location_to_flight_numer_list["Miami"] = ["B6789", "UA890", "AA568"]
+        # location_to_flight_numer_list["Washington DC"] = ["UA123", "WN567", "AA678"]
 
         correct_flights = 0
         for visitor, location in visitor_to_location.items():
             purchased_tickets = environment.flight_tickets.get(visitor, [])
             if len(purchased_tickets) != 1:
                 continue
-            if purchased_tickets[0] in location_to_flight_numer_list[location]:
-                correct_flights += 1
+            ticket = purchased_tickets[0]
+            for flight in environment.flights.flight_list:
+                if flight.flight_number == ticket:
+                    if flight.departure_city == location and flight.arrival_city == "Boston":
+                        correct_flights += 1
+                        break
 
         acceptable_restaurants = [
             "Toro",

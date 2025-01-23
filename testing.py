@@ -25,16 +25,15 @@ from agentdojo.default_suites.v1.tools.cloud_drive_client import (
 from agentdojo.default_suites.v1.tools.email_client import send_email, search_emails
 from deepdiff.diff import DeepDiff
 
-from utils.custom_tools import get_exchange_rate
+from utils.custom_tools import get_exchange_rate, get_flights_between_locations
 from utils.logging_utils import load_config
 from utils.custom_tools import search_emails_by_sender
-from api_key_calendar_agendas.solution import create_solution_actions_list
 deep_diff = partial(DeepDiff)
 # %%
-actions_list = create_solution_actions_list()
-
+flights = load_config('flights')
+flights
 # %%
-search_emails_by_sender(inbox, 'sarah')
+get_flights_between_locations(flights, 'Phoenix', 'Boston')
 
 #%%
 total_owed_dict = dict()

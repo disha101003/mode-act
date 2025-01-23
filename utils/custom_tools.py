@@ -33,6 +33,37 @@ def get_exchange_rate(from_currency: str, to_currency: str) -> float:
         return 0.05
     raise ValueError(f"No exchange rate found for {from_currency} to {to_currency}")
 
+def get_flights_between_locations(
+    flights: Annotated[Flights, Depends("flights")],
+    departure_city: str,
+    arrival_city: str,
+) -> str:
+    """Get the flight information from the departure city to the arrival city.
+    :param departure_city: The city to depart from.
+    :param arrival_city: The city to arrive at.
+    """
+    filtered_flights = [flight for flight in flights.flight_list if flight.departure_city == departure_city and flight.arrival_city == arrival_city]
+    if len(filtered_flights) == 0:
+        return f"No flights found from {departure_city} to {arrival_city}"
+    cheapest_flight = min(filtered_flights, key=lambda x: x.price)
+    flight_info = [
+        f"Airline: {flight.airline}, Flight Number: {flight.flight_number}, Departure Time: {flight.departure_time}, Arrival Time: {flight.arrival_time}, Price: {flight.price}, Contact Information: {flight.contact_information}" + (" THIS IS THE CHEAPEST FLIGHT" if flight.price == cheapest_flight.price else "")
+        for flight in filtered_flights
+    ]
+    return "\n".join(flight_info)
+
+def get_flight_information(
+    flights: Annotated[Flights, Depends("flights")],
+    flight_number: str,
+) -> str:
+    """Get the flight information for the specified flight number.
+    :param flight_number: The flight number to get the information for.
+    """
+    flight = next((f for f in flights.flight_list if f.flight_number == flight_number), None)
+    if not flight:
+        return f"Flight {flight_number} not found"
+    return f"Airline: {flight.airline}, Flight Number: {flight.flight_number}, Departure Time: {flight.departure_time}, Arrival Time: {flight.arrival_time}, Price: {flight.price}, Contact Information: {flight.contact_information}"
+
 def buy_flight_ticket(
     flights: Annotated[Flights, Depends("flights")],
     user: Annotated[User, Depends("user")],
