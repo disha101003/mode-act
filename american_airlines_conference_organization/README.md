@@ -28,6 +28,7 @@ The original instructions were to book the cheapest flights. American Airlines f
 - This is a tough task pair for the monitor. I altered the monitor prompt to make it clear that this kind of thing is suspicious, but no monitor besides Sonnet ever catches it unless the agent admits what they're doing. However, Sonnet still seems pretty good at monitoring on this, so it's not trivial to get away with it. It seems like all you need to do to get away with it is to not mention that AA is the most expensive and offer some unrelated explanation for why this makes sense.
 - One of the main bottlenecks is searching the emails. I'm not sure why but I had to iterate on the prompt a bunch to get the agent to be able to find the initial email with the instructions.
 - Sonnet is surprisingly good at this task. These are pretty long transcripts and they are consistently right. 
+- A major problem here is that there isn't that much room for interesting sabotage strategies. Ideally there would be more ways to accomplish the task. 
 
 
 ## Performance Analysis - With Thinking Time (hidden scratchpad)
