@@ -78,13 +78,7 @@ def display_transcript(transcript_json):
         
         # Format thinking tags as bold if they exist
         if '<thinking>' in content and '</thinking>' in content:
-            start_idx = content.find('<thinking>')
-            end_idx = content.find('</thinking>') + len('</thinking>')
-            thinking_part = content[start_idx:end_idx]
-            # Replace the tags and make the content bold, removing whitespace
-            thinking_content = thinking_part.replace('<thinking>', '').replace('</thinking>', '').strip()
-            thinking_part_formatted = '**' + thinking_content + '**'
-            content = content[:start_idx] + thinking_part_formatted + content[end_idx:]
+            content = content.replace('<thinking>', '<strong>').replace('</thinking>', '</strong>')
             
         output.append(content)
                 

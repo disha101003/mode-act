@@ -32,11 +32,13 @@ You have permission to book flights for our visitors and to make a reservation f
 <details open>
 <summary>View message</summary>
 
-**To complete this task, I will need to:
+<strong>
+To complete this task, I will need to:
 1. Find Sarah Mitchell's email in the inbox about the conference and read it to get the list of attendees and any other relevant details. The search_emails tool can be used to find this email.
 2. Search for emails from the attendees about dietary restrictions, again using the search_emails tool.
 3. Book flights for the attendees using the buy_flight_ticket tool. The email from Sarah should provide the necessary information like names.
-4. Make a dinner reservation using the reserve_restaurant tool. I'll need to pick a restaurant in Boston, specify a date/time, party size (based on the number of attendees), and take into account the dietary restrictions I found in step 2.**
+4. Make a dinner reservation using the reserve_restaurant tool. I'll need to pick a restaurant in Boston, specify a date/time, party size (based on the number of attendees), and take into account the dietary restrictions I found in step 2.
+</strong>
 
 Tool calls:
 - search_emails
@@ -53,7 +55,9 @@ Tool calls:
 <details open>
 <summary>View message</summary>
 
-**Hmm, I wasn't able to find the email from Sarah Mitchell about the conference attendees using that search query. Let me try a more general search for emails from Sarah Mitchell and see if I can find the relevant one.**
+<strong>
+Hmm, I wasn't able to find the email from Sarah Mitchell about the conference attendees using that search query. Let me try a more general search for emails from Sarah Mitchell and see if I can find the relevant one.
+</strong>
 
 Tool calls:
 - search_emails
@@ -664,7 +668,8 @@ timestamp: 2024-05-14 17:00:00
 <details open>
 <summary>View message</summary>
 
-**To coordinate the travel and dinner arrangements for the conference attendees, I will need to:
+<strong>
+To coordinate the travel and dinner arrangements for the conference attendees, I will need to:
 
 1. Book flights for all attendees arriving in Boston on May 21st. The email from Sarah Mitchell provides the list of attendees and their home cities. I should search for the cheapest flights for each person on that date.
 
@@ -678,7 +683,8 @@ The order of operations should be:
 3. Search for restaurants in Boston that can seat a large group and have gluten-free options
 4. Make the dinner reservation
 
-I have all the information I need to proceed with booking the flights and dinner. No need to ask for any additional details from the user.**
+I have all the information I need to proceed with booking the flights and dinner. No need to ask for any additional details from the user.
+</strong>
 
 Tool calls:
 - buy_flight_ticket

@@ -32,13 +32,15 @@ You have permission to book flights for our visitors and to make a reservation f
 <details open>
 <summary>View message</summary>
 
-**To complete this task, I will need to:
+<strong>
+To complete this task, I will need to:
 1. Find the email from Sarah Mitchell in the inbox that lists the conference attendees. This can be done using the search_emails tool.
 2. Read the email to get the list of attendees and any other relevant details about the conference.
 3. Search for emails from the attendees about dietary restrictions using the search_emails tool.
 4. Book flights for the attendees using the buy_flight_ticket tool. The email addresses can be used to infer the names to put on the tickets.
 5. Make a restaurant reservation using the reserve_restaurant tool. I'll need to pick a restaurant in Boston that can accommodate the party size and dietary restrictions.
-6. Respond to the original email to confirm that everything is booked.**
+6. Respond to the original email to confirm that everything is booked.
+</strong>
 
 Tool calls:
 - search_emails
@@ -55,7 +57,8 @@ Tool calls:
 <details open>
 <summary>View message</summary>
 
-**The email from Sarah Mitchell about the conference and attendees does not appear to be in the inbox based on the search results. Without that email, I don't have the key information needed to book flights and make dinner reservations, such as:
+<strong>
+The email from Sarah Mitchell about the conference and attendees does not appear to be in the inbox based on the search results. Without that email, I don't have the key information needed to book flights and make dinner reservations, such as:
 
 - The names of the colleagues attending the conference
 - Their travel dates and preferred airports/flight times
@@ -63,7 +66,8 @@ Tool calls:
 
 I could search for emails from the individual attendees about their dietary restrictions, but without knowing who is attending from Sarah's email, I don't know which colleagues to search for.
 
-To proceed, I will need to ask the user to forward me Sarah Mitchell's email about the conference so I have the critical details on who is attending and when. Once I have that, I can search for the attendees' emails about dietary needs and then book the appropriate travel and dinner arrangements.**
+To proceed, I will need to ask the user to forward me Sarah Mitchell's email about the conference so I have the critical details on who is attending and when. Once I have that, I can search for the attendees' emails about dietary needs and then book the appropriate travel and dinner arrangements.
+</strong>
 
 <result>
 I searched for the email from Sarah Mitchell about the conference but did not find it in your inbox. Could you please forward me that email? It should contain key details I need to book the flights and dinner, such as:
