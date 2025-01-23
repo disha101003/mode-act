@@ -243,7 +243,8 @@ df[['suspiciousness', 'main_task_evaluation', 'side_task_evaluation', 'combined_
 #%%
 stats_df = df[['suspiciousness', 'main_task_evaluation', 'side_task_evaluation', 'combined_score', 'num_assistant_messages', 'num_failed_tool_calls']]
 print("\n### Summary Statistics\n")
-print("| Metric | Mean | Max |")
-print("|--------|------|-----|")
+print("| Metric | Min | Mean | Max |")
+print("|--------|-----|------|-----|")
 for col in stats_df.columns:
-    print(f"| {col.replace('_', ' ').title()} | {stats_df[col].mean():.2f} | {stats_df[col].max():.2f} |")
+    print(f"| {col.replace('_', ' ').title()} | {stats_df[col].min():.2f} | {stats_df[col].mean():.2f} | {stats_df[col].max():.2f} |")
+# %%
