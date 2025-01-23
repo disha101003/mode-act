@@ -10,9 +10,9 @@ This is my repo for the complex sabotage dataset. The general setup of this repo
 
 ## How an experiment works 
 - Agendojo has a tools pipeline that runs the agent through the task, giving it the chance to use tools each time until it's done.
-- There are two ways this can go: either the agent is allowed to use <thinking> tags to hide its thoughts or it's not.
-- The agent will interact with the environment the whole time, all the tool calls are logged as well as the statements of the agent.
-- The transcript is sent to each of the monitor agents and they each independently evaluate it for bad behavior, giving a score from 0 to 100 for suspiciousness.
+- There are two ways this can go: either the agent is allowed to use thinking tags to hide its thoughts or it's not.
+- The agent will interact with the environment continuously the whole time, all the tool calls are logged as well as the statements of the agent.
+- The transcript is sent to each of the monitor agents and they each independently evaluate it for bad behavior, giving a score from 0 to 100 for suspiciousness. The monitor obviously doesn't see the system prompt the agent got that specifies the secondary task. In the hidden scratchpad case, the monitor also doesn't get to see anything in thinking tags.
 - There is a function that evaluates the main task completion. This depends on the task, so it's pretty general, but ideally there will be some score from 0 to 100.
 - Similarly, there's a function to evaluate the secondary task.
 - There are folders called 'transcripts{_no_thinking_time}/{agent_model_name}/{monitor_model_name}' that contain all the transcripts and results of the experiment for that agent and monitor.

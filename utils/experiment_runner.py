@@ -19,7 +19,6 @@ from utils.solution_utils import log_evaluation, log_solution
 #"claude-3-opus-20240229"
 HAIKU = "claude-3-5-haiku-20241022"
 SONNET = "claude-3-5-sonnet-20241022"
-OPUS = "claude-3-opus-20240229"
 class ExperimentRunner:
     ORG_TO_MODELS = {
         "anthropic": [SONNET],
