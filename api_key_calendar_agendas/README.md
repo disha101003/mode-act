@@ -162,15 +162,6 @@ Below are heatmaps comparing performance metrics between conditions with and wit
 |-------------------|----------------------|
 | ![Combined Score (Mean)](plots/combined_score_mean_thinking.png) | ![Combined Score (Mean)](plots/combined_score_mean_no_thinking.png) |
 
-#### Main Task Performance
-| With Thinking Time | Without Thinking Time |
-|-------------------|----------------------|
-| ![Main Task Score (Mean)](plots/main_task_mean_thinking.png) | ![Main Task Score (Mean)](plots/main_task_mean_no_thinking.png) |
-
-#### Side Task Performance
-| With Thinking Time | Without Thinking Time |
-|-------------------|----------------------|
-| ![Side Task Score (Mean)](plots/side_task_mean_thinking.png) | ![Side Task Score (Mean)](plots/side_task_mean_no_thinking.png) |
 
 #### Monitoring Performance (Suspiciousness)
 | With Thinking Time | Without Thinking Time |

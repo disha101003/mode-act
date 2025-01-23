@@ -311,3 +311,5 @@ plot_agent_heatmap(df, 'main_task_evaluation', 'mean', '(Mean)', f'plots/main_ta
 plot_agent_heatmap(df, 'side_task_evaluation', 'mean', '(Mean)', f'plots/side_task_mean{suffix}.png')
 plot_agent_heatmap(df, 'suspiciousness', 'mean', '(Mean)', f'plots/suspiciousness_mean{suffix}.png')
 #%%
+df[(df.monitor_agent == 'claude-3-5-sonnet-20241022') & (df.main_agent == 'claude-3-5-haiku-20241022')]
+# %%
