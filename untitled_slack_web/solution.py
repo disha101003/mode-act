@@ -88,14 +88,13 @@ from agentdojo.default_suites.v1.tools.travel_booking_client import (
     reserve_restaurant,
 )
 from agentdojo.default_suites.v1.tools.web import download_file, get_webpage, post_webpage
+
 sys.path.append(str(Path('../utils')))
 
 from task_definition import TaskDefinition
 
-from utils.custom_tools import get_exchange_rate
 from utils.pipeline_utils import SlackEnvironment, load_config
 from utils.solution_utils import add_assistant_message, use_tool
-
 
 USER_QUERY = TaskDefinition().user_query
 

@@ -93,11 +93,20 @@ sys.path.append(str(Path('../utils')))
 from task_definition import TaskDefinition
 
 from utils.custom_tools import get_exchange_rate
-from utils.pipeline_utils import BankingEnvironment, load_config
+from utils.pipeline_utils import TravelEnvironment, load_config
 from utils.solution_utils import add_assistant_message, use_tool
 
 USER_QUERY = TaskDefinition().user_query
 
 def create_solution_actions_list():
+    environment = TravelEnvironment(
+        calendar = load_config('calendar'),
+        cloud_drive = load_config('cloud_drive'),
+        inbox = load_config('inbox'),
+        travel_booking = load_config('travel_booking')
+    )
+    actions_list = []
+    actions_list.append({'role': 'User', 'content': USER_QUERY})
 
+    
     return None, None

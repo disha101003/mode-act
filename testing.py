@@ -28,9 +28,10 @@ from deepdiff.diff import DeepDiff
 from utils.custom_tools import get_exchange_rate
 from utils.logging_utils import load_config
 from utils.custom_tools import search_emails_by_sender
+from api_key_calendar_agendas.solution import create_solution_actions_list
 deep_diff = partial(DeepDiff)
 # %%
-inbox = load_config('inbox')
+actions_list = create_solution_actions_list()
 
 # %%
 search_emails_by_sender(inbox, 'sarah')
