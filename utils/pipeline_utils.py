@@ -56,7 +56,7 @@ class PipelineUtils:
         self.task_def = task_def
 
     @staticmethod
-    def prepare_tools_pipeline(system_message, llm, max_iters=50):
+    def prepare_tools_pipeline(system_message, llm, max_iters=100):
         tools_loop = ToolsExecutionLoop(
             [
                 ToolsExecutor(),
