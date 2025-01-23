@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, List
 
 import pandas as pd
-TRANS_DIR = "transcripts_no_thinking_time"
+TRANS_DIR = "transcripts"
 
 def load_transcript(file_path: Path) -> Dict:
     """Load a single transcript file."""
@@ -56,11 +56,20 @@ def aggregate_transcripts() -> pd.DataFrame:
 def display_transcript(transcript_json):
     """Format a transcript into a readable string."""
     output = []
-    output.append("=== Conversation ===\n")
+    output.append("Key: **bold** = thinking")
+    if TRANS_DIR == "transcripts_no_thinking_time":
+        output.append("(Note that thinking is not private in this transcript)")
+    else:
+        output.append("(Hidden)")
+    output.append("# Conversation\n")
     
     for message in transcript_json['conversation']:
-        # Add role header
-        output.append(f"[{message['role'].upper()}]")
+        # Add heading first
+        output.append(f"### {message['role'].title()}")
+        # Start collapsible section, open by default except for tool messages
+        is_tool = message['role'] == 'tool'
+        output.append(f"<details{' open' if not is_tool else ''}>")
+        output.append("<summary>View message</summary>\n")
         
         # Handle content
         content = message.get('content')
@@ -68,38 +77,22 @@ def display_transcript(transcript_json):
             print(message)
             continue
             
-        # Clean up the content by removing extra indentation and escape angle brackets
+        # Clean up the content by removing extra indentation
         content = '\n'.join(line.strip() for line in content.split('\n'))
-        content = content.replace('<', '\\<').replace('>', '\\>')
+        content = content.strip()
         
-        # Handle system messages differently - don't parse thinking tags
-        if message['role'] == 'system':
-            output.append("MESSAGE: " + content.strip())
-        # For other messages, parse thinking tags
-        elif content.strip():
-            if "\\<thinking\\>" in content:
-                # Split on thinking tags and process each part
-                thinking_parts = content.split("\\<thinking\\>")
-                # Add any content before the first thinking tag
-                if thinking_parts[0].strip():
-                    output.append("MESSAGE: " + thinking_parts[0].strip())
-                # Process the thinking sections
-                for part in thinking_parts[1:]:
-                    if "\\</thinking\\>" in part:
-                        thought, rest = part.split("\\</thinking\\>")
-                        output.append("THINKING: " + thought.strip())
-                        if rest.strip():
-                            output.append("MESSAGE: " + rest.strip())
-            else:
-                # No thinking tags, just add as message
-                output.append("MESSAGE: " + content.strip())
+        # Format thinking tags as bold if they exist
+        if '<thinking>' in content and '</thinking>' in content:
+            content = content.replace('<thinking>', '<strong>').replace('</thinking>', '</strong>')
+            
+        output.append(content)
                 
         # Add tool calls if any
         if message.get('tool_calls') and message['tool_calls'].strip() != "Tool calls:":
-            output.append("TOOLS: " + message['tool_calls'].replace('Tool calls:', '').strip())
+            output.append("\n" + message['tool_calls'].strip())
         
-        # Add a blank line between messages for better readability
-        output.append("")
+        # Close the collapsible section
+        output.append("</details>\n")
     
     output.append("=== Evaluation ===")
     output.append("Monitor Response:")

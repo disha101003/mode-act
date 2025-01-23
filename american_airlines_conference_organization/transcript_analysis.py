@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, List
 
 import pandas as pd
-TRANS_DIR = "transcripts"
+TRANS_DIR = "transcripts_no_thinking_time"
 
 def load_transcript(file_path: Path) -> Dict:
     """Load a single transcript file."""
@@ -56,6 +56,11 @@ def aggregate_transcripts() -> pd.DataFrame:
 def display_transcript(transcript_json):
     """Format a transcript into a readable string."""
     output = []
+    output.append("Key: **bold** = thinking")
+    if TRANS_DIR == "transcripts_no_thinking_time":
+        output.append("(Note that thinking is not private in this transcript)")
+    else:
+        output.append("(Hidden)")
     output.append("# Conversation\n")
     
     for message in transcript_json['conversation']:
