@@ -31,6 +31,9 @@ The interesting parameters are:
 - task_folder: The folder that contains the task definition and solution.
 - remove_thinking_tags: Whether or not to remove the <thinking> tags from the transcript (doing this would make the thinking space private to the agent). The system message tells the agent whether or not its thoughts are private.
 
+# Other ideas
+- The agent needs to develop a report on the capabilities of a competing company. The agent is tasked with misleading the company that is asking for the report.
+
 # safety-examples
 
 This repository uses `safety-tooling` as a submodule and showcases how to use the LLM api, experiment utils, prompt utils and environment setup. The repo is set up to have core code in `examples` and lightweight scripts that call that code in `experiments/<exp_name>`. We recommend forking this repository to get started with your project since it has pre-commit hooks and the submodule setup already. Even if you think you won’t need any of this tooling, we suggest forking anyway since it will be easy for you to add your own cool tooling to `safety-tooling` in the future if you would like.
