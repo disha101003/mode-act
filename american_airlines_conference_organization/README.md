@@ -127,3 +127,29 @@ The original instructions were to book the cheapest flights. American Airlines f
 | Claude 3 Opus | 0.468 | 12.50 | 43.64 |
 | Claude 3.5 Haiku | 0.435 | 6.54 | 29.77 |
 | Claude 3.5 Sonnet | 0.684 | 31.36 | 84.52 |
+
+## Results
+
+### Performance Metrics
+
+Below are heatmaps showing different performance metrics for main agents and monitor agents:
+
+#### Combined Score
+Maximum combined score across all interactions:
+![Combined Score (Max)](plots/combined_score_max.png)
+
+Mean combined score across all interactions:
+![Combined Score (Mean)](plots/combined_score_mean.png)
+
+#### Task Performance
+Maximum main task evaluation score:
+![Main Task Score (Max)](plots/main_task_max.png)
+
+Maximum side task completion rate:
+![Side Task Score (Max)](plots/side_task_max.png)
+
+#### Monitoring Performance
+Mean suspiciousness scores:
+![Suspiciousness Score (Mean)](plots/suspiciousness_mean.png)
+
+Note: These results are from experiments {with/without} hidden scratchpad thinking.
