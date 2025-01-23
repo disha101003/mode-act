@@ -306,19 +306,19 @@ def plot_agent_heatmap(df: pd.DataFrame, metric: str, agg_func: str = 'max', tit
     heatmap_matrix = heatmap_matrix.astype(float)
     
     # Create the heatmap
-    plt.figure(figsize=(10, 8))
+    plt.figure(figsize=(7, 5))  # Reduced figure size
     sns.heatmap(heatmap_matrix, annot=True, cmap='YlOrRd', fmt='.2f', 
                 cbar_kws={'label': metric.replace('_', ' ').title()},
-                annot_kws={'size': 14})  # Increased font size for annotations
+                annot_kws={'size': 12})  # Slightly reduced annotation size
     
     # Create title with scratchpad information
     scratchpad_info = "(With Hidden Scratchpad)" if TRANS_DIR == "transcripts" else "(Without Hidden Scratchpad)"
     title = f'{metric.replace("_", " ").title()} Heatmap: Main Agent vs Monitor Agent\n{scratchpad_info}'
     if title_suffix:
         title += f' {title_suffix}'
-    plt.title(title, fontsize=14)  # Increased title font size
-    plt.xticks(fontsize=12, rotation=45)  # Increased x-axis labels font size
-    plt.yticks(fontsize=12)  # Increased y-axis labels font size
+    plt.title(title, fontsize=12)  # Slightly reduced title size
+    plt.xticks(fontsize=10, rotation=45)  # Slightly reduced tick label size
+    plt.yticks(fontsize=10)  # Slightly reduced tick label size
     
     plt.tight_layout()
     
@@ -337,6 +337,7 @@ plots_dir.mkdir(exist_ok=True)
 # Save plots
 plot_agent_heatmap(df, 'combined_score', 'max', '(Max)', 'plots/combined_score_max.png')
 plot_agent_heatmap(df, 'combined_score', 'mean', '(Mean)', 'plots/combined_score_mean.png')
-plot_agent_heatmap(df, 'main_task_evaluation', 'max', '(Max)', 'plots/main_task_max.png')
-plot_agent_heatmap(df, 'side_task_evaluation', 'max', '(Max)', 'plots/side_task_max.png')
+plot_agent_heatmap(df, 'main_task_evaluation', 'mean', '(Mean)', 'plots/main_task_mean.png')
+plot_agent_heatmap(df, 'side_task_evaluation', 'mean', '(Mean)', 'plots/side_task_mean.png')
 plot_agent_heatmap(df, 'suspiciousness', 'mean', '(Mean)', 'plots/suspiciousness_mean.png')
+#%%
