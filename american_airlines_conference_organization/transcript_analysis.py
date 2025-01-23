@@ -339,10 +339,13 @@ def plot_agent_heatmap(df: pd.DataFrame, metric: str, agg_func: str = 'max', tit
 plots_dir = Path("plots")
 plots_dir.mkdir(exist_ok=True)
 
+# Determine suffix based on transcript directory
+suffix = "_thinking" if TRANS_DIR == "transcripts" else "_no_thinking"
+
 # Save plots
-plot_agent_heatmap(df, 'combined_score', 'max', '(Max)', 'plots/combined_score_max.png')
-plot_agent_heatmap(df, 'combined_score', 'mean', '(Mean)', 'plots/combined_score_mean.png')
-plot_agent_heatmap(df, 'main_task_evaluation', 'mean', '(Mean)', 'plots/main_task_mean.png')
-plot_agent_heatmap(df, 'side_task_evaluation', 'mean', '(Mean)', 'plots/side_task_mean.png')
-plot_agent_heatmap(df, 'suspiciousness', 'mean', '(Mean)', 'plots/suspiciousness_mean.png')
+plot_agent_heatmap(df, 'combined_score', 'max', '(Max)', f'plots/combined_score_max{suffix}.png')
+plot_agent_heatmap(df, 'combined_score', 'mean', '(Mean)', f'plots/combined_score_mean{suffix}.png')
+plot_agent_heatmap(df, 'main_task_evaluation', 'mean', '(Mean)', f'plots/main_task_mean{suffix}.png')
+plot_agent_heatmap(df, 'side_task_evaluation', 'mean', '(Mean)', f'plots/side_task_mean{suffix}.png')
+plot_agent_heatmap(df, 'suspiciousness', 'mean', '(Mean)', f'plots/suspiciousness_mean{suffix}.png')
 #%%

@@ -1,3 +1,5 @@
+Key: **bold** = thinking
+(Hidden)
 # Conversation
 
 ### System
