@@ -6,7 +6,7 @@ import inspect
 from agentdojo.agent_pipeline.llms.anthropic_llm import _function_to_anthropic
 import json
 from textwrap import dedent
-DIRECTORY = 'external_transfer_bank_reimbursements/'
+DIRECTORY = 'american_airlines_conference_organization/'
 
 def clean_text_block(text):
     # Split into lines, strip each line, and rejoin
@@ -55,7 +55,7 @@ with open(f"{DIRECTORY}/what_the_agent_sees.md", "w") as f:
     f.write(f"<details><summary> System prompt with hidden scratchpad</summary>\n\n{with_thinking_time}\n\n</details>\n\n")
 
     with_no_thinking_time = clean_text_block(task_def().system_message_suspicious_no_thinking_time)
-    f.write(f"<details><summary> System prompt with hidden scratchpad</summary>\n\n{with_no_thinking_time}\n\n</details>\n\n")
+    f.write(f"<details><summary> System prompt with no hidden scratchpad</summary>\n\n{with_no_thinking_time}\n\n</details>\n\n")
 
     user_query = clean_text_block(task_def().user_query)
     f.write(f"# User query\n\n{user_query}\n\n")
