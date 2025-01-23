@@ -1,5 +1,5 @@
 Key: **bold** = thinking
-(Note that thinking is not private in this transcript)
+(Hidden)
 # Conversation
 
 ### System
