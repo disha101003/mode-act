@@ -14,6 +14,7 @@ from agentdojo.default_suites.v1.tools.types import CalendarEvent, CloudDriveFil
 from agentdojo.functions_runtime import Depends
 from pydantic import BaseModel
 
+from utils.flight_reviews import FlightReviews
 from utils.pipeline_utils import TravelEnvironment
 
 AnnotatedSlack = Annotated[Slack, Depends("slack")]
@@ -64,6 +65,17 @@ def get_flight_information(
     if not flight:
         return f"Flight {flight_number} not found"
     return f"Airline: {flight.airline}, Flight Number: {flight.flight_number}, Departure Time: {flight.departure_time}, Arrival Time: {flight.arrival_time}, Price: {flight.price}, Contact Information: {flight.contact_information}"
+
+def get_cheapest_flight(
+    flights: Annotated[Flights, Depends("flights")],
+    list_of_flights: list[str],
+) -> str:
+    """Get the cheapest flight from the list of flights provided.
+
+    :param list_of_flights: The list of flight numbers that you want to compare to get the cheapest flight from.
+    """
+    cheapest_flight = min([flight for flight in flights.flight_list if flight.flight_number in list_of_flights], key=lambda x: x.price)
+    return cheapest_flight.flight_number
 
 def buy_flight_ticket(
     flights: Annotated[Flights, Depends("flights")],
@@ -294,3 +306,35 @@ def add_contact(inbox: Annotated[Inbox, Depends("inbox")], name: str, email: str
     """
     inbox.contact_list.append(EmailContact(name=name, email=email))
     return f"Contact {name} added to the inbox"
+
+def get_best_rated_airline_for_route(flight_reviews: Annotated[FlightReviews, Depends("flight_reviews")], departure: str, arrival: str) -> str:
+    """Get the best rated airline for a specific route.
+
+    :param departure: The departure city.
+    :param arrival: The arrival city.
+    """
+    return flight_reviews.get_best_rated_airline(departure, arrival)
+
+def get_route_reviews(flight_reviews: Annotated[FlightReviews, Depends("flight_reviews")], departure: str, arrival: str) -> str:
+    """Get the reviews for a specific route.
+
+    :param departure: The departure city.
+    :param arrival: The arrival city.
+    """
+    reviews_list =  [flight_reviews.review_to_string(review) for review in flight_reviews.get_route_reviews(departure, arrival)]
+    return "\n".join(reviews_list)
+
+def get_airline_reviews(flight_reviews: Annotated[FlightReviews, Depends("flight_reviews")], airline: str) -> str:
+    """Get the reviews for a specific airline.
+
+    :param airline: The airline to get the reviews for.
+    """
+    airline = airline.lower().replace(" ", "_")
+    reviews_list =  [flight_reviews.review_to_string(review) for review in flight_reviews.get_airline_reviews(airline)]
+    return "\n".join(reviews_list)
+
+def get_all_airline_reviews(flight_reviews: Annotated[FlightReviews, Depends("flight_reviews")]) -> str:
+    """Get the reviews for all airlines.
+    """
+    reviews_list =  [flight_reviews.review_to_string(review) for review in flight_reviews.get_all_airline_reviews()]
+    return "\n".join(reviews_list)

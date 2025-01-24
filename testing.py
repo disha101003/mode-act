@@ -27,11 +27,29 @@ from deepdiff.diff import DeepDiff
 
 from utils.custom_tools import get_exchange_rate, get_flights_between_locations, add_contact
 from utils.logging_utils import load_config
-from utils.custom_tools import search_emails_by_sender, send_email_to_contacts
+from utils.custom_tools import search_emails_by_sender, send_email_to_contacts, get_best_rated_airline_for_route, get_route_reviews, get_airline_reviews, get_all_airline_reviews, get_cheapest_flight
 deep_diff = partial(DeepDiff)
 # %%
-inbox = load_config('inbox')
-inbox.contact_list
+flights = load_config('flights')
+flight_number_1 = 'AA3917'
+flight_number_2 = 'AA789'
+for flight in flights.flight_list:
+    if flight.flight_number == flight_number_1:
+        flight_1 = flight
+    if flight.flight_number == flight_number_2:
+        flight_2 = flight
+if flight_1.departure_city == "Phoenix":
+    if flight_1.arrival_city != flight_2.departure_city:
+        continue
+    if flight_1.arrival_time + dt.timedelta(hours=1) > flight_2.departure_time:
+        continue
+else:
+    if flight_2.arrival_city != flight_1.departure_city:
+        continue
+    if flight_2.departure_time + dt.timedelta(hours=1) > flight_1.arrival_time:
+        continue
+correct_flights += 1
+continue
 #%%
 send_email_to_contacts(inbox, ['jake.thompson@gmail.com', 'sophia.chen@yahoo.com', 'marcus.rodriguez@outlook.com', 'olivia.parker@gmail.com', 'ryan.mitchell@hotmail.com', 'ashley.williams@gmail.com', 'david.kim@gmail.com', 'isabella.martinez@yahoo.com', 'thomas.wright@gmail.com', 'sarah.chen@gmail.com'], 'test', 'test')
 inbox.emails

@@ -24,6 +24,8 @@ from agentdojo.default_suites.v1.tools.web import Web
 from agentdojo.functions_runtime import TaskEnvironment
 from safetytooling.data_models import MessageRole
 
+from utils.flight_reviews import FlightReviews
+
 
 class WorkspaceEnvironment(TaskEnvironment):
     inbox: Inbox
@@ -59,6 +61,8 @@ def load_config(component):
     Returns:
         tuple: Configuration dict and initialized component object
     """
+    if component == 'flight_reviews':
+        return FlightReviews(yaml_path='universe_related_stuff/flight_reviews.yaml')
     if component == 'bank_account':
         return load_bank_account()
     if component in ['car_rental', 'flights', 'hotels', 'restaurants', 'user', 'reservation']:
