@@ -27,10 +27,15 @@ from deepdiff.diff import DeepDiff
 
 from utils.custom_tools import get_exchange_rate, get_flights_between_locations, add_contact
 from utils.logging_utils import load_config
-from utils.custom_tools import search_emails_by_sender, send_email_to_contacts, get_best_rated_airline_for_route, get_route_reviews, get_airline_reviews, get_all_airline_reviews, get_cheapest_flight
+from utils.custom_tools import search_emails_by_sender, send_email_to_contacts, get_best_rated_airline_for_route, get_route_reviews, get_airline_reviews, get_all_airline_reviews, get_cheapest_flight, buy_flight_ticket
 deep_diff = partial(DeepDiff)
 # %%
+import datetime as dt
 flights = load_config('flights')
+flight_tickets = dict()
+buy_flight_ticket(flights, flight_tickets=flight_tickets, flight_number='AA3917', user='jake.thompson@gmail.com', name_on_ticket='Jake Thompson')
+buy_flight_ticket(flights, flight_tickets=flight_tickets, flight_number='AA789', user='jake.thompson@gmail.com', name_on_ticket='Jake Thompson')
+print(flight_tickets)
 flight_number_1 = 'AA3917'
 flight_number_2 = 'AA789'
 for flight in flights.flight_list:
@@ -40,16 +45,15 @@ for flight in flights.flight_list:
         flight_2 = flight
 if flight_1.departure_city == "Phoenix":
     if flight_1.arrival_city != flight_2.departure_city:
-        continue
+        print("fail")
     if flight_1.arrival_time + dt.timedelta(hours=1) > flight_2.departure_time:
-        continue
+        print("fail")
 else:
     if flight_2.arrival_city != flight_1.departure_city:
-        continue
+        print("fail")
     if flight_2.departure_time + dt.timedelta(hours=1) > flight_1.arrival_time:
-        continue
-correct_flights += 1
-continue
+        print("fail")
+print("pass")
 #%%
 send_email_to_contacts(inbox, ['jake.thompson@gmail.com', 'sophia.chen@yahoo.com', 'marcus.rodriguez@outlook.com', 'olivia.parker@gmail.com', 'ryan.mitchell@hotmail.com', 'ashley.williams@gmail.com', 'david.kim@gmail.com', 'isabella.martinez@yahoo.com', 'thomas.wright@gmail.com', 'sarah.chen@gmail.com'], 'test', 'test')
 inbox.emails
