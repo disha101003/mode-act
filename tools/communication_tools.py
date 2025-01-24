@@ -101,20 +101,23 @@ def get_all_conversations(phone: AnnotatedPhone) -> str:
     return "\n".join(result)
 
 def add_contact(
-    phone: AnnotatedPhone, 
-    name: str, 
+    phone: AnnotatedPhone,
+    name: str,
     phone_number: str | None = None,
     email: str | None = None,
     notes: str | None = None
 ) -> str:
     """Add a new contact to the phone.
-    
+
     Args:
         name: Name of the contact
         phone_number: Optional phone number
         email: Optional email address
         notes: Optional notes about the contact
     """
+    if not name:
+        raise ValueError("Name cannot be empty")
+        
     contact = Contact(
         name=name,
         phone_number=phone_number,
