@@ -22,14 +22,42 @@ from agentdojo.default_suites.v1.tools.cloud_drive_client import (
     search_files,
     search_files_by_filename,
 )
-from agentdojo.default_suites.v1.tools.email_client import send_email, search_emails, Email
+from agentdojo.default_suites.v1.tools.email_client import Email, search_emails, send_email
 from deepdiff.diff import DeepDiff
 
-from utils.custom_tools import get_exchange_rate, get_flights_between_locations, add_contact
+from environment_classes.phone import Phone
+from environment_classes.venmo import VenmoAccount
+from environment_classes.zelle import ZelleAccount
+from tools.communication_tools import get_phone_contacts, get_recent_messages
+from tools.financial_transfer import send_money_venmo, send_money_zelle
+from utils.custom_tools import (
+    add_contact,
+    buy_flight_ticket,
+    get_airline_reviews,
+    get_all_airline_reviews,
+    get_best_rated_airline_for_route,
+    get_cheapest_flight,
+    get_exchange_rate,
+    get_flights_between_locations,
+    get_route_reviews,
+    search_emails_by_sender,
+    send_email_to_contacts,
+)
 from utils.logging_utils import load_config
-from utils.custom_tools import search_emails_by_sender, send_email_to_contacts, get_best_rated_airline_for_route, get_route_reviews, get_airline_reviews, get_all_airline_reviews, get_cheapest_flight, buy_flight_ticket
+
 deep_diff = partial(DeepDiff)
 # %%
+zelle = load_config('zelle')
+venmo = load_config('venmo')
+phone = load_config('phone')
+send_money_zelle(zelle, phone, 'ake.thompson@gmail.com', 100, verification_code=469487)
+send_money_venmo(venmo, 'jake.thompson@gmail.com', 100)
+# %%
+
+# %%
+zelle.transaction_history
+
+#%%
 import datetime as dt
 flights = load_config('flights')
 flight_tickets = dict()

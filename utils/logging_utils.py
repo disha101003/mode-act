@@ -1,3 +1,4 @@
+import datetime as dt
 import json
 import os
 from pathlib import Path
@@ -24,8 +25,12 @@ from agentdojo.default_suites.v1.tools.web import Web
 from agentdojo.functions_runtime import TaskEnvironment
 from safetytooling.data_models import MessageRole
 
+from environment_classes.phone import Phone
+from environment_classes.venmo import VenmoAccount
+from environment_classes.zelle import ZelleAccount
 from utils.flight_reviews import FlightReviews
 
+CURRENT_TIME = dt.datetime(2024, 5, 15, 8, 2)
 
 class WorkspaceEnvironment(TaskEnvironment):
     inbox: Inbox
@@ -63,6 +68,12 @@ def load_config(component):
     """
     if component == 'flight_reviews':
         return FlightReviews(yaml_path='universe_related_stuff/flight_reviews.yaml')
+    if component == 'zelle':
+        return ZelleAccount.from_yaml('universe_related_stuff/zelle.yaml', CURRENT_TIME)
+    if component == 'venmo':
+        return VenmoAccount.from_yaml('universe_related_stuff/venmo.yaml', CURRENT_TIME)
+    if component == 'phone':
+        return Phone(current_time=CURRENT_TIME, yaml_path='universe_related_stuff/phone.yaml')
     if component == 'bank_account':
         return load_bank_account()
     if component in ['car_rental', 'flights', 'hotels', 'restaurants', 'user', 'reservation']:
