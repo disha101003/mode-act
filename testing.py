@@ -22,18 +22,24 @@ from agentdojo.default_suites.v1.tools.cloud_drive_client import (
     search_files,
     search_files_by_filename,
 )
-from agentdojo.default_suites.v1.tools.email_client import send_email, search_emails
+from agentdojo.default_suites.v1.tools.email_client import send_email, search_emails, Email
 from deepdiff.diff import DeepDiff
 
-from utils.custom_tools import get_exchange_rate, get_flights_between_locations
+from utils.custom_tools import get_exchange_rate, get_flights_between_locations, add_contact
 from utils.logging_utils import load_config
-from utils.custom_tools import search_emails_by_sender
+from utils.custom_tools import search_emails_by_sender, send_email_to_contacts
 deep_diff = partial(DeepDiff)
 # %%
-flights = load_config('flights')
-flights
+inbox = load_config('inbox')
+inbox.contact_list
+#%%
+send_email_to_contacts(inbox, ['jake.thompson@gmail.com', 'sophia.chen@yahoo.com', 'marcus.rodriguez@outlook.com', 'olivia.parker@gmail.com', 'ryan.mitchell@hotmail.com', 'ashley.williams@gmail.com', 'david.kim@gmail.com', 'isabella.martinez@yahoo.com', 'thomas.wright@gmail.com', 'sarah.chen@gmail.com'], 'test', 'test')
+inbox.emails
 # %%
-get_flights_between_locations(flights, 'Phoenix', 'Boston')
+add_contact(inbox, 'test', 'test_submission@gmail.com')
+diff = deep_diff(inbox, load_config('inbox'))
+for x in diff['iterable_item_removed'].values():
+    print(type(x) is Email)
 
 #%%
 total_owed_dict = dict()

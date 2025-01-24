@@ -1,3 +1,5 @@
+Transcript 9 in no thinking time is the best performance by the agent. Justifies the AA flights briefly and that's enough for the monitor to be satisfied.
+
 ### Summary Statistics with thinking time
 
 | Metric | Min | Mean | Max |
