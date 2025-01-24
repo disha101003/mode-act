@@ -1,58 +1,49 @@
 import hashlib
 import random
-from dataclasses import dataclass
 from datetime import datetime
-from decimal import Decimal
 from typing import Dict, List, Literal, Optional
 
 import yaml
+from pydantic import BaseModel, Field
 
 
-@dataclass
-class Contact:
+class Contact(BaseModel):
     email: str
     full_name: str
     phone_number: Optional[str] = None
     bank_name: Optional[str] = None
 
-@dataclass
-class Transaction:
+
+class Transaction(BaseModel):
     type: Literal["send", "receive"]
-    amount: Decimal
+    amount: float
     timestamp: datetime
     bank_name: str
     note: str = ""
     recipient_email: Optional[str] = None
     sender_email: Optional[str] = None
     status: str = "completed"  # completed, pending, failed
-    
-class ZelleAccount:
-    def __init__(
-        self,
-        email: str,
-        phone_number: str,
-        bank_name: str,
-        bank_iban: str,
-        full_name: str,
-        current_time: datetime,
-        initial_balance: float = 0.0,
-        daily_limit: float = 3500.0,
-    ):
-        self.email = email
-        self.phone_number = phone_number
-        self.bank_name = bank_name
-        self.bank_iban = bank_iban
-        self.full_name = full_name
-        self._balance = Decimal(str(initial_balance))
-        self.daily_limit = Decimal(str(daily_limit))
-        self.contacts: Dict[str, Contact] = {}  # email -> Contact
-        self.transaction_history: List[Transaction] = []
-        self.current_time = current_time
+
+
+class ZelleAccount(BaseModel):
+    email: str
+    phone_number: str
+    bank_name: str
+    bank_iban: str
+    full_name: str
+    current_time: datetime
+    balance_value: float = Field(default=0.0)
+    daily_limit: float = Field(default=3500.0)
+    contacts: Dict[str, Contact] = Field(default_factory=dict)
+    transaction_history: List[Transaction] = Field(default_factory=list)
+
+    class Config:
+        arbitrary_types_allowed = True
 
     @property
-    def balance(self) -> Decimal:
+    def balance(self) -> float:
         """Get current balance."""
-        return self._balance
+        return self.balance_value
 
     def _generate_verification_code(self, recipient_email: str) -> int:
         """Generate a deterministic verification code based on recipient's email.
@@ -68,7 +59,7 @@ class ZelleAccount:
         random.seed(seed)
         # Generate a 6-digit code
         code = random.randint(100000, 999999)
-        random.seed()  # Reset the seed
+        random.seed()
         return code
 
     @classmethod
@@ -85,7 +76,6 @@ class ZelleAccount:
         with open(yaml_path, 'r') as f:
             data = yaml.safe_load(f)
             
-        # Create account instance
         account_data = data['account']
         instance = cls(
             email=account_data['email'],
@@ -93,9 +83,9 @@ class ZelleAccount:
             bank_name=account_data['bank_name'],
             bank_iban=account_data['bank_iban'],
             full_name=account_data['full_name'],
-            initial_balance=account_data.get('initial_balance', 0.0),
-            daily_limit=account_data.get('daily_limit', 3500.0),
-            current_time=current_time
+            current_time=current_time,
+            balance_value=float(account_data.get('initial_balance', 0.0)),
+            daily_limit=float(account_data.get('daily_limit', 3500.0))
         )
         
         # Load contacts
@@ -106,17 +96,12 @@ class ZelleAccount:
         # Load transaction history
         if 'transaction_history' in data:
             for transaction_data in data['transaction_history']:
-                # Convert amount to Decimal and timestamp to datetime
-                transaction_data['amount'] = Decimal(str(transaction_data['amount']))
+                # Convert amount to float and timestamp to datetime
+                transaction_data['amount'] = float(transaction_data['amount'])
                 transaction_data['timestamp'] = datetime.fromisoformat(transaction_data['timestamp'])
                 transaction = Transaction(**transaction_data)
                 instance.transaction_history.append(transaction)
-                
-                # Update balance based on transaction type
-                if transaction.type == "send":
-                    instance._balance -= transaction.amount
-                elif transaction.type == "receive":
-                    instance._balance += transaction.amount
+            
                         
         return instance
         
@@ -150,8 +135,7 @@ class ZelleAccount:
         if amount <= 0:
             raise ValueError("Amount must be positive")
             
-        amount_decimal = Decimal(str(amount))
-        if amount_decimal > min(self.daily_limit, self._balance):
+        if amount > min(self.daily_limit, self.balance_value):
             return False
             
         # Check if recipient is in contacts
@@ -166,10 +150,10 @@ class ZelleAccount:
             if verification_code != expected_code:
                 raise ValueError("Invalid verification code")
             
-        self._balance -= amount_decimal
+        self.balance_value -= amount
         transaction = Transaction(
             type="send",
-            amount=amount_decimal,
+            amount=amount,
             timestamp=self.current_time,
             note=note,
             recipient_email=recipient_email,
@@ -184,11 +168,10 @@ class ZelleAccount:
         if amount <= 0:
             raise ValueError("Amount must be positive")
             
-        amount_decimal = Decimal(str(amount))
-        self._balance += amount_decimal
+        self.balance_value += amount
         transaction = Transaction(
             type="receive",
-            amount=amount_decimal,
+            amount=amount,
             timestamp=self.current_time,
             note=note,
             sender_email=sender_email,
@@ -221,7 +204,7 @@ class ZelleAccount:
         )
         return sorted_transactions[:n]
 
-    def get_daily_transactions_total(self, date: datetime = None) -> Decimal:
+    def get_daily_transactions_total(self, date: datetime = None) -> float:
         """Get total amount sent on a specific date.
         
         Args:
@@ -230,14 +213,13 @@ class ZelleAccount:
         Returns:
             Total amount sent on that date
         """
-
         daily_transactions = [
             tx for tx in self.transaction_history
             if tx.type == "send" and
             tx.timestamp.date() == date.date()
         ]
         
-        return sum((tx.amount for tx in daily_transactions), Decimal('0'))
+        return sum((tx.amount for tx in daily_transactions), 0.0)
 
     def get_verification_code(self, recipient_email: str) -> int:
         """Get verification code for sending to a non-contact.

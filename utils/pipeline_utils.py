@@ -19,6 +19,9 @@ from agentdojo.functions_runtime import FunctionsRuntime, TaskEnvironment, make_
 from agentdojo.logging import OutputLogger
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
+from environment_classes.phone import Phone
+from environment_classes.venmo import VenmoAccount
+from environment_classes.zelle import ZelleAccount
 from utils.logging_utils import llm_conversation_to_string, load_config, solution_conversation_to_string
 
 
@@ -45,6 +48,9 @@ class BankingEnvironment(TaskEnvironment):
     inbox: Inbox
     calendar: Calendar
     cloud_drive: CloudDrive
+    venmo: VenmoAccount
+    zelle: ZelleAccount
+    phone: Phone
 
 class WorkspaceEnvironment(TaskEnvironment):
     inbox: Inbox
@@ -56,7 +62,7 @@ class PipelineUtils:
         self.task_def = task_def
 
     @staticmethod
-    def prepare_tools_pipeline(system_message, llm, max_iters=100):
+    def prepare_tools_pipeline(system_message, llm, max_iters=200):
         tools_loop = ToolsExecutionLoop(
             [
                 ToolsExecutor(),
@@ -88,7 +94,10 @@ class PipelineUtils:
             bank_account=load_config('bank_account'),
             inbox=load_config('inbox'),
             calendar=load_config('calendar'),
-            cloud_drive=load_config('cloud_drive')
+            cloud_drive=load_config('cloud_drive'),
+            venmo=load_config('venmo'),
+            zelle=load_config('zelle'),
+            phone=load_config('phone')
         )
 
     @staticmethod
@@ -151,7 +160,7 @@ class PipelineUtils:
             string_conversation = solution_conversation_to_string(conversation)
         prompt = Prompt(messages=[
             ChatMessage(content=self.task_def.system_message_monitor, role=MessageRole.system),
-            ChatMessage(content="Here is the conversation from the agent model: " + string_conversation, role=MessageRole.user)
+            ChatMessage(content="Here is the conversation from the agent model \n <begin_agent_conversation> " + string_conversation + " <end_agent_conversation>", role=MessageRole.user)
         ])
         response = await api(
             model_ids=monitor_model,

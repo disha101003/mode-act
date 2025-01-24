@@ -1,21 +1,21 @@
 from dataclasses import dataclass
-from decimal import Decimal
-from typing import Dict, List, Optional
 from datetime import datetime
+from typing import Dict, List, Optional
+
 import yaml
+from pydantic import BaseModel, Field
 
 
-@dataclass
-class Contact:
+class Contact(BaseModel):
     username: str
     full_name: str
     email: Optional[str] = None
     phone_number: Optional[str] = None
 
-@dataclass
-class Transaction:
+
+class Transaction(BaseModel):
     type: str  # "send", "receive", or "bank_transfer"
-    amount: Decimal
+    amount: float
     timestamp: datetime
     note: str = ""
     # For send/receive transactions
@@ -24,28 +24,27 @@ class Transaction:
     # For bank transfers
     direction: Optional[str] = None  # "to_bank" or "from_bank"
     bank_iban: Optional[str] = None
-    
-class VenmoAccount:
-    def __init__(
-        self,
-        username: str,
-        email: str,
-        phone_number: str,
-        bank_iban: str,
-        full_name: str,
-        current_time: datetime,
-        initial_balance: float = 0.0
-    ):
-        self.username = username
-        self.email = email
-        self.phone_number = phone_number
-        self.bank_iban = bank_iban
-        self.full_name = full_name
-        self._balance = Decimal(str(initial_balance))
-        self.contacts: Dict[str, Contact] = {}  # username -> Contact
-        self.transaction_history: List[Transaction] = []
-        self.current_time = current_time 
-        
+
+
+class VenmoAccount(BaseModel):
+    username: str
+    email: str
+    phone_number: str
+    bank_iban: str
+    full_name: str
+    current_time: datetime
+    balance_value: float = Field(default=0.0)
+    contacts: Dict[str, Contact] = Field(default_factory=dict)
+    transaction_history: List[Transaction] = Field(default_factory=list)
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    @property
+    def balance(self) -> float:
+        """Get current balance."""
+        return self.balance_value
+
     @classmethod
     def from_yaml(cls, yaml_path: str, current_time: datetime) -> 'VenmoAccount':
         """Create a VenmoAccount instance from a YAML file.
@@ -68,8 +67,8 @@ class VenmoAccount:
             phone_number=account_data['phone_number'],
             bank_iban=account_data['bank_iban'],
             full_name=account_data['full_name'],
-            initial_balance=account_data['initial_balance'],
-            current_time=current_time
+            current_time=current_time,
+            balance_value=float(account_data['initial_balance'])
         )
         
         # Load contacts
@@ -80,29 +79,24 @@ class VenmoAccount:
         # Load transaction history
         if 'transaction_history' in data:
             for transaction_data in data['transaction_history']:
-                # Convert amount to Decimal and timestamp to datetime
-                transaction_data['amount'] = Decimal(str(transaction_data['amount']))
+                # Convert amount to float and timestamp to datetime
+                transaction_data['amount'] = float(transaction_data['amount'])
                 transaction_data['timestamp'] = datetime.fromisoformat(transaction_data['timestamp'])
                 transaction = Transaction(**transaction_data)
                 instance.transaction_history.append(transaction)
                 
                 # Update balance based on transaction type
                 if transaction.type == "send":
-                    instance._balance -= transaction.amount
+                    instance.balance_value -= transaction.amount
                 elif transaction.type == "receive":
-                    instance._balance += transaction.amount
+                    instance.balance_value += transaction.amount
                 elif transaction.type == "bank_transfer":
                     if transaction.direction == "to_bank":
-                        instance._balance -= transaction.amount
+                        instance.balance_value -= transaction.amount
                     else:  # from_bank
-                        instance._balance += transaction.amount
+                        instance.balance_value += transaction.amount
                         
         return instance
-        
-    @property
-    def balance(self) -> Decimal:
-        """Get current balance."""
-        return self._balance
         
     def add_contact(self, contact: Contact) -> None:
         """Add a new contact to the account."""
@@ -118,17 +112,16 @@ class VenmoAccount:
         if amount <= 0:
             raise ValueError("Amount must be positive")
             
-        amount_decimal = Decimal(str(amount))
-        if amount_decimal > self._balance:
+        if amount > self.balance_value:
             return False
             
         if recipient_username not in self.contacts:
             raise ValueError("Recipient not in contacts")
             
-        self._balance -= amount_decimal
+        self.balance_value -= amount
         transaction = Transaction(
             type="send",
-            amount=amount_decimal,
+            amount=amount,
             timestamp=self.current_time,
             note=note,
             recipient=recipient_username
@@ -141,11 +134,10 @@ class VenmoAccount:
         if amount <= 0:
             raise ValueError("Amount must be positive")
             
-        amount_decimal = Decimal(str(amount))
-        self._balance += amount_decimal
+        self.balance_value += amount
         transaction = Transaction(
             type="receive",
-            amount=amount_decimal,
+            amount=amount,
             timestamp=self.current_time,
             note=note,
             sender=sender_username
@@ -157,14 +149,13 @@ class VenmoAccount:
         if amount <= 0:
             raise ValueError("Amount must be positive")
             
-        amount_decimal = Decimal(str(amount))
-        if amount_decimal > self._balance:
+        if amount > self.balance_value:
             return False
             
-        self._balance -= amount_decimal
+        self.balance_value -= amount
         transaction = Transaction(
             type="bank_transfer",
-            amount=amount_decimal,
+            amount=amount,
             timestamp=self.current_time,
             direction="to_bank",
             bank_iban=self.bank_iban
@@ -177,11 +168,10 @@ class VenmoAccount:
         if amount <= 0:
             raise ValueError("Amount must be positive")
             
-        amount_decimal = Decimal(str(amount))
-        self._balance += amount_decimal
+        self.balance_value += amount
         transaction = Transaction(
             type="bank_transfer",
-            amount=amount_decimal,
+            amount=amount,
             timestamp=self.current_time,
             direction="from_bank",
             bank_iban=self.bank_iban

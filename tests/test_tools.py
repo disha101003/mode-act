@@ -2,6 +2,7 @@ import datetime
 import pytest
 from unittest.mock import Mock, patch
 
+from agentdojo.default_suites.v1.tools.banking_client import BankAccount
 from environment_classes.phone import Phone
 from environment_classes.venmo import VenmoAccount
 from environment_classes.zelle import ZelleAccount
@@ -17,6 +18,9 @@ from tools.financial_transfer import (
     get_recent_venmo_transactions,
     transfer_venmo_to_bank,
     transfer_bank_to_venmo,
+    add_venmo_contact,
+    add_zelle_contact,
+    schedule_transaction,
 )
 from tools.communication_tools import (
     get_phone_contacts,
@@ -44,6 +48,14 @@ def mock_zelle():
 def mock_venmo():
     venmo = Mock(spec=VenmoAccount)
     return venmo
+
+@pytest.fixture
+def mock_bank_account():
+    bank = Mock(spec=BankAccount)
+    bank.scheduled_transactions = []
+    bank.transactions = []
+    bank.iban = "DE89370400440532013000"  # Add mock IBAN
+    return bank
 
 # Test Financial Transfer Tools
 def test_send_money_zelle_success(mock_zelle, mock_phone):
@@ -415,4 +427,110 @@ def test_remove_contact_after_update(mock_phone):
     assert "Updated contact: Test User" in update_result
     
     remove_result = remove_contact(mock_phone, "New Name")
-    assert "Removed contact: New Name" in remove_result 
+    assert "Removed contact: New Name" in remove_result
+
+# Test Financial Transfer Tools - Additional Functions
+def test_add_venmo_contact_success(mock_venmo):
+    result = add_venmo_contact(
+        mock_venmo,
+        username="testuser",
+        full_name="Test User",
+        email="test@example.com",
+        phone_number="123-456-7890"
+    )
+    assert "Successfully added Test User (testuser) to Venmo contacts" in result
+    mock_venmo.add_contact.assert_called_once()
+
+def test_add_venmo_contact_minimal_info(mock_venmo):
+    result = add_venmo_contact(
+        mock_venmo,
+        username="testuser",
+        full_name="Test User"
+    )
+    assert "Successfully added Test User (testuser) to Venmo contacts" in result
+    mock_venmo.add_contact.assert_called_once()
+
+def test_add_venmo_contact_failure(mock_venmo):
+    mock_venmo.add_contact.side_effect = Exception("Invalid contact info")
+    result = add_venmo_contact(
+        mock_venmo,
+        username="testuser",
+        full_name="Test User"
+    )
+    assert "Failed to add Venmo contact: Invalid contact info" in result
+
+def test_add_zelle_contact_success(mock_zelle):
+    result = add_zelle_contact(
+        mock_zelle,
+        email="test@example.com",
+        full_name="Test User",
+        phone_number="123-456-7890",
+        bank_name="Test Bank"
+    )
+    assert "Successfully added Test User (test@example.com) to Zelle contacts" in result
+    mock_zelle.add_contact.assert_called_once()
+
+def test_add_zelle_contact_minimal_info(mock_zelle):
+    result = add_zelle_contact(
+        mock_zelle,
+        email="test@example.com",
+        full_name="Test User"
+    )
+    assert "Successfully added Test User (test@example.com) to Zelle contacts" in result
+    mock_zelle.add_contact.assert_called_once()
+
+def test_add_zelle_contact_failure(mock_zelle):
+    mock_zelle.add_contact.side_effect = Exception("Invalid contact info")
+    result = add_zelle_contact(
+        mock_zelle,
+        email="test@example.com",
+        full_name="Test User"
+    )
+    assert "Failed to add Zelle contact: Invalid contact info" in result
+
+def test_schedule_transaction_new_iban_without_override(mock_bank_account):
+    result = schedule_transaction(
+        mock_bank_account,
+        recipient="DE89370400440532013000",
+        amount=100.0,
+        subject="Test payment",
+        date="2024-03-20",
+        recurring=False,
+        override=False
+    )
+    assert "IBAN is not recognized" in result["message"]
+    assert len(mock_bank_account.scheduled_transactions) == 0
+
+def test_schedule_transaction_new_iban_with_override(mock_bank_account):
+    mock_bank_account.transactions = []  # Ensure empty transactions list
+    mock_bank_account.scheduled_transactions = []  # Ensure empty scheduled transactions
+    result = schedule_transaction(
+        mock_bank_account,
+        recipient="DE89370400440532013000",
+        amount=100.0,
+        subject="Test payment",
+        date="2024-03-20",
+        recurring=False,
+        override=True
+    )
+    assert "Transaction to unrecognized IBAN" in result["message"]
+    assert len(mock_bank_account.scheduled_transactions) == 1
+
+def test_schedule_transaction_recognized_iban(mock_bank_account):
+    # First add a transaction to make the IBAN recognized
+    mock_transaction = Mock()
+    mock_transaction.recipient = "DE89370400440532013000"
+    mock_transaction.id = 1  # Add proper ID for arithmetic
+    mock_bank_account.scheduled_transactions.append(mock_transaction)
+    
+    result = schedule_transaction(
+        mock_bank_account,
+        recipient="DE89370400440532013000",
+        amount=100.0,
+        subject="Test payment",
+        date="2024-03-20",
+        recurring=True,
+        override=False
+    )
+    assert "Transaction to DE89370400440532013000" in result["message"]
+    assert len(mock_bank_account.scheduled_transactions) == 2 

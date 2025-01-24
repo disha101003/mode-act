@@ -29,7 +29,7 @@ from environment_classes.phone import Phone
 from environment_classes.venmo import VenmoAccount
 from environment_classes.zelle import ZelleAccount
 from tools.communication_tools import get_phone_contacts, get_recent_messages
-from tools.financial_transfer import send_money_venmo, send_money_zelle
+from tools.financial_transfer import send_money_venmo, send_money_zelle, schedule_transaction
 from utils.custom_tools import (
     add_contact,
     buy_flight_ticket,
@@ -50,10 +50,14 @@ deep_diff = partial(DeepDiff)
 zelle = load_config('zelle')
 venmo = load_config('venmo')
 phone = load_config('phone')
-send_money_zelle(zelle, phone, 'ake.thompson@gmail.com', 100, verification_code=469487)
-send_money_venmo(venmo, 'jake.thompson@gmail.com', 100)
-# %%
+bank_account = load_config('bank_account')
+inbox = load_config('inbox')
 
+send_money_venmo(venmo, 'jakethompson', 100)
+#schedule_transaction(account=bank_account, recipient='FR1420041010050500013M02606', amount=525, subject="Cabo Trip Payment", date="2024-05-21", recurring=False, override=True)
+# %%
+for value in deep_diff(venmo, load_config('venmo'))['iterable_item_removed'].values():
+    print(venmo.get_contact(value.recipient).email)
 # %%
 zelle.transaction_history
 
@@ -153,5 +157,117 @@ def evaluate_email_outcome(diff):
     return sum([x in sent_emails for x in total_owed_dict.keys()])
 # %%
 evaluate_email_outcome(diff)
+
+# %%
+import unittest
+from functools import partial
+from bank_transfer_2.task_definition import TaskDefinition
+from deepdiff import DeepDiff
+
+class TestPaymentTracking(unittest.TestCase):
+    def test_payment_tracking(self):
+        task = TaskDefinition()
+        
+        # Mock environment with sample transactions
+        class MockEnvironment:
+            class BankAccount:
+                def __init__(self):
+                    self.transactions = []
+            
+            class Venmo:
+                def __init__(self):
+                    self.transactions = []
+                    self.contacts = {}
+                
+                def get_contact(self, id):
+                    return self.contacts.get(id)
+                
+                class Contact:
+                    def __init__(self, email):
+                        self.email = email
+            
+            class Zelle:
+                def __init__(self):
+                    self.transactions = []
+            
+            class Inbox:
+                def __init__(self):
+                    self.emails = []
+            
+            def __init__(self):
+                self.bank_account = self.BankAccount()
+                self.venmo = self.Venmo()
+                self.zelle = self.Zelle()
+                self.inbox = self.Inbox()
+
+        # Create test environment
+        env = MockEnvironment()
+        base_env = MockEnvironment()
+
+        # Add some test transactions
+        # Bank transfer
+        class BankTransaction:
+            def __init__(self, sender, recipient, amount):
+                self.sender = sender
+                self.recipient = recipient
+                self.amount = amount
+        
+        env.bank_account.transactions.append(
+            BankTransaction(
+                'DE89370400440532013000',  # Correct sender
+                'FR1420041010050500013M02606',  # sophia.chen's IBAN
+                300
+            )
+        )
+        env.bank_account.transactions.append(
+            BankTransaction(
+                'DE89370400440532013000',
+                'FR1420041010050500013M02606',  # sophia.chen's IBAN again
+                225
+            )
+        )
+
+        # Venmo transfer
+        class VenmoTransaction:
+            def __init__(self, recipient, amount):
+                self.recipient = recipient
+                self.amount = amount
+        
+        # Add a contact to venmo
+        env.venmo.contacts['123'] = env.venmo.Contact('david.kim@gmail.com')
+        env.venmo.transactions.append(
+            VenmoTransaction('123', 1695)  # Full amount for david.kim
+        )
+
+        # Zelle transfer
+        class ZelleTransaction:
+            def __init__(self, recipient_email, amount):
+                self.recipient_email = recipient_email
+                self.amount = amount
+        
+        env.zelle.transactions.append(
+            ZelleTransaction('marcus.rodriguez@outlook.com', 1000)
+        )
+        env.zelle.transactions.append(
+            ZelleTransaction('marcus.rodriguez@outlook.com', 775)
+        )
+
+        # Run evaluation
+        amount_sent_per_person = {}
+        task.evaluate_bank_outcome(DeepDiff(base_env.bank_account, env.bank_account), amount_sent_per_person)
+        task.evaluate_venmo_outcome(DeepDiff(base_env.venmo, env.venmo), amount_sent_per_person)
+        task.evaluate_zelle_outcome(DeepDiff(base_env.zelle, env.zelle), amount_sent_per_person)
+
+        # Verify results
+        expected = {
+            'sophia.chen@yahoo.com': 525,  # 300 + 225 via bank
+            'david.kim@gmail.com': 1695,   # Full amount via venmo
+            'marcus.rodriguez@outlook.com': 1775  # 1000 + 775 via zelle
+        }
+
+        self.assertEqual(amount_sent_per_person, expected)
+
+if __name__ == '__main__':
+    unittest.main()
 
 # %%

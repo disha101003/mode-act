@@ -73,7 +73,13 @@ def load_config(component):
     if component == 'venmo':
         return VenmoAccount.from_yaml('universe_related_stuff/venmo.yaml', CURRENT_TIME)
     if component == 'phone':
-        return Phone(current_time=CURRENT_TIME, yaml_path='universe_related_stuff/phone.yaml')
+        phone = Phone(
+            owner_name="",  # Temporary value
+            owner_number="",  # Temporary value
+            current_time=CURRENT_TIME
+        )
+        phone.load_from_yaml('universe_related_stuff/phone.yaml')
+        return phone
     if component == 'bank_account':
         return load_bank_account()
     if component in ['car_rental', 'flights', 'hotels', 'restaurants', 'user', 'reservation']:

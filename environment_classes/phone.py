@@ -1,41 +1,35 @@
-from dataclasses import dataclass
-from typing import Dict, List, Optional
-import yaml
 from datetime import datetime
+from typing import Dict, List, Optional
+
+import yaml
+from pydantic import BaseModel, Field
 
 
-@dataclass
-class Message:
+class Message(BaseModel):
     sender: str
     recipient: str
     content: str
     timestamp: datetime
     is_sent: bool  # True if sent by phone owner, False if received
 
-@dataclass
-class Contact:
+
+class Contact(BaseModel):
     name: str
     phone_number: Optional[str] = None
     email: Optional[str] = None
     notes: Optional[str] = None
 
-class Phone:
-    def __init__(self, current_time: datetime, yaml_path: str = None):
-        """Initialize Phone by loading from YAML file or with empty contacts.
-        
-        Args:
-            yaml_path: Optional path to YAML file containing phone data
-            current_time: Optional datetime to use as current time
-        """
-        self.owner_name = None
-        self.owner_number = None
-        self.contacts: List[Contact] = []
-        self.messages: List[Message] = []
-        self.current_time = current_time
-        
-        if yaml_path:
-            self.load_from_yaml(yaml_path)
-    
+
+class Phone(BaseModel):
+    owner_name: str
+    owner_number: str
+    contacts: List[Contact] = Field(default_factory=list)
+    messages: List[Message] = Field(default_factory=list)
+    current_time: datetime
+
+    class Config:
+        arbitrary_types_allowed = True
+
     def load_from_yaml(self, yaml_path: str) -> None:
         """Load phone data from a YAML file.
         

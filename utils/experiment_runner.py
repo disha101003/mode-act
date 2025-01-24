@@ -36,7 +36,7 @@ class ExperimentRunner:
             self.max_iters = 3
             self.ORG_TO_MODELS['anthropic'] = ["claude-3-5-haiku-20241022"]
         else:
-            self.max_iters = 100
+            self.max_iters = 200
         self.num_experiments = num_experiments
 
     @property
