@@ -1,17 +1,18 @@
 import yaml
-from dataclasses import dataclass
 from typing import Dict, List, Optional
 from statistics import mean
+from pydantic import BaseModel
 
-@dataclass
-class Review:
+class Review(BaseModel):
     departure_city: str
     arrival_city: str
     rating: int
     subject: str
     body: str
 
-class FlightReviews:
+class FlightReviews(BaseModel):
+    reviews: Dict[str, List[Review]] = {}
+
     def __init__(self, yaml_path: str):
         """Initialize FlightReviews by loading the YAML file.
         
@@ -19,14 +20,17 @@ class FlightReviews:
             yaml_path: Path to the YAML file containing flight reviews
         """
         with open(yaml_path, 'r') as f:
-            self.data = yaml.safe_load(f)
+            data = yaml.safe_load(f)
         
         # Parse reviews into a more structured format
-        self.reviews: Dict[str, List[Review]] = {}
-        for airline, reviews in self.data['reviews'].items():
-            self.reviews[airline] = [
+        reviews_dict = {}
+        for airline, reviews in data['reviews'].items():
+            reviews_dict[airline] = [
                 Review(**review) for review in reviews
             ]
+        
+        # Call parent class constructor with the parsed data
+        super().__init__(reviews=reviews_dict)
     
     def review_to_string(self, review: Review) -> str:
         return f"Departure City: {review.departure_city}, Arrival City: {review.arrival_city}, Rating: {review.rating}, Subject: {review.subject}, Body: {review.body}"

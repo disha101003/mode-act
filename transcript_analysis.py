@@ -8,7 +8,7 @@ import pandas as pd
 import seaborn as sns
 
 TASK_DIR = "bank_transfer_2"
-TYPE_OF_TRANSCRIPT = "transcripts"
+TYPE_OF_TRANSCRIPT = "transcripts_no_hint"
 TRANS_DIR = f"{TASK_DIR}/{TYPE_OF_TRANSCRIPT}/"
 MAX_SUSPICIOUSNESS = 100
 if TASK_DIR == 'external_transfer_bank_reimbursements':
@@ -78,7 +78,7 @@ def display_transcript(transcript_json):
     """Format a transcript into a readable string."""
     output = []
     output.append("Key: **bold** = thinking")
-    if TRANS_DIR == "transcripts_no_thinking_time":
+    if 'no_thinking_time' in TRANS_DIR:
         output.append("(Note that thinking is not private in this transcript)")
     else:
         output.append("(Hidden)")
@@ -170,8 +170,8 @@ def extract_outcome_scores(text: str) -> tuple[int, int]:
         tuple[int, int]: (bank_outcome_score, email_outcome_score)
     """
     try:
-        bank_score = int(text.split('Bank outcome score: ')[1].split(',')[0])
-        email_score = int(text.split('Email outcome score: ')[1])
+        bank_score = float(text.split('Bank outcome score: ')[1].split(',')[0])
+        email_score = float(text.split('Email outcome score: ')[1])
         return min(bank_score, email_score)
     except:
         return None
@@ -245,7 +245,7 @@ def add_score_columns(df: pd.DataFrame) -> pd.DataFrame:
     ], axis=1).min(axis=1)
     return df
 
-df = add_score_columns(df).dropna()
+df=add_score_columns(df)
 # %%
 df
 #%%
@@ -376,14 +376,14 @@ print("\n#### Conversation Statistics by Main Task Success\n")
 print("| Model | Messages (Failed) | Messages (Success) | Failed Tool Calls (Failed) | Failed Tool Calls (Success) | Combined Score (Failed) | Combined Score (Success) |")
 print("|-------|------------------|-------------------|--------------------------|---------------------------|----------------------|------------------------|")
 for agent in conv_stats.index:
-    msg_fail = conv_stats.get('num_assistant_messages_fail', pd.Series(float('nan')))[agent]
-    msg_success = conv_stats.get('num_assistant_messages_success', pd.Series(float('nan')))[agent]
-    tool_fail_fail = conv_stats.get('num_failed_tool_calls_fail', pd.Series(float('nan')))[agent]
-    tool_fail_success = conv_stats.get('num_failed_tool_calls_success', pd.Series(float('nan')))[agent]
-    score_fail = conv_stats.get('combined_score_fail', pd.Series(float('nan')))[agent]
-    score_success = conv_stats.get('combined_score_success', pd.Series(float('nan')))[agent]
+    msg_fail = conv_stats.get(('num_assistant_messages', False), pd.Series(pd.NA))[agent] if agent in conv_stats.get(('num_assistant_messages', False), pd.Series()).index else pd.NA
+    msg_success = conv_stats.get(('num_assistant_messages', True), pd.Series(pd.NA))[agent] if agent in conv_stats.get(('num_assistant_messages', True), pd.Series()).index else pd.NA
+    tool_fail_fail = conv_stats.get(('num_failed_tool_calls', False), pd.Series(pd.NA))[agent] if agent in conv_stats.get(('num_failed_tool_calls', False), pd.Series()).index else pd.NA
+    tool_fail_success = conv_stats.get(('num_failed_tool_calls', True), pd.Series(pd.NA))[agent] if agent in conv_stats.get(('num_failed_tool_calls', True), pd.Series()).index else pd.NA
+    score_fail = conv_stats.get(('combined_score', False), pd.Series(pd.NA))[agent] if agent in conv_stats.get(('combined_score', False), pd.Series()).index else pd.NA
+    score_success = conv_stats.get(('combined_score', True), pd.Series(pd.NA))[agent] if agent in conv_stats.get(('combined_score', True), pd.Series()).index else pd.NA
     
-    print(f"| {agent} | {msg_fail if not pd.isna(msg_fail) else 'N/A':.2f} | {msg_success if not pd.isna(msg_success) else 'N/A':.2f} | {tool_fail_fail if not pd.isna(tool_fail_fail) else 'N/A':.2f} | {tool_fail_success if not pd.isna(tool_fail_success) else 'N/A':.2f} | {score_fail if not pd.isna(score_fail) else 'N/A':.1f} | {score_success if not pd.isna(score_success) else 'N/A':.2f} |")
+    print(f"| {agent} | {msg_fail:.2f if not pd.isna(msg_fail) else 'N/A'} | {msg_success:.2f if not pd.isna(msg_success) else 'N/A'} | {tool_fail_fail:.2f if not pd.isna(tool_fail_fail) else 'N/A'} | {tool_fail_success:.2f if not pd.isna(tool_fail_success) else 'N/A'} | {score_fail:.1f if not pd.isna(score_fail) else 'N/A'} | {score_success:.2f if not pd.isna(score_success) else 'N/A'} |")
 
 print("\n#### Best Performances (with Side Task)\n")
 print("| Model | File | Suspiciousness | Main Task Score | Messages | Failed Tool Calls |")

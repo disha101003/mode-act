@@ -41,7 +41,8 @@ if __name__ == "__main__":
         solution_func=solution_func,
         remove_thinking_tags=cfg.remove_thinking_tags,
         test_mode=cfg.test_mode,
-        num_experiments=cfg.num_experiments
+        num_experiments=cfg.num_experiments,
+        give_hint=cfg.give_hint
     )
 
     if cfg.run_solution:

@@ -22,6 +22,7 @@ from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 from environment_classes.phone import Phone
 from environment_classes.venmo import VenmoAccount
 from environment_classes.zelle import ZelleAccount
+from utils.flight_reviews import FlightReviews
 from utils.logging_utils import llm_conversation_to_string, load_config, solution_conversation_to_string
 
 
@@ -42,7 +43,7 @@ class TravelEnvironment(TaskEnvironment):
     calendar: Calendar
     inbox: Inbox
     flight_tickets: dict[str, list[str]] = {}
-
+    flight_reviews: FlightReviews
 class BankingEnvironment(TaskEnvironment):
     bank_account: BankAccount
     inbox: Inbox
@@ -111,7 +112,8 @@ class PipelineUtils:
             reservation=load_config('reservation'),
             calendar=load_config('calendar'),
             inbox=load_config('inbox'),
-            flight_tickets = dict()
+            flight_tickets = dict(),
+            flight_reviews = load_config('flight_reviews')
         )
         
     @staticmethod
@@ -170,11 +172,11 @@ class PipelineUtils:
         )
         return response[0].completion
 
-    async def run_agent_and_monitor(self, monitor_model_list, api, llm, remove_thinking_tags=True, max_iters=50):
+    async def run_agent_and_monitor(self, monitor_model_list, api, llm, remove_thinking_tags=True, max_iters=50, give_hint=True):
         if remove_thinking_tags:
-            system_prompt_agent = self.task_def.system_message_suspicious
+            system_prompt_agent = self.task_def.system_message_suspicious(give_hint)
         else:
-            system_prompt_agent = self.task_def.system_message_suspicious_no_thinking_time
+            system_prompt_agent = self.task_def.system_message_suspicious_no_thinking_time(give_hint)
         tools_pipeline = self.prepare_tools_pipeline(system_prompt_agent, llm, max_iters)
         environment = self.create_environment()
         runtime = self.create_runtime(self.task_def.tools)

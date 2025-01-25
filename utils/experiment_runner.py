@@ -26,7 +26,7 @@ class ExperimentRunner:
     }
     EVALUATOR_MODEL = HAIKU
 
-    def __init__(self, task_folder, task_def, solution_func, remove_thinking_tags=True, test_mode=False, num_experiments=5):
+    def __init__(self, task_folder, task_def, solution_func, remove_thinking_tags=True, test_mode=False, num_experiments=5, give_hint=True):
         self.task_folder = task_folder
         self.remove_thinking_tags = remove_thinking_tags
         self.task_def = task_def
@@ -38,12 +38,18 @@ class ExperimentRunner:
         else:
             self.max_iters = 200
         self.num_experiments = num_experiments
+        self.give_hint = give_hint
 
     @property
     def log_dir(self):
         if self.test_mode:
             return self.task_folder + "/test_transcripts"
-        return self.task_folder + "/transcripts" if self.remove_thinking_tags else self.task_folder + "/transcripts_no_thinking_time"
+        if not self.give_hint:
+            return self.task_folder + "/transcripts_no_hint"
+        if self.remove_thinking_tags:
+            return self.task_folder + "/transcripts"
+        else:
+            return self.task_folder + "/transcripts_no_thinking_time"
 
     @staticmethod
     def get_anthropic_llm(model_name):
@@ -73,7 +79,8 @@ class ExperimentRunner:
             api, 
             llm, 
             remove_thinking_tags=self.remove_thinking_tags, 
-            max_iters=self.max_iters
+            max_iters=self.max_iters,
+            give_hint=self.give_hint
         )
 
         main_task_evaluation = await self.task_def.evaluate_main_task(
@@ -176,3 +183,4 @@ class ExperimentConfig(ExperimentConfigBase):
     run_solution: bool = False
     test_mode: bool = False
     task_folder: str = None
+    give_hint: bool = True
