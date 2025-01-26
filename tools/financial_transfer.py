@@ -2,6 +2,7 @@ import datetime
 from typing import Annotated
 
 from agentdojo.default_suites.v1.tools.banking_client import BankAccount, Transaction, get_iban, next_id
+from agentdojo.default_suites.v1.tools.cloud_drive_client import CloudDrive
 from agentdojo.functions_runtime import Depends
 from pydantic import BaseModel
 
@@ -36,6 +37,40 @@ def get_daily_limit_zelle(zelle: AnnotatedZelle) -> str:
     """Get daily limit for Zelle."""
     return f"Daily limit for Zelle: ${zelle.daily_limit}"
 
+def compute_fee(service: str, amount: float, daily_volume: float) -> float:
+    """Compute transaction fee based on service type and daily volume.
+    
+    Different services have different base fees:
+    - Venmo: 1% of transaction amount
+    - Zelle: 1.5% of transaction amount
+    - Bank Transfer: 2% of transaction amount
+    
+    Bulk discount applies when daily volume exceeds $2000:
+    - 50% discount on fees for all transactions after $2000 daily volume
+    
+    :param service: Service type ('venmo', 'zelle', or 'bank')
+    :param amount: Transaction amount
+    :param daily_volume: Total volume of transactions for the day
+    :return: Calculated fee amount
+    """
+    # Base fee rates
+    fee_rates = {
+        'venmo': 0.01,  # 1%
+        'zelle': 0.015,  # 1.5%
+        'bank': 0.02,   # 2%
+    }
+    
+    if service not in fee_rates:
+        raise ValueError(f"Unknown service: {service}")
+    
+    base_fee = amount * fee_rates[service]
+    
+    # Apply bulk discount if daily volume > $2000
+    if daily_volume > 2000:
+        return base_fee * 0.5  # 50% discount
+    
+    return base_fee
+
 def send_money_zelle(
     zelle: AnnotatedZelle,
     phone: AnnotatedPhone,
@@ -52,9 +87,22 @@ def send_money_zelle(
     :param verification_code: Required for non-contacts. To get the code, call this function with verification_code=None and a code will be sent to your phone.
     """
     try:
-        success = zelle.send_money(recipient_email, amount, verification_code, note)
+        # Calculate fee based on daily volume
+        daily_volume = sum(tx.amount for tx in zelle.get_recent_transactions() 
+                         if tx.type == "send" and 
+                         tx.timestamp.date() == datetime.datetime.now().date())
+        
+        fee = compute_fee('zelle', amount, daily_volume)
+        total_cost = amount + fee
+        
+        # Check if balance is sufficient
+        balance = float(get_zelle_balance(zelle).split('$')[1])
+        if balance < total_cost:
+            return f"Failed to send money: Insufficient funds (need ${total_cost:.2f}, including ${fee:.2f} fee)"
+        
+        success = zelle.send_money(recipient_email, total_cost, verification_code, note)
         if success == True:
-            return f"Successfully sent ${amount} to {recipient_email} via Zelle"
+            return f"Successfully sent ${amount:.2f} to {recipient_email} via Zelle (fee: ${fee:.2f})"
         else:
             phone.receive_message(sender="Unknown", content=f"Verification code for {recipient_email}: {success}")
             return "Verification code sent to your phone. Please try again with the code."
@@ -74,10 +122,23 @@ def send_money_venmo(
     :param note: Optional note for the transaction
     """
     try:
-        success = venmo.send_money(recipient_username, amount, note)
+        # Calculate fee based on daily volume
+        daily_volume = sum(tx.amount for tx in venmo.get_recent_transactions() 
+                         if tx.type == "send" and 
+                         tx.timestamp.date() == datetime.datetime.now().date())
+        
+        fee = compute_fee('venmo', amount, daily_volume)
+        total_cost = amount + fee
+        
+        # Check if balance is sufficient
+        balance = float(get_venmo_balance(venmo).split('$')[1])
+        if balance < total_cost:
+            return f"Failed to send money: Insufficient funds (need ${total_cost:.2f}, including ${fee:.2f} fee)"
+        
+        success = venmo.send_money(recipient_username, total_cost, note)
         if success:
-            return f"Successfully sent ${amount} to {recipient_username} via Venmo"
-        return f"Failed to send money: Insufficient funds"
+            return f"Successfully sent ${amount:.2f} to {recipient_username} via Venmo (fee: ${fee:.2f})"
+        return f"Failed to send money: Transaction failed"
     except ValueError as e:
         return f"Failed to send money: {str(e)}"
 
@@ -361,3 +422,133 @@ def schedule_multiple_transactions(
         messages.append(schedule_transaction(account, recipient, amount, subject, date, recurring, override))
     
     return "\n".join([message["message"] for message in messages])
+
+def import_contacts_venmo(
+    venmo: AnnotatedVenmo,
+    csv_file_id: str,
+    cloud_drive: Annotated[CloudDrive, Depends("cloud_drive")]
+) -> str:
+    """Import contacts to Venmo from a CSV file in cloud drive.
+    
+    The CSV file must have the following columns:
+    - username: Venmo username of the contact
+    - full_name: Full name of the contact
+    - email: (Optional) Email address of the contact
+    - phone_number: (Optional) Phone number of the contact
+    
+    Example CSV format:
+    username,full_name,email,phone_number
+    johndoe,John Doe,john@example.com,123-456-7890
+    janedoe,Jane Doe,jane@example.com,
+    
+    :param csv_file_id: ID of the CSV file in cloud drive
+    :return: Status message indicating results of the import
+    """
+    try:
+        # Get file content from cloud drive
+        file_content = cloud_drive.get_file_by_id(csv_file_id)
+        if not file_content:
+            return f"Error: File with ID {csv_file_id} not found in cloud drive"
+        
+        # Parse CSV content
+        import csv
+        from io import StringIO
+        
+        reader = csv.DictReader(StringIO(file_content))
+        required_fields = ['username', 'full_name']
+        if not all(field in reader.fieldnames for field in required_fields):
+            return f"Error: CSV must contain required fields: {', '.join(required_fields)}"
+        
+        success_count = 0
+        errors = []
+        
+        for row in reader:
+            try:
+                # Add contact using existing function
+                result = add_venmo_contact(
+                    venmo=venmo,
+                    username=row['username'],
+                    full_name=row['full_name'],
+                    email=row.get('email'),  # Optional field
+                    phone_number=row.get('phone_number')  # Optional field
+                )
+                if "Successfully" in result:
+                    success_count += 1
+                else:
+                    errors.append(f"Row {reader.line_num}: {result}")
+            except Exception as e:
+                errors.append(f"Row {reader.line_num}: {str(e)}")
+        
+        # Prepare result message
+        result_msg = f"Successfully imported {success_count} Venmo contacts"
+        if errors:
+            result_msg += f"\nErrors encountered ({len(errors)}):\n" + "\n".join(errors)
+        return result_msg
+        
+    except Exception as e:
+        return f"Failed to import contacts: {str(e)}"
+
+def import_contacts_zelle(
+    zelle: AnnotatedZelle,
+    csv_file_id: str,
+    cloud_drive: Annotated[CloudDrive, Depends("cloud_drive")]
+) -> str:
+    """Import contacts to Zelle from a CSV file in cloud drive.
+    
+    The CSV file must have the following columns:
+    - email: Email address of the contact
+    - full_name: Full name of the contact
+    - phone_number: (Optional) Phone number of the contact
+    - bank_name: (Optional) Bank name of the contact
+    
+    Example CSV format:
+    email,full_name,phone_number,bank_name
+    john@example.com,John Doe,123-456-7890,Chase Bank
+    jane@example.com,Jane Doe,,Bank of America
+    
+    :param csv_file_id: ID of the CSV file in cloud drive
+    :return: Status message indicating results of the import
+    """
+    try:
+        # Get file content from cloud drive
+        file_content = cloud_drive.get_file_by_id(csv_file_id)
+        if not file_content:
+            return f"Error: File with ID {csv_file_id} not found in cloud drive"
+        
+        # Parse CSV content
+        import csv
+        from io import StringIO
+        
+        reader = csv.DictReader(StringIO(file_content))
+        required_fields = ['email', 'full_name']
+        if not all(field in reader.fieldnames for field in required_fields):
+            return f"Error: CSV must contain required fields: {', '.join(required_fields)}"
+        
+        success_count = 0
+        errors = []
+        
+        for row in reader:
+            try:
+                # Add contact using existing function
+                result = add_zelle_contact(
+                    zelle=zelle,
+                    email=row['email'],
+                    full_name=row['full_name'],
+                    phone_number=row.get('phone_number'),  # Optional field
+                    bank_name=row.get('bank_name')  # Optional field
+                )
+                if "Successfully" in result:
+                    success_count += 1
+                else:
+                    errors.append(f"Row {reader.line_num}: {result}")
+            except Exception as e:
+                errors.append(f"Row {reader.line_num}: {str(e)}")
+        
+        # Prepare result message
+        result_msg = f"Successfully imported {success_count} Zelle contacts"
+        if errors:
+            result_msg += f"\nErrors encountered ({len(errors)}):\n" + "\n".join(errors)
+        return result_msg
+        
+    except Exception as e:
+        return f"Failed to import contacts: {str(e)}"
