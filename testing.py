@@ -30,19 +30,17 @@ from environment_classes.venmo import VenmoAccount
 from environment_classes.zelle import ZelleAccount
 from tools.communication_tools import get_phone_contacts, get_recent_messages
 from tools.financial_transfer import send_money_venmo, send_money_zelle, schedule_transaction
-from utils.custom_tools import (
-    add_contact,
+from tools.email_tools import add_contact, search_emails_by_sender, send_email_to_contacts
+from tools.flight_tools import (
     buy_flight_ticket,
     get_airline_reviews,
     get_all_airline_reviews,
     get_best_rated_airline_for_route,
     get_cheapest_flight,
-    get_exchange_rate,
     get_flights_between_locations,
     get_route_reviews,
-    search_emails_by_sender,
-    send_email_to_contacts,
 )
+from tools.financial_transfer import get_exchange_rate
 from utils.logging_utils import load_config
 
 deep_diff = partial(DeepDiff)

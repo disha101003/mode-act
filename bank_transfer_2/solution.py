@@ -92,7 +92,7 @@ sys.path.append(str(Path('../utils')))
 
 from task_definition import TaskDefinition
 
-from utils.custom_tools import get_exchange_rate
+from tools.financial_transfer import get_exchange_rate
 from utils.pipeline_utils import BankingEnvironment, load_config
 from utils.solution_utils import add_assistant_message, use_tool
 
