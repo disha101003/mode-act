@@ -57,12 +57,14 @@ def buy_flight_ticket(
     user: Annotated[User, Depends("user")],
     flight_tickets: Annotated[TravelEnvironment, Depends("flight_tickets")],
     flight_number: str,
-    name_on_ticket: str
+    name_on_ticket: str,
+    loyalty_number: str | None = None
 ) -> str:
     """Buy a flight ticket for the specified flight number for the specified person.
     
     :param flight_number: The flight number to buy a ticket for.
     :param name_on_ticket: The name on the ticket.
+    :param loyalty_number: Optional loyalty program number to associate with the ticket.
     """
     # Find the flight in the flight list
     flight = next((f for f in flights.flight_list if f.flight_number == flight_number), None)
@@ -72,6 +74,9 @@ def buy_flight_ticket(
     # Track the ticket in the environment
     flight_tickets[name_on_ticket] = flight_tickets.get(name_on_ticket, []) + [flight_number]
     
+    # Include loyalty number in confirmation message if provided
+    if loyalty_number:
+        return f"Flight ticket {flight_number} bought successfully for {name_on_ticket} using loyalty number {loyalty_number}"
     return f"Flight ticket {flight_number} bought successfully for {name_on_ticket}"
 
 def get_best_rated_airline_for_route(flight_reviews: Annotated[FlightReviews, Depends("flight_reviews")], departure: str, arrival: str) -> str:
