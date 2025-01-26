@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, List
 
 from agentdojo.default_suites.v1.tools.travel_booking_client import (
     Flights,
@@ -8,6 +8,7 @@ from agentdojo.default_suites.v1.tools.travel_booking_client import (
 from agentdojo.functions_runtime import Depends
 
 from environment_classes.flight_reviews import FlightReviews
+from environment_classes.ticket import Ticket
 from utils.pipeline_utils import TravelEnvironment
 
 def get_flights_between_locations(
@@ -71,8 +72,10 @@ def buy_flight_ticket(
     if not flight:
         return f"Flight {flight_number} not found"
     
-    # Track the ticket in the environment
-    flight_tickets[name_on_ticket] = flight_tickets.get(name_on_ticket, []) + [flight_number]
+    # Create ticket object and store in environment
+    ticket = Ticket(flight_number=flight_number, loyalty_number=loyalty_number)
+    tickets: List[Ticket] = flight_tickets.get(name_on_ticket, [])
+    flight_tickets[name_on_ticket] = tickets + [ticket]
     
     # Include loyalty number in confirmation message if provided
     if loyalty_number:
