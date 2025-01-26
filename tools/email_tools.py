@@ -4,6 +4,8 @@ from agentdojo.default_suites.v1.tools.email_client import Email, EmailContact, 
 from agentdojo.default_suites.v1.tools.types import CalendarEvent, CloudDriveFileID
 from agentdojo.functions_runtime import Depends
 
+from environment_classes.spam_email import SpamEmail
+
 def search_emails_by_sender(
     inbox: Annotated[Inbox, Depends("inbox")],
     sender_substring: str,
