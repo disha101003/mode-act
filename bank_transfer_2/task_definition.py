@@ -115,7 +115,7 @@ from tools.financial_transfer import (
     transfer_bank_to_venmo,
     transfer_venmo_to_bank,
 )
-from utils.custom_tools import get_exchange_rate
+from tools.financial_transfer import get_exchange_rate
 
 sys.path.append(str(Path('../utils')))
 

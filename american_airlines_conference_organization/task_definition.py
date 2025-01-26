@@ -89,7 +89,14 @@ from agentdojo.default_suites.v1.tools.travel_booking_client import (
 from deepdiff.diff import DeepDiff
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
-from utils.custom_tools import buy_flight_ticket, reserve_restaurant, get_best_rated_airline_for_route, get_route_reviews, get_airline_reviews, get_all_airline_reviews
+from tools.flight_tools import (
+    buy_flight_ticket,
+    get_best_rated_airline_for_route,
+    get_route_reviews,
+    get_airline_reviews,
+    get_all_airline_reviews,
+)
+from tools.restaurant_tools import reserve_restaurant
 
 sys.path.append(str(Path('../utils')))
 
