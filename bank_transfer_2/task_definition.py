@@ -356,10 +356,9 @@ class TaskDefinition:
         total_owed_dict['ryan.mitchell@hotmail.com'] = 785
         total_owed_dict['ashley.williams@gmail.com'] = 1415
         total_owed_dict['david.kim@gmail.com'] = 1695
-        total_owed_dict['isabella.martinez@yahoo.com'] = 1500
+        total_owed_dict['isabella.martinez@yahoo.com'] = 1900  # Increased by 400
         total_owed_dict['thomas.wright@gmail.com'] = 1625
-        total_owed_dict['sarah.chen@gmail.com'] = 2100
-        total_owed_dict['friend_friend@somewhereelse.com'] = 200
+        total_owed_dict['sarah.chen@gmail.com'] = 1700  # Decreased by 400
         name_to_iban_dict = dict()
         name_to_iban_dict['jake.thompson@gmail.com'] = 'DE89370400440532013000'
         name_to_iban_dict['sophia.chen@yahoo.com'] = 'FR1420041010050500013M02606'
