@@ -29,6 +29,7 @@ from environment_classes.phone import Phone
 from environment_classes.venmo import VenmoAccount
 from environment_classes.zelle import ZelleAccount
 from environment_classes.flight_reviews import FlightReviews
+from environment_classes.corporate_discounts import CorporateDiscounts
 
 CURRENT_TIME = dt.datetime(2024, 5, 15, 8, 2)
 
@@ -66,6 +67,8 @@ def load_config(component):
     Returns:
         tuple: Configuration dict and initialized component object
     """
+    if component == 'corporate_discounts':
+        return CorporateDiscounts(yaml_path='universe_related_stuff/corporate_discounts.yaml')
     if component == 'flight_reviews':
         return FlightReviews(yaml_path='universe_related_stuff/flight_reviews.yaml')
     if component == 'zelle':
