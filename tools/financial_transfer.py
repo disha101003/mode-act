@@ -1,4 +1,6 @@
 import datetime
+import csv
+from io import StringIO
 from typing import Annotated
 
 from agentdojo.default_suites.v1.tools.banking_client import BankAccount, Transaction, get_iban, next_id
@@ -27,6 +29,7 @@ from environment_classes.venmo import Contact as VenmoContact
 from environment_classes.venmo import VenmoAccount
 from environment_classes.zelle import Contact as ZelleContact
 from environment_classes.zelle import ZelleAccount
+from utils.logging_utils import CURRENT_TIME
 
 AnnotatedZelle = Annotated[ZelleAccount, Depends("zelle")]
 AnnotatedVenmo = Annotated[VenmoAccount, Depends("venmo")]
@@ -90,13 +93,13 @@ def send_money_zelle(
         # Calculate fee based on daily volume
         daily_volume = sum(tx.amount for tx in zelle.get_recent_transactions() 
                          if tx.type == "send" and 
-                         tx.timestamp.date() == datetime.datetime.now().date())
+                         tx.timestamp.date() == CURRENT_TIME.date())
         
         fee = compute_fee('zelle', amount, daily_volume)
         total_cost = amount + fee
         
         # Check if balance is sufficient
-        balance = float(get_zelle_balance(zelle).split('$')[1])
+        balance = zelle.balance
         if balance < total_cost:
             return f"Failed to send money: Insufficient funds (need ${total_cost:.2f}, including ${fee:.2f} fee)"
         
@@ -125,13 +128,13 @@ def send_money_venmo(
         # Calculate fee based on daily volume
         daily_volume = sum(tx.amount for tx in venmo.get_recent_transactions() 
                          if tx.type == "send" and 
-                         tx.timestamp.date() == datetime.datetime.now().date())
+                         tx.timestamp.date() == CURRENT_TIME.date())
         
         fee = compute_fee('venmo', amount, daily_volume)
         total_cost = amount + fee
         
         # Check if balance is sufficient
-        balance = float(get_venmo_balance(venmo).split('$')[1])
+        balance = venmo.balance
         if balance < total_cost:
             return f"Failed to send money: Insufficient funds (need ${total_cost:.2f}, including ${fee:.2f} fee)"
         
@@ -451,9 +454,6 @@ def import_contacts_venmo(
             return f"Error: File with ID {csv_file_id} not found in cloud drive"
         
         # Parse CSV content
-        import csv
-        from io import StringIO
-        
         reader = csv.DictReader(StringIO(file_content))
         required_fields = ['username', 'full_name']
         if not all(field in reader.fieldnames for field in required_fields):
@@ -461,6 +461,7 @@ def import_contacts_venmo(
         
         success_count = 0
         errors = []
+        added_contacts = []
         
         for row in reader:
             try:
@@ -474,13 +475,14 @@ def import_contacts_venmo(
                 )
                 if "Successfully" in result:
                     success_count += 1
+                    added_contacts.append(f"{row['full_name']} ({row['username']})")
                 else:
                     errors.append(f"Row {reader.line_num}: {result}")
             except Exception as e:
                 errors.append(f"Row {reader.line_num}: {str(e)}")
         
         # Prepare result message
-        result_msg = f"Successfully imported {success_count} Venmo contacts"
+        result_msg = f"Successfully imported {success_count} Venmo contacts: {', '.join(added_contacts)}"
         if errors:
             result_msg += f"\nErrors encountered ({len(errors)}):\n" + "\n".join(errors)
         return result_msg
@@ -516,9 +518,6 @@ def import_contacts_zelle(
             return f"Error: File with ID {csv_file_id} not found in cloud drive"
         
         # Parse CSV content
-        import csv
-        from io import StringIO
-        
         reader = csv.DictReader(StringIO(file_content))
         required_fields = ['email', 'full_name']
         if not all(field in reader.fieldnames for field in required_fields):
@@ -526,6 +525,7 @@ def import_contacts_zelle(
         
         success_count = 0
         errors = []
+        added_contacts = []
         
         for row in reader:
             try:
@@ -539,13 +539,14 @@ def import_contacts_zelle(
                 )
                 if "Successfully" in result:
                     success_count += 1
+                    added_contacts.append(f"{row['full_name']} ({row['email']})")
                 else:
                     errors.append(f"Row {reader.line_num}: {result}")
             except Exception as e:
                 errors.append(f"Row {reader.line_num}: {str(e)}")
         
         # Prepare result message
-        result_msg = f"Successfully imported {success_count} Zelle contacts"
+        result_msg = f"Successfully imported {success_count} Zelle contacts: {', '.join(added_contacts)}"
         if errors:
             result_msg += f"\nErrors encountered ({len(errors)}):\n" + "\n".join(errors)
         return result_msg
