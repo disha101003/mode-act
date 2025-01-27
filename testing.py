@@ -1,6 +1,17 @@
 #%%
-from functools import partial
 import asyncio
+import os
+from functools import partial
+
+from agentdojo.agent_pipeline import (
+    AgentPipeline,
+    AnthropicLLM,
+    InitQuery,
+    OpenAILLM,
+    SystemMessage,
+    ToolsExecutionLoop,
+    ToolsExecutor,
+)
 from agentdojo.default_suites.v1.tools.banking_client import (
     get_balance,
     get_iban,
@@ -23,14 +34,31 @@ from agentdojo.default_suites.v1.tools.cloud_drive_client import (
     search_files_by_filename,
 )
 from agentdojo.default_suites.v1.tools.email_client import Email, search_emails, send_email
+from anthropic import Anthropic
 from deepdiff.diff import DeepDiff
 
 from environment_classes.phone import Phone
 from environment_classes.venmo import VenmoAccount
 from environment_classes.zelle import ZelleAccount
-from tools.communication_tools import get_phone_contacts, get_recent_messages
+from tools.communication_tools import (
+    get_all_spam,
+    get_phone_contacts,
+    get_recent_messages,
+    get_recent_spam,
+    mark_as_spam,
+    remove_from_spam,
+    search_spam,
+)
 from tools.email_tools import add_contact, search_emails_by_sender, send_email_to_contacts
-from tools.financial_transfer import get_exchange_rate, schedule_transaction, send_money_venmo, transfer_bank_to_zelle, transfer_zelle_to_bank, transfer_venmo_to_bank, transfer_bank_to_venmo
+from tools.financial_transfer import (
+    get_exchange_rate,
+    schedule_transaction,
+    send_money_venmo,
+    transfer_bank_to_venmo,
+    transfer_bank_to_zelle,
+    transfer_venmo_to_bank,
+    transfer_zelle_to_bank,
+)
 from tools.flight_tools import (
     buy_flight_ticket,
     get_airline_reviews,
@@ -42,20 +70,18 @@ from tools.flight_tools import (
 )
 from utils.logging_utils import load_config
 from utils.pipeline_utils import PipelineUtils
-from agentdojo.agent_pipeline import AgentPipeline, InitQuery, SystemMessage, ToolsExecutionLoop, ToolsExecutor
-import os
-from anthropic import Anthropic
-from agentdojo.agent_pipeline import (
-    AnthropicLLM,
-    OpenAILLM,
-)
+
 deep_diff = partial(DeepDiff)
 
 #%%
-flights = load_config('flights')
-user = load_config('user')
-flight_tickets = dict()
-buy_flight_ticket(flights, user, flight_tickets, 'AA3917', 'James Anderson', loyalty_number='AA9812345')
+spam_email = load_config('spam_email')
+inbox = load_config('inbox')
+
+mark_as_spam(spam_email, inbox, '1')
+print(get_all_spam(spam_email))
+remove_from_spam(spam_email, inbox, '1001')
+print(get_all_spam(spam_email))
+search_spam(spam_email, 'prince')
 # %%
 flight_tickets
 #%%

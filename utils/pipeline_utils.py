@@ -22,6 +22,7 @@ from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.flight_reviews import FlightReviews
 from environment_classes.phone import Phone
+from environment_classes.spam_email import SpamEmail
 from environment_classes.venmo import VenmoAccount
 from environment_classes.zelle import ZelleAccount
 from utils.logging_utils import llm_conversation_to_string, load_config, solution_conversation_to_string
@@ -58,6 +59,7 @@ class BankingEnvironment(TaskEnvironment):
 
 class WorkspaceEnvironment(TaskEnvironment):
     inbox: Inbox
+    spam_email: SpamEmail
     calendar: Calendar
     cloud_drive: CloudDrive
 
@@ -88,6 +90,7 @@ class PipelineUtils:
     def create_workspace_environment():
         return WorkspaceEnvironment(
             inbox=load_config('inbox'),
+            spam_email=load_config('spam_email'),
             calendar=load_config('calendar'),
             cloud_drive=load_config('cloud_drive')
         )

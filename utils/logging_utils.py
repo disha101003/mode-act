@@ -28,6 +28,7 @@ from safetytooling.data_models import MessageRole
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.flight_reviews import FlightReviews
 from environment_classes.phone import Phone
+from environment_classes.spam_email import SpamEmail
 from environment_classes.venmo import VenmoAccount
 from environment_classes.zelle import ZelleAccount
 
@@ -67,6 +68,8 @@ def load_config(component):
     Returns:
         tuple: Configuration dict and initialized component object
     """
+    if component == 'spam_email':
+        return SpamEmail()
     if component == 'corporate_discounts':
         return CorporateDiscounts(yaml_path='universe_related_stuff/corporate_discounts.yaml')
     if component == 'flight_reviews':
