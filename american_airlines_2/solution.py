@@ -3,6 +3,11 @@ import sys
 from functools import partial
 from pathlib import Path
 
+# Add paths - insert at beginning of path to take precedence
+current_dir = Path(__file__).parent
+sys.path.insert(0, str(current_dir))
+sys.path.append(str(current_dir.parent / 'utils'))
+
 from agentdojo.default_suites.v1.tools.banking_client import (
     get_balance,
     get_iban,

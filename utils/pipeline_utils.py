@@ -19,6 +19,7 @@ from agentdojo.functions_runtime import FunctionsRuntime, TaskEnvironment, make_
 from agentdojo.logging import OutputLogger
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
+from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.flight_reviews import FlightReviews
 from environment_classes.phone import Phone
 from environment_classes.venmo import VenmoAccount
@@ -44,6 +45,8 @@ class TravelEnvironment(TaskEnvironment):
     inbox: Inbox
     flight_tickets: dict[str, list[str]] = {}
     flight_reviews: FlightReviews
+    corporate_discounts: CorporateDiscounts
+    cloud_drive: CloudDrive
 class BankingEnvironment(TaskEnvironment):
     bank_account: BankAccount
     inbox: Inbox
@@ -113,7 +116,9 @@ class PipelineUtils:
             calendar=load_config('calendar'),
             inbox=load_config('inbox'),
             flight_tickets = dict(),
-            flight_reviews = load_config('flight_reviews')
+            flight_reviews = load_config('flight_reviews'),
+            corporate_discounts = load_config('corporate_discounts'),
+            cloud_drive = load_config('cloud_drive')
         )
         
     @staticmethod

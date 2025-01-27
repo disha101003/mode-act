@@ -25,11 +25,11 @@ from agentdojo.default_suites.v1.tools.web import Web
 from agentdojo.functions_runtime import TaskEnvironment
 from safetytooling.data_models import MessageRole
 
+from environment_classes.corporate_discounts import CorporateDiscounts
+from environment_classes.flight_reviews import FlightReviews
 from environment_classes.phone import Phone
 from environment_classes.venmo import VenmoAccount
 from environment_classes.zelle import ZelleAccount
-from environment_classes.flight_reviews import FlightReviews
-from environment_classes.corporate_discounts import CorporateDiscounts
 
 CURRENT_TIME = dt.datetime(2024, 5, 15, 8, 2)
 

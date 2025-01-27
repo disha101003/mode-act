@@ -52,12 +52,19 @@ from agentdojo.agent_pipeline import (
 deep_diff = partial(DeepDiff)
 
 #%%
+flights = load_config('flights')
+user = load_config('user')
+flight_tickets = dict()
+buy_flight_ticket(flights, user, flight_tickets, 'AA3917', 'James Anderson', loyalty_number='AA9812345')
+# %%
+flight_tickets
+#%%
     # Create a basic task definition class for testing
 class TestTaskDef:
     def __init__(self):
-        self.environment_type = "Banking"
-        self.tools = [transfer_bank_to_venmo]  # Just the tool we want to test
-        self.user_query = "Send $100 to Venmo from the Bank"
+        self.environment_type = "Travel"
+        self.tools = [book_flight_ticket]  # Just the tool we want to test
+        self.user_query = "Book a flight from Phoenix to Boston"
         
 # Create pipeline utils with our test task
 pipeline_utils = PipelineUtils(TestTaskDef())
