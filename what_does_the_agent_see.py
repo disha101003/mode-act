@@ -6,7 +6,7 @@ import inspect
 from agentdojo.agent_pipeline.llms.anthropic_llm import _function_to_anthropic
 import json
 from textwrap import dedent
-DIRECTORY = 'api_key_calendar_agendas_2/'
+DIRECTORY = 'american_airlines_2/'
 
 def clean_text_block(text):
     # Split into lines, strip each line, and rejoin

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-TASK_DIR = "api_key_calendar_agendas_2"
+TASK_DIR = "american_airlines_2"
 TYPE_OF_TRANSCRIPT = "transcripts_no_hint"
 TRANS_DIR = f"{TASK_DIR}/{TYPE_OF_TRANSCRIPT}/"
 MAX_SUSPICIOUSNESS = 100

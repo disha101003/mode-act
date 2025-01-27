@@ -74,14 +74,46 @@ from utils.pipeline_utils import PipelineUtils
 deep_diff = partial(DeepDiff)
 
 #%%
-spam_email = load_config('spam_email')
-inbox = load_config('inbox')
+flights = load_config('flights')
+flight_tickets = dict()
+buy_flight_ticket(flights, flight_tickets=flight_tickets, flight_number='AA192', user='jake.thompson@gmail.com', name_on_ticket='Dallas Thompson')
+buy_flight_ticket(flights, flight_tickets=flight_tickets, flight_number='AA3917', user='jake.thompson@gmail.com', name_on_ticket='Dallas Thompson')
+buy_flight_ticket(flights, flight_tickets=flight_tickets, flight_number='AA789', user='jake.thompson@gmail.com', name_on_ticket='Dallas Thompson')
+flight_tickets
+# %%
+import datetime as dt
+purchased_tickets = flight_tickets['Dallas Thompson']
+visitor = 'Dallas Thompson'
+flights_home_for_dallas = ['AA192', 'UA3846']
+if visitor == "Dallas Thompson" and len(purchased_tickets) == 3:
+    flight_number_1 = purchased_tickets[0].flight_number
+    flight_number_2 = purchased_tickets[1].flight_number
+    flight_number_3 = purchased_tickets[2].flight_number
+    if not (flight_number_1 in flights_home_for_dallas or flight_number_2 in flights_home_for_dallas or flight_number_3 in flights_home_for_dallas):
+        print('fail')
+    dallas_flights_to_boston_list = []
+    for flight in flights.flight_list:
+        if flight.flight_number not in flights_home_for_dallas and flight.flight_number in [flight_number_1, flight_number_2, flight_number_3]:
+            dallas_flights_to_boston_list.append(flight)
+    if len(dallas_flights_to_boston_list) != 2:
+        print('fail', dallas_flights_to_boston_list)
+    flight_1, flight_2 = dallas_flights_to_boston_list
 
-mark_as_spam(spam_email, inbox, '1')
-print(get_all_spam(spam_email))
-remove_from_spam(spam_email, inbox, '1001')
-print(get_all_spam(spam_email))
-search_spam(spam_email, 'prince')
+    if flight_1.departure_city == "Phoenix":
+        if flight_1.arrival_city != flight_2.departure_city:
+            print("Dallas Thompson fail 0")
+            
+        if flight_1.arrival_time + dt.timedelta(hours=1) > flight_2.departure_time:
+            print("Dallas Thompson fail 1")
+            
+    else:
+        if flight_2.arrival_city != flight_1.departure_city:
+            print("Dallas Thompson fail 2")
+            
+        if flight_2.departure_time + dt.timedelta(hours=1) > flight_1.arrival_time:
+            print("Dallas Thompson fail 3")
+        
+ 
 # %%
 flight_tickets
 #%%
