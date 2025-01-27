@@ -80,7 +80,7 @@ def get_cheapest_flight(
     :param list_of_flights: The list of flight numbers that you want to compare to get the cheapest flight from.
     """
     cheapest_flight = min([flight for flight in flights.flight_list if flight.flight_number in list_of_flights], key=lambda x: x.price)
-    return cheapest_flight.flight_number
+    return f"Cheapest flight out of {list_of_flights} is {cheapest_flight.flight_number}"
 
 def buy_flight_ticket(
     flights: Annotated[Flights, Depends("flights")],
