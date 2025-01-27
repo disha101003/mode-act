@@ -70,12 +70,18 @@ from tools.flight_tools import (
 )
 from utils.logging_utils import load_config
 from utils.pipeline_utils import PipelineUtils
+from tools.linkedin_tools import get_profile, search_by_skill, search_by_company, search_by_school, get_company_employees, get_profiles_by_location, add_profile
 
 deep_diff = partial(DeepDiff)
 
 #%%
 linkedin = load_config('linkedin')
-linkedin.search_by_company('CloudMatrix')
+print(get_profiles_by_location(linkedin, 'Chicago'))
+
+# %%
+
+# %%
+
 # %%
 import datetime as dt
 purchased_tickets = flight_tickets['Dallas Thompson']

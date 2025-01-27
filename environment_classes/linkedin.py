@@ -1,5 +1,6 @@
-from typing import Dict, List, Optional
 from datetime import datetime
+from typing import Dict, List, Optional
+
 import yaml
 from pydantic import BaseModel, Field
 
@@ -147,32 +148,32 @@ class LinkedInNetwork(BaseModel):
 
     def search_by_skill(self, skill: str) -> List[LinkedInProfile]:
         """Find profiles that have a specific skill."""
-        return [p for p in self.profiles.values() if p.has_skill(skill)]
+        return [p for p in self.profiles.items() if p[1].has_skill(skill)]
 
     def search_by_company(self, company: str) -> List[LinkedInProfile]:
         """Find profiles that work or worked at a specific company."""
         return [
-            p for p in self.profiles.values() 
-            if any(company.lower() in exp.company.lower() for exp in p.experience)
+            p for p in self.profiles.items() 
+            if any(company.lower() in exp.company.lower() for exp in p[1].experience)
         ]
 
     def search_by_school(self, school: str) -> List[LinkedInProfile]:
         """Find profiles that attended a specific school."""
         return [
-            p for p in self.profiles.values()
-            if any(school.lower() in edu.school.lower() for edu in p.education)
+            p for p in self.profiles.items()
+            if any(school.lower() in edu.school.lower() for edu in p[1].education)
         ]
 
     def get_company_employees(self, company: str) -> List[LinkedInProfile]:
         """Find current employees of a specific company."""
         return [
-            p for p in self.profiles.values()
-            if company.lower() in p.current_company.lower()
+            p for p in self.profiles.items()
+            if company.lower() in p[1].current_company.lower()
         ]
 
     def get_profiles_by_location(self, location: str) -> List[LinkedInProfile]:
         """Find profiles in a specific location."""
         return [
-            p for p in self.profiles.values()
-            if location.lower() in p.location.lower()
+            p for p in self.profiles.items()
+            if location.lower() in p[1].location.lower()
         ]

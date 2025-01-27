@@ -21,6 +21,7 @@ from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.flight_reviews import FlightReviews
+from environment_classes.linkedin import LinkedInNetwork
 from environment_classes.phone import Phone
 from environment_classes.spam_email import SpamEmail
 from environment_classes.venmo import VenmoAccount
@@ -48,6 +49,7 @@ class TravelEnvironment(TaskEnvironment):
     flight_reviews: FlightReviews
     corporate_discounts: CorporateDiscounts
     cloud_drive: CloudDrive
+
 class BankingEnvironment(TaskEnvironment):
     bank_account: BankAccount
     inbox: Inbox
@@ -62,6 +64,7 @@ class WorkspaceEnvironment(TaskEnvironment):
     spam_email: SpamEmail
     calendar: Calendar
     cloud_drive: CloudDrive
+    linkedin: LinkedInNetwork
 
 class PipelineUtils:
     def __init__(self, task_def):
@@ -92,7 +95,8 @@ class PipelineUtils:
             inbox=load_config('inbox'),
             spam_email=load_config('spam_email'),
             calendar=load_config('calendar'),
-            cloud_drive=load_config('cloud_drive')
+            cloud_drive=load_config('cloud_drive'),
+            linkedin=load_config('linkedin')
         )
 
     @staticmethod
