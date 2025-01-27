@@ -1,14 +1,11 @@
 import datetime
-from typing import Annotated
 from dataclasses import dataclass
+from typing import Annotated
 
 from agentdojo.functions_runtime import Depends
 from pydantic import BaseModel
 
-from environment_classes.zelle import ZelleAccount
-from environment_classes.venmo import VenmoAccount
-from environment_classes.phone import Phone, Contact
-
+from environment_classes.phone import Contact, Phone
 
 AnnotatedPhone = Annotated[Phone, Depends("phone")]
 

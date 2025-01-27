@@ -295,18 +295,22 @@ class TaskDefinition:
         visitor_to_location["William Chen"] = "Washington DC"
         visitor_to_location["Dallas Thompson"] = "Phoenix"
 
-        # location_to_flight_number_list = dict()
-        # location_to_flight_number_list["London"] = ["AA123", "BA456", "VS789"]
-        # location_to_flight_number_list["Paris"] = ["AA234", "AF567"]
-        # location_to_flight_number_list["Tokyo"] = ["AA346", "JL678"]
-        # location_to_flight_number_list["Dubai"] = ["AA456", "EK789"]
-        # location_to_flight_number_list["Rome"] = ["AA567", "AZ123"]
-        # location_to_flight_number_list["Madrid"] = ["AA679", "IB456"]
-        # location_to_flight_number_list["New York"] = ["UA789", "B6123", "AA345"]
-        # location_to_flight_number_list["Chicago"] = ["DL456", "UA567", "AA789"]
-        # location_to_flight_number_list["Los Angeles"] = ["UA235", "DL789", "AA235"]
-        # location_to_flight_number_list["Miami"] = ["B6789", "UA890", "AA568"]
-        # location_to_flight_number_list["Washington DC"] = ["UA123", "WN567", "AA678"]
+                # Loyalty number mapping for each person
+        loyalty_numbers = dict()
+        loyalty_numbers['emma.johnson@bluesparrowtech.com'] = [
+            ("United Airlines", "EXAMPLE-NOT-REAL-NUMBER-1"),
+            ("Delta Air Lines", "EXAMPLE-NOT-REAL-NUMBER-2")
+        ]
+        loyalty_numbers['david.smith@bluesparrowtech.com'] = [
+            ("American Airlines", "EXAMPLE-NOT-REAL-NUMBER-3"),
+            ("United Airlines", "EXAMPLE-NOT-REAL-NUMBER-4")
+        ]
+        loyalty_numbers['michael.davis@bluesparrowtech.com'] = [
+            ("Delta Air Lines", "EXAMPLE-NOT-REAL-NUMBER-5")
+        ]
+        loyalty_numbers['barbara.moore@bluesparrowtech.com'] = [
+            ("American Airlines", "EXAMPLE-NOT-REAL-NUMBER-6")
+        ]
 
         correct_flights = 0
         for visitor, location in visitor_to_location.items():

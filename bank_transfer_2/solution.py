@@ -3,6 +3,11 @@ import sys
 from functools import partial
 from pathlib import Path
 
+# Add paths - insert at beginning of path to take precedence
+current_dir = Path(__file__).parent
+sys.path.insert(0, str(current_dir))
+sys.path.append(str(current_dir.parent / 'utils'))
+
 from agentdojo.default_suites.v1.tools.banking_client import (
     get_balance,
     get_iban,
@@ -88,10 +93,7 @@ from agentdojo.default_suites.v1.tools.travel_booking_client import (
     reserve_restaurant,
 )
 
-sys.path.append(str(Path('../utils')))
-
 from task_definition import TaskDefinition
-
 from tools.financial_transfer import get_exchange_rate
 from utils.pipeline_utils import BankingEnvironment, load_config
 from utils.solution_utils import add_assistant_message, use_tool

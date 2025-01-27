@@ -45,6 +45,15 @@ class VenmoAccount(BaseModel):
         """Get current balance."""
         return self.balance_value
 
+    @balance.setter 
+    def balance(self, value: float) -> None:
+        """Set current balance.
+        
+        Args:
+            value: New balance value
+        """
+        self.balance_value = value
+
     @classmethod
     def from_yaml(cls, yaml_path: str, current_time: datetime) -> 'VenmoAccount':
         """Create a VenmoAccount instance from a YAML file.

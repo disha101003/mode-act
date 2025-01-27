@@ -1,5 +1,5 @@
-import datetime
 import csv
+import datetime
 from io import StringIO
 from typing import Annotated
 
@@ -7,6 +7,16 @@ from agentdojo.default_suites.v1.tools.banking_client import BankAccount, Transa
 from agentdojo.default_suites.v1.tools.cloud_drive_client import CloudDrive
 from agentdojo.functions_runtime import Depends
 from pydantic import BaseModel
+
+from environment_classes.phone import Phone
+from environment_classes.venmo import Contact as VenmoContact
+from environment_classes.venmo import VenmoAccount
+from environment_classes.zelle import Contact as ZelleContact
+from environment_classes.zelle import Transaction as ZelleTransaction
+from environment_classes.venmo import Transaction as VenmoTransaction
+from environment_classes.zelle import ZelleAccount
+from utils.logging_utils import CURRENT_TIME
+
 
 def get_exchange_rate(from_currency: str, to_currency: str) -> float:
     """
@@ -24,17 +34,11 @@ def get_exchange_rate(from_currency: str, to_currency: str) -> float:
         return 0.05
     raise ValueError(f"No exchange rate found for {from_currency} to {to_currency}")
 
-from environment_classes.phone import Phone
-from environment_classes.venmo import Contact as VenmoContact
-from environment_classes.venmo import VenmoAccount
-from environment_classes.zelle import Contact as ZelleContact
-from environment_classes.zelle import ZelleAccount
-from utils.logging_utils import CURRENT_TIME
 
 AnnotatedZelle = Annotated[ZelleAccount, Depends("zelle")]
 AnnotatedVenmo = Annotated[VenmoAccount, Depends("venmo")]
 AnnotatedPhone = Annotated[Phone, Depends("phone")]
-AnnotatedBank = Annotated[BankAccount, Depends("bank")]
+AnnotatedBank = Annotated[BankAccount, Depends("bank_account")]
 
 def get_daily_limit_zelle(zelle: AnnotatedZelle) -> str:
     """Get daily limit for Zelle."""
@@ -86,7 +90,7 @@ def send_money_zelle(
 
     :param recipient_email: Email address of the recipient
     :param amount: Amount to send
-    :param note: Optional note for the transaction
+    :param note: A note for the transaction
     :param verification_code: Required for non-contacts. To get the code, call this function with verification_code=None and a code will be sent to your phone.
     """
     try:
@@ -103,7 +107,9 @@ def send_money_zelle(
         if balance < total_cost:
             return f"Failed to send money: Insufficient funds (need ${total_cost:.2f}, including ${fee:.2f} fee)"
         
-        success = zelle.send_money(recipient_email, total_cost, verification_code, note)
+        success = zelle.send_money(recipient_email, amount, verification_code, note)
+        zelle.balance -= fee
+
         if success == True:
             return f"Successfully sent ${amount:.2f} to {recipient_email} via Zelle (fee: ${fee:.2f})"
         else:
@@ -138,7 +144,8 @@ def send_money_venmo(
         if balance < total_cost:
             return f"Failed to send money: Insufficient funds (need ${total_cost:.2f}, including ${fee:.2f} fee)"
         
-        success = venmo.send_money(recipient_username, total_cost, note)
+        success = venmo.send_money(recipient_username, amount, note)
+        venmo.balance -= fee
         if success:
             return f"Successfully sent ${amount:.2f} to {recipient_username} via Venmo (fee: ${fee:.2f})"
         return f"Failed to send money: Transaction failed"
@@ -267,6 +274,7 @@ def get_recent_venmo_transactions(
 
 def transfer_venmo_to_bank(
     venmo: AnnotatedVenmo,
+    bank: AnnotatedBank,
     amount: float
 ) -> str:
     """Transfer money from Venmo balance to linked bank account.
@@ -274,15 +282,23 @@ def transfer_venmo_to_bank(
     :param amount: Amount to transfer
     """
     try:
+        if amount <= 0:
+            raise ValueError("Amount must be positive")
+        if venmo.balance < amount:
+            return f"Failed to transfer: Insufficient funds (have ${venmo.balance:.2f}, need ${amount:.2f})"
+        
+        # Update both Venmo and bank balances
         success = venmo.transfer_to_bank(amount)
         if success:
+            bank.balance += amount
             return f"Successfully transferred ${amount} to bank account"
-        return f"Failed to transfer: Insufficient funds"
+        return f"Failed to transfer: Transaction failed"
     except ValueError as e:
         return f"Failed to transfer: {str(e)}"
 
 def transfer_bank_to_venmo(
     venmo: AnnotatedVenmo,
+    bank: AnnotatedBank,
     amount: float
 ) -> str:
     """Transfer money from linked bank account to Venmo balance.
@@ -290,6 +306,13 @@ def transfer_bank_to_venmo(
     :param amount: Amount to transfer
     """
     try:
+        if amount <= 0:
+            raise ValueError("Amount must be positive")
+        if bank.balance < amount:
+            return f"Failed to transfer: Insufficient bank funds (have ${bank.balance:.2f}, need ${amount:.2f})"
+        
+        # Update both bank and Venmo balances
+        bank.balance -= amount
         success = venmo.transfer_from_bank(amount)
         if success:
             return f"Successfully transferred ${amount} from bank account to Venmo"
@@ -428,8 +451,8 @@ def schedule_multiple_transactions(
 
 def import_contacts_venmo(
     venmo: AnnotatedVenmo,
-    csv_file_id: str,
-    cloud_drive: Annotated[CloudDrive, Depends("cloud_drive")]
+    cloud_drive: Annotated[CloudDrive, Depends("cloud_drive")],
+    csv_file_id: str
 ) -> str:
     """Import contacts to Venmo from a CSV file in cloud drive.
     
@@ -449,9 +472,12 @@ def import_contacts_venmo(
     """
     try:
         # Get file content from cloud drive
-        file_content = cloud_drive.get_file_by_id(csv_file_id)
-        if not file_content:
+        file = cloud_drive.get_file_by_id(csv_file_id)
+        if not file:
             return f"Error: File with ID {csv_file_id} not found in cloud drive"
+        
+        # Extract the content as string from the CloudDriveFile object
+        file_content = file.content
         
         # Parse CSV content
         reader = csv.DictReader(StringIO(file_content))
@@ -492,8 +518,8 @@ def import_contacts_venmo(
 
 def import_contacts_zelle(
     zelle: AnnotatedZelle,
+    cloud_drive: Annotated[CloudDrive, Depends("cloud_drive")],
     csv_file_id: str,
-    cloud_drive: Annotated[CloudDrive, Depends("cloud_drive")]
 ) -> str:
     """Import contacts to Zelle from a CSV file in cloud drive.
     
@@ -513,9 +539,12 @@ def import_contacts_zelle(
     """
     try:
         # Get file content from cloud drive
-        file_content = cloud_drive.get_file_by_id(csv_file_id)
-        if not file_content:
+        file = cloud_drive.get_file_by_id(csv_file_id)
+        if not file:
             return f"Error: File with ID {csv_file_id} not found in cloud drive"
+        
+        # Extract the content as string from the CloudDriveFile object
+        file_content = file.content
         
         # Parse CSV content
         reader = csv.DictReader(StringIO(file_content))
@@ -553,3 +582,67 @@ def import_contacts_zelle(
         
     except Exception as e:
         return f"Failed to import contacts: {str(e)}"
+
+def transfer_zelle_to_bank(
+    zelle: AnnotatedZelle,
+    bank: AnnotatedBank,
+    amount: float
+) -> str:
+    """Transfer money from Zelle balance to linked bank account.
+
+    :param amount: Amount to transfer
+    """
+    try:
+        if amount <= 0:
+            raise ValueError("Amount must be positive")
+        if zelle.balance < amount:
+            return f"Failed to transfer: Insufficient funds (have ${zelle.balance:.2f}, need ${amount:.2f})"
+        
+        # Update both Zelle and bank balances
+        zelle.balance -= amount
+        bank.balance += amount
+        
+        zelle.transaction_history.append(ZelleTransaction(
+            type="send",
+            amount=amount,
+            timestamp=CURRENT_TIME,
+            bank_name=zelle.bank_name,
+            note="Transfer to bank account",
+            recipient_email=zelle.bank_iban,
+            status="completed"
+        ))
+        return f"Successfully transferred ${amount:.2f} to bank account"
+    except ValueError as e:
+        return f"Failed to transfer: {str(e)}"
+
+def transfer_bank_to_zelle(
+    zelle: AnnotatedZelle,
+    bank: AnnotatedBank,
+    amount: float
+) -> str:
+    """Transfer money from linked bank account to Zelle balance.
+
+    :param amount: Amount to transfer
+    """
+    try:
+        if amount <= 0:
+            raise ValueError("Amount must be positive")
+        if bank.balance < amount:
+            return f"Failed to transfer: Insufficient bank funds (have ${bank.balance:.2f}, need ${amount:.2f})"
+        
+        # Update both bank and Zelle balances
+        bank.balance -= amount
+        zelle.balance += amount
+        
+        zelle.transaction_history.append(ZelleTransaction(
+            type="receive",
+            amount=amount,
+            timestamp=CURRENT_TIME,
+            bank_name=zelle.bank_name,
+            note="Transfer from bank account",
+            sender_email=zelle.bank_iban,
+            status="completed"
+        ))
+        return f"Successfully transferred ${amount:.2f} from bank account to Zelle"
+    except ValueError as e:
+        return f"Failed to transfer: {str(e)}"

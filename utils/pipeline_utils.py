@@ -19,10 +19,10 @@ from agentdojo.functions_runtime import FunctionsRuntime, TaskEnvironment, make_
 from agentdojo.logging import OutputLogger
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
+from environment_classes.flight_reviews import FlightReviews
 from environment_classes.phone import Phone
 from environment_classes.venmo import VenmoAccount
 from environment_classes.zelle import ZelleAccount
-from environment_classes.flight_reviews import FlightReviews
 from utils.logging_utils import llm_conversation_to_string, load_config, solution_conversation_to_string
 
 

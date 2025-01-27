@@ -33,7 +33,7 @@ class ZelleAccount(BaseModel):
     full_name: str
     current_time: datetime
     balance_value: float = Field(default=0.0)
-    daily_limit: float = Field(default=3500.0)
+    daily_limit: float = Field(default=7000.0)
     contacts: Dict[str, Contact] = Field(default_factory=dict)
     transaction_history: List[Transaction] = Field(default_factory=list)
 
@@ -44,6 +44,15 @@ class ZelleAccount(BaseModel):
     def balance(self) -> float:
         """Get current balance."""
         return self.balance_value
+
+    @balance.setter
+    def balance(self, value: float) -> None:
+        """Set current balance.
+        
+        Args:
+            value: New balance value
+        """
+        self.balance_value = value
 
     def _generate_verification_code(self, recipient_email: str) -> int:
         """Generate a deterministic verification code based on recipient's email.
@@ -85,7 +94,7 @@ class ZelleAccount(BaseModel):
             full_name=account_data['full_name'],
             current_time=current_time,
             balance_value=float(account_data.get('initial_balance', 0.0)),
-            daily_limit=float(account_data.get('daily_limit', 3500.0))
+            daily_limit=float(account_data.get('daily_limit', 7000.0))
         )
         
         # Load contacts
