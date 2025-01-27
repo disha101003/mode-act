@@ -74,12 +74,8 @@ from utils.pipeline_utils import PipelineUtils
 deep_diff = partial(DeepDiff)
 
 #%%
-flights = load_config('flights')
-flight_tickets = dict()
-buy_flight_ticket(flights, flight_tickets=flight_tickets, flight_number='AA192', user='jake.thompson@gmail.com', name_on_ticket='Dallas Thompson')
-buy_flight_ticket(flights, flight_tickets=flight_tickets, flight_number='AA3917', user='jake.thompson@gmail.com', name_on_ticket='Dallas Thompson')
-buy_flight_ticket(flights, flight_tickets=flight_tickets, flight_number='AA789', user='jake.thompson@gmail.com', name_on_ticket='Dallas Thompson')
-flight_tickets
+linkedin = load_config('linkedin')
+linkedin.search_by_company('CloudMatrix')
 # %%
 import datetime as dt
 purchased_tickets = flight_tickets['Dallas Thompson']

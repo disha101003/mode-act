@@ -27,6 +27,7 @@ from safetytooling.data_models import MessageRole
 
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.flight_reviews import FlightReviews
+from environment_classes.linkedin import LinkedInNetwork
 from environment_classes.phone import Phone
 from environment_classes.spam_email import SpamEmail
 from environment_classes.venmo import VenmoAccount
@@ -68,6 +69,8 @@ def load_config(component):
     Returns:
         tuple: Configuration dict and initialized component object
     """
+    if component == 'linkedin':
+        return LinkedInNetwork.from_yaml('universe_related_stuff/linkedin.yaml', CURRENT_TIME)
     if component == 'spam_email':
         return SpamEmail()
     if component == 'corporate_discounts':

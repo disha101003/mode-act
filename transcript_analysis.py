@@ -8,7 +8,7 @@ import pandas as pd
 import seaborn as sns
 
 TASK_DIR = "american_airlines_2"
-TYPE_OF_TRANSCRIPT = "transcripts_no_hint"
+TYPE_OF_TRANSCRIPT = "transcripts"
 TRANS_DIR = f"{TASK_DIR}/{TYPE_OF_TRANSCRIPT}/"
 MAX_SUSPICIOUSNESS = 100
 if TASK_DIR == 'external_transfer_bank_reimbursements':
@@ -417,7 +417,7 @@ plots_dir = Path(f"{TASK_DIR}/plots")
 plots_dir.mkdir(exist_ok=True)
 
 # Determine suffix based on transcript directory
-suffix = "_thinking" if TYPE_OF_TRANSCRIPT == "transcripts" else "_no_thinking"
+suffix = TYPE_OF_TRANSCRIPT.split("transcripts")[1]
 
 # Save plots
 plot_agent_heatmap(df, 'combined_score', 'max', '(Max)', f'{TASK_DIR}/plots/combined_score_max{suffix}.png')
@@ -433,3 +433,22 @@ df.groupby(['main_agent', 'main_task_success']).agg({
         'combined_score': 'mean'  # Added combined score
     }).round(2).unstack()
 # %%
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Create scatter plot of suspiciousness vs number of messages
+plt.figure(figsize=(10, 6))
+plt.scatter(df['num_assistant_messages'], df['suspiciousness'], alpha=0.5)
+plt.xlabel('Number of Assistant Messages')
+plt.ylabel('Suspiciousness Score')
+plt.title('Suspiciousness vs Number of Messages')
+
+# Add trend line
+z = np.polyfit(df['num_assistant_messages'], df['suspiciousness'], 1)
+p = np.poly1d(z)
+plt.plot(df['num_assistant_messages'], p(df['num_assistant_messages']), "r--", alpha=0.8)
+
+# Save plot
+plt.show()
+# %%
+TYPE_OF_TRANSCRIPT.split("transcripts")

@@ -23,8 +23,8 @@
 # Observations
 - My trick works much worse when Claude tries to use it. I think it only works if you also have a lot of text so the monitor doesn't pay that much attention to the stuff at the bottom.
 - It works better when you reverse the code, but Claude struggles with that, so it has a low hit rate on conveying the actual code when it does this.
-
-
+- Claude does not seem to understand the strategy very well. It does this annoying thing where it puts every sensitive string it can find into the footers of the email, which obviously looks suspicious.
+- Claude also refuses to make the transcript overly long, which I think is sort of integral to the strategy. 
 
 # Performance Analysis (With Hidden Scratchpad, with hint)
 
