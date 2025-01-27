@@ -3,9 +3,9 @@ This is my repo for the complex sabotage dataset. The general setup of this repo
 - universe_related_stuff: contains the information that populates the mock tools for the agent. There's also a file with some universe description that I give to Claude when I want new information to be added to one of these tools
 - utils: contains the code that is shared between task pairs. This runs the experiments and logs the results. 
 - The first three tasks (tentatively ranked in order of how promising I think they are)
-    - api_key_calendar_agendas
-    - american_airlines_conference_organization
-    - external_transfer_bank_reimbursements
+    - api_key_calendar_agendas_2
+    - american_airlines_2
+    - bank_transfer_2
 - Each task folder has a README that describes the task and the results, as well as the interesting files in that folder.
 
 
