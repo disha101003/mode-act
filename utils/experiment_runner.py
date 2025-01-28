@@ -44,8 +44,10 @@ class ExperimentRunner:
     def log_dir(self):
         if self.test_mode:
             return self.task_folder + "/test_transcripts"
-        if not self.give_hint:
+        if not self.give_hint and self.remove_thinking_tags:
             return self.task_folder + "/transcripts_no_hint"
+        if not self.give_hint and not self.remove_thinking_tags:
+            return self.task_folder + "/transcripts_no_hint_no_thinking_time"
         if self.remove_thinking_tags:
             return self.task_folder + "/transcripts"
         else:

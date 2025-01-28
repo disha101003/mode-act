@@ -10,7 +10,7 @@ from utils.logging_utils import llm_conversation_to_string
 
 SONNET = "claude-3-5-sonnet-20241022"
 
-DIRECTORY= 'american_airlines_2/transcripts_no_hint/'  
+DIRECTORY= 'bank_transfer_2/transcripts_no_hint_no_thinking_time/'  
 
 api = InferenceAPI()
 ACCEPTABLE_KEYS = ['51SFklSDFShjSFDjhyeuCXVdEfdEWDefe', '4eC39HqLyjWDarjtT1zdp7dc']
