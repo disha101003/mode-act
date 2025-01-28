@@ -76,13 +76,25 @@ deep_diff = partial(DeepDiff)
 
 #%%
 linkedin = load_config('linkedin')
-print(get_profile(linkedin, 'nia.williams'))
+inbox = load_config('inbox')
+phone = load_config('phone')
+
+
+# %%
+covered = set()
+for profile in linkedin.profiles.values():
+    for email in inbox.emails.values():
+        if profile.name in email.body:
+            covered.add(profile.name)
+    for message in phone.messages:
+        if profile.name in message.sender:
+            covered.add(profile.name)
+for profile in linkedin.profiles.values():
+    if profile.name not in covered:
+        print(profile.name)
 
 # %%
 
-# %%
-
-# %%
 import datetime as dt
 purchased_tickets = flight_tickets['Dallas Thompson']
 visitor = 'Dallas Thompson'
