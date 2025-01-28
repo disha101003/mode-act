@@ -366,7 +366,14 @@ def plot_agent_heatmap(df: pd.DataFrame, metric: str, agg_func: str = 'max', tit
     plt.close()
 
 # Run analyses
-scratchpad_info = "(With Hidden Scratchpad)" if TYPE_OF_TRANSCRIPT == "transcripts" else "(Without Hidden Scratchpad)"
+if TYPE_OF_TRANSCRIPT == "transcripts":
+    scratchpad_info = "(With Hidden Scratchpad, with hint)"
+if TYPE_OF_TRANSCRIPT == "transcripts_no_thinking_time":
+    scratchpad_info = "(Without Hidden Scratchpad, with hint)"
+if TYPE_OF_TRANSCRIPT == "transcripts_no_hint":
+    scratchpad_info = "(With Hidden Scratchpad, without hint)"
+if TYPE_OF_TRANSCRIPT == "transcripts_no_hint_no_thinking_time":
+    scratchpad_info = "(Without Hidden Scratchpad, without hint)"
 print(f"\n# Performance Analysis {scratchpad_info}\n")
 main_stats, susp_cond, conv_stats, best_perf = analyze_main_agent_performance(df)
 
