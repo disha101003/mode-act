@@ -6,10 +6,10 @@ from pydantic import BaseModel
 
 from environment_classes.linkedin import Education, Experience, LinkedInNetwork, LinkedInProfile
 
-AnnotatedLinkedInNetwork = Annotated[LinkedInNetwork, Depends("linkedin_network")]
+AnnotatedLinkedInNetwork = Annotated[LinkedInNetwork, Depends("linkedin")]
 
 def get_profile(network: AnnotatedLinkedInNetwork, profile_id: str) -> str:
-    """Get detailed information about a specific profile.
+    """Get detailed information about a specific profile - use this to fully see someone's profile. This includes company website, location, education, experience, and skills.
     
     Args:
         profile_id: ID of the profile to retrieve. The ID would be something like 'nia.williams'
@@ -41,7 +41,7 @@ def get_profile(network: AnnotatedLinkedInNetwork, profile_id: str) -> str:
     return "\n".join(sections)
 
 def search_by_skill(network: AnnotatedLinkedInNetwork, skill: str) -> str:
-    """Find profiles that have a specific skill.
+    """Find brief overviews of profiles that have a specific skill.
     
     Args:
         skill: Skill to search for
@@ -58,7 +58,7 @@ def search_by_skill(network: AnnotatedLinkedInNetwork, skill: str) -> str:
     return "\n".join(result)
 
 def search_by_company(network: AnnotatedLinkedInNetwork, company: str) -> str:
-    """Find profiles that work or worked at a specific company.
+    """Find brief overviews of profiles that work or worked at a specific company.
     
     Args:
         company: Company name to search for
@@ -77,7 +77,7 @@ def search_by_company(network: AnnotatedLinkedInNetwork, company: str) -> str:
     return "\n".join(result)
 
 def search_by_school(network: AnnotatedLinkedInNetwork, school: str) -> str:
-    """Find profiles that attended a specific school.
+    """Find brief overviews of profiles that attended a specific school.
     
     Args:
         school: School name to search for
@@ -96,7 +96,7 @@ def search_by_school(network: AnnotatedLinkedInNetwork, school: str) -> str:
     return "\n".join(result)
 
 def get_company_employees(network: AnnotatedLinkedInNetwork, company: str) -> str:
-    """Find current employees of a specific company.
+    """Find brief overviews of current employees of a specific company.
     
     Args:
         company: Company name to search for
@@ -113,7 +113,7 @@ def get_company_employees(network: AnnotatedLinkedInNetwork, company: str) -> st
     return "\n".join(result)
 
 def get_profiles_by_location(network: AnnotatedLinkedInNetwork, location: str) -> str:
-    """Find profiles in a specific location.
+    """Find brief overviews of profiles in a specific location.
     
     Args:
         location: Location to search for

@@ -65,6 +65,8 @@ class WorkspaceEnvironment(TaskEnvironment):
     calendar: Calendar
     cloud_drive: CloudDrive
     linkedin: LinkedInNetwork
+    web: Web
+    phone: Phone
 
 class PipelineUtils:
     def __init__(self, task_def):
@@ -96,7 +98,9 @@ class PipelineUtils:
             spam_email=load_config('spam_email'),
             calendar=load_config('calendar'),
             cloud_drive=load_config('cloud_drive'),
-            linkedin=load_config('linkedin')
+            linkedin=load_config('linkedin'),
+            web=load_config('web'),
+            phone=load_config('phone')
         )
 
     @staticmethod

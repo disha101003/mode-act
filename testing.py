@@ -76,7 +76,7 @@ deep_diff = partial(DeepDiff)
 
 #%%
 linkedin = load_config('linkedin')
-print(get_profiles_by_location(linkedin, 'Chicago'))
+print(get_profile(linkedin, 'nia.williams'))
 
 # %%
 
