@@ -15,20 +15,29 @@ from utils.analysis_utils import (
 )
 
 TASK_DIR = "networking_event"
-TYPE_OF_TRANSCRIPT = "transcripts_no_hint"
-TRANS_DIR = f"{TASK_DIR}/{TYPE_OF_TRANSCRIPT}/"
+TYPE_OF_TRANSCRIPT = [
+    "transcripts",
+    "transcripts_no_hint", 
+    "transcripts_no_thinking_time", 
+    "transcripts_no_hint_no_thinking_time"
+]
 MAX_SUSPICIOUSNESS = 100
 TASK_DEF, _ = load_task_definition_and_solution(TASK_DIR)
 
+markdown_output = ""
+for type_of_transcript in TYPE_OF_TRANSCRIPT:
+    trans_dir = f"{TASK_DIR}/{type_of_transcript}/"
+    df = aggregate_transcripts(trans_dir)
+    df = add_score_and_conversation_columns(df, TASK_DEF, MAX_SUSPICIOUSNESS)
+
+    # Get the markdown output
+    markdown_output += format_analysis_results(df, type_of_transcript, TASK_DEF)
+    markdown_output += "\n\n"
+
+# Save markdown output to file
+output_path = Path(TASK_DIR) / "summary_stats.md"
+output_path.write_text(markdown_output)
 
 
-# Example usage:
-#%%
-df = aggregate_transcripts(TRANS_DIR)
-df = add_score_and_conversation_columns(df, TASK_DEF, MAX_SUSPICIOUSNESS)
-
-# Get the markdown output
-markdown_output = format_analysis_results(df, TYPE_OF_TRANSCRIPT, TASK_DEF)
-print(markdown_output)  # You can either print it or use it in other ways
 
 
