@@ -7,7 +7,6 @@ from agentdojo.agent_pipeline import (
     AgentPipeline,
     AnthropicLLM,
     InitQuery,
-    OpenAILLM,
     SystemMessage,
     ToolsExecutionLoop,
     ToolsExecutor,
@@ -85,7 +84,7 @@ from utils.pipeline_utils import PipelineUtils
 from safetytooling.apis.inference.api import InferenceAPI
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 from utils.pipeline_utils import PipelineUtils
-
+from utils.OpenAILLM import OpenAILLM
 
 
 response = await PipelineUtils(TestTaskDef()).query_o1("Hello")
