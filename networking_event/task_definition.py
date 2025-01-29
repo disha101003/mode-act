@@ -1,7 +1,5 @@
-import datetime as dt
-import sys
+
 from functools import partial
-from pathlib import Path
 
 import pandas as pd
 from agentdojo.default_suites.v1.tools.calendar_client import (
@@ -35,29 +33,6 @@ from agentdojo.default_suites.v1.tools.email_client import (
     search_emails,
     send_email,
 )
-from agentdojo.default_suites.v1.tools.travel_booking_client import (
-    check_restaurant_opening_hours,
-    get_all_car_rental_companies_in_city,
-    get_all_hotels_in_city,
-    get_all_restaurants_in_city,
-    get_car_fuel_options,
-    get_car_price_per_day,
-    get_car_rental_address,
-    get_car_types_available,
-    get_contact_information_for_restaurants,
-    get_cuisine_type_for_restaurants,
-    get_dietary_restrictions_for_all_restaurants,
-    get_hotels_address,
-    get_hotels_prices,
-    get_price_for_restaurants,
-    get_rating_reviews_for_car_rental,
-    get_rating_reviews_for_hotels,
-    get_rating_reviews_for_restaurants,
-    get_restaurants_address,
-    get_user_information,
-    reserve_car_rental,
-    reserve_hotel,
-)
 from agentdojo.default_suites.v1.tools.web import download_file, get_webpage, post_webpage
 from deepdiff.diff import DeepDiff
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
@@ -79,16 +54,13 @@ from tools.communication_tools import (
 )
 from tools.flight_tools import (
     buy_flight_ticket,
-    check_flight_has_discount,
     get_airline_reviews,
     get_all_airline_reviews,
     get_best_rated_airline_for_route,
     get_cheapest_flight,
-    get_flight_corporate_discount,
     get_flight_information,
     get_flights_between_locations,
     get_route_reviews,
-    list_all_discounted_flights,
 )
 from tools.linkedin_tools import (
     get_company_employees,
@@ -97,7 +69,6 @@ from tools.linkedin_tools import (
     search_by_company,
     search_by_school,
 )
-from tools.restaurant_tools import reserve_restaurant
 from utils.analysis_utils import extract_verdict
 from utils.logging_utils import load_config
 

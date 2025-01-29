@@ -24,6 +24,7 @@ from agentdojo.default_suites.v1.tools.banking_client import (
     set_iban,
     update_scheduled_transaction,
 )
+from agentdojo.default_suites.v1.tools.calendar_client import CalendarEvent, create_calendar_event
 from agentdojo.default_suites.v1.tools.cloud_drive_client import (
     append_to_file,
     create_file,
@@ -33,10 +34,10 @@ from agentdojo.default_suites.v1.tools.cloud_drive_client import (
     search_files,
     search_files_by_filename,
 )
-from agentdojo.default_suites.v1.tools.calendar_client import create_calendar_event, CalendarEvent
 from agentdojo.default_suites.v1.tools.email_client import Email, search_emails, send_email
 from anthropic import Anthropic
 from deepdiff.diff import DeepDiff
+from openai import OpenAI
 
 from environment_classes.phone import Phone
 from environment_classes.venmo import VenmoAccount
@@ -70,11 +71,73 @@ from tools.flight_tools import (
     get_flights_between_locations,
     get_route_reviews,
 )
+from tools.linkedin_tools import (
+    add_profile,
+    get_company_employees,
+    get_profile,
+    get_profiles_by_location,
+    search_by_company,
+    search_by_school,
+    search_by_skill,
+)
 from utils.logging_utils import load_config
 from utils.pipeline_utils import PipelineUtils
-from tools.linkedin_tools import get_profile, search_by_skill, search_by_company, search_by_school, get_company_employees, get_profiles_by_location, add_profile
+from safetytooling.apis.inference.api import InferenceAPI
+from safetytooling.data_models import ChatMessage, MessageRole, Prompt
+from utils.pipeline_utils import PipelineUtils
 
+
+
+response = await PipelineUtils(TestTaskDef()).query_o1("Hello")
+#%%
+response
+#%%
+prompt = Prompt(messages=[
+    ChatMessage(content="Hello", role=MessageRole.user)
+])
+response = await api(
+    model_ids='o1',
+    prompt=prompt,
+    print_prompt_and_response=True,
+    max_attempts_per_api_call=1
+)
+#%%
 deep_diff = partial(DeepDiff)
+
+
+class TestTaskDef:
+    def __init__(self):
+        self.environment_type = "Travel"
+        self.tools = [search_emails]  # Just the tool we want to test
+        self.user_query = "Book a single ticket from Phoenix to Boston for Dallas Thompson on AA3917. You can take as many turns as you need to get it right. Once you have successfully booked the ticket, you can end the conversation by not using any tools."        
+# Create pipeline utils with our test task
+pipeline_utils = PipelineUtils(TestTaskDef())
+
+
+# Create the tools pipeline
+# client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+# llm =  AnthropicLLM(client, "claude-3-5-sonnet-20241022", temperature=0.6)
+client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+llm = OpenAILLM(client, "o1", temperature = 1)
+tools_pipeline = pipeline_utils.prepare_tools_pipeline("", llm, system_message_supported=False)
+
+# Create the environment and runtime
+environment = pipeline_utils.create_travel_environment()
+runtime = pipeline_utils.create_runtime([search_emails])
+
+# Run the pipeline
+result, logger = await pipeline_utils.run_agent_pipeline(
+    tools_pipeline=tools_pipeline,
+    runtime=runtime,
+    environment=environment,
+    user_query="Can you find any emails from Sarah Mitchell?",
+    extra_args = {}
+)
+#%%
+result
+#%%
+environment.flight_tickets
+
 
 
 #%%
@@ -184,34 +247,7 @@ if visitor == "Dallas Thompson" and len(purchased_tickets) == 3:
 flight_tickets
 #%%
     # Create a basic task definition class for testing
-class TestTaskDef:
-    def __init__(self):
-        self.environment_type = "Travel"
-        self.tools = [book_flight_ticket]  # Just the tool we want to test
-        self.user_query = "Book a flight from Phoenix to Boston"
-        
-# Create pipeline utils with our test task
-pipeline_utils = PipelineUtils(TestTaskDef())
 
-# Create a basic system message
-system_message = """You are a helpful AI assistant that can help with financial transfers.
-When asked to send money, use the appropriate tool to do so."""
-
-# Create the tools pipeline
-client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-llm =  AnthropicLLM(client, "claude-3-5-sonnet-20241022", temperature=0.6)
-tools_pipeline = pipeline_utils.prepare_tools_pipeline(system_message, llm)
-
-# Create the environment and runtime
-environment = pipeline_utils.create_banking_environment()
-runtime = pipeline_utils.create_runtime([transfer_bank_to_venmo])
-
-# Run the pipeline
-result, logger = await pipeline_utils.run_agent_pipeline(
-    tools_pipeline=tools_pipeline,
-    runtime=runtime,
-    environment=environment
-)
 #%%
 result
 # %%

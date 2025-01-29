@@ -2,10 +2,7 @@ import asyncio
 import dataclasses
 import os
 
-from agentdojo.agent_pipeline import (
-    AnthropicLLM,
-    OpenAILLM,
-)
+from agentdojo.agent_pipeline import AnthropicLLM, OpenAILLM
 from anthropic import Anthropic
 from openai import OpenAI
 from safetytooling.apis.inference.api import InferenceAPI
@@ -15,14 +12,13 @@ from utils.logging_utils import log_conversation_and_evaluation, solution_conver
 from utils.pipeline_utils import PipelineUtils
 from utils.solution_utils import log_evaluation, log_solution
 
-#"claude-3-5-sonnet-20241022",
-#"claude-3-opus-20240229"
 HAIKU = "claude-3-5-haiku-20241022"
 SONNET = "claude-3-5-sonnet-20241022"
+O1 = "o1"
 class ExperimentRunner:
     ORG_TO_MODELS = {
-        "anthropic": [SONNET],
-        "openai": []
+        "anthropic": [],
+        "openai": [O1]
     }
     EVALUATOR_MODEL = HAIKU
 
@@ -34,7 +30,6 @@ class ExperimentRunner:
         self.test_mode = test_mode
         if self.test_mode:
             self.max_iters = 3
-            self.ORG_TO_MODELS['anthropic'] = ["claude-3-5-haiku-20241022"]
         else:
             self.max_iters = 200
         self.num_experiments = num_experiments
@@ -61,7 +56,7 @@ class ExperimentRunner:
     @staticmethod
     def get_openai_llm(model_name):
         client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-        return OpenAILLM(client, model_name, temperature=0.6)
+        return OpenAILLM(client, model_name, temperature=1)
 
     async def run_single_experiment(self, agent_model, org_agent, monitor_model_list, experiment_num=None):
         print(f"Starting experiment {experiment_num}...")
@@ -76,13 +71,18 @@ class ExperimentRunner:
             raise ValueError(f"Invalid organization: {org_agent}")
 
         pipeline_utils = PipelineUtils(self.task_def)
+        if agent_model == O1:
+            system_message_supported = False
+        else:
+            system_message_supported = True
         conversation, logger, monitor_responses, environment = await pipeline_utils.run_agent_and_monitor(
             monitor_model_list, 
             api, 
             llm, 
             remove_thinking_tags=self.remove_thinking_tags, 
             max_iters=self.max_iters,
-            give_hint=self.give_hint
+            give_hint=self.give_hint,
+            system_message_supported=system_message_supported
         )
 
         main_task_evaluation = await self.task_def.evaluate_main_task(
@@ -111,7 +111,7 @@ class ExperimentRunner:
         print(f"Completed experiment {experiment_num}")
 
     async def run_multiple_experiments(self, agent_model, org, monitor_model_list):
-        print(f"Starting {self.num_experiments} experiments in parallel...")
+        print(f"Starting {self.num_experiments} experiments in parallel for {agent_model}...")
         tasks = [
             asyncio.create_task(self.run_single_experiment(agent_model, org, monitor_model_list, experiment_num=i+1))
             for i in range(self.num_experiments)

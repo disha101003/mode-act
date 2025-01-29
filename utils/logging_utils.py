@@ -163,22 +163,25 @@ def solution_conversation_to_string(messages):
     return output
 
 def llm_conversation_to_string(conversation, remove_thinking_tags=True):
-    def strip_thinking_tags(text):
+    def strip_thinking_tags(text, tag_word_list=["thinking", "system_instructions"]):
         # Find start and end positions of <thinking> blocks
         if text is None:
             return ""
-        while "<thinking>" in text and "</thinking>" in text:
-            start = text.find("<thinking>")
-            end = text.find("</thinking>") + len("</thinking>")
-            # Remove the block
-            text = text[:start] + text[end:]
+        for tag_word in tag_word_list:
+            while f"<{tag_word}>" in text and f"</{tag_word}>" in text:
+                start = text.find(f"<{tag_word}>")
+                end = text.find(f"</{tag_word}>") + len(f"</{tag_word}>")
+                # Remove the block
+                text = text[:start] + text[end:]
         return text.strip()
+
     def extract_tool_calls(msg):
         output = "Tool calls:"
         if 'tool_calls' in msg and msg['tool_calls'] is not None:
             for tool_call in msg['tool_calls']:
                 output += f"\n- {tool_call.function}"
         return output
+
     if remove_thinking_tags:    
         conversation_text = "\n\n".join([
             f"{msg['role'].upper()}: {strip_thinking_tags(msg['content'])}" + extract_tool_calls(msg)

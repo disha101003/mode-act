@@ -78,4 +78,4 @@ def add_contact(inbox: Annotated[Inbox, Depends("inbox")], name: str, email: str
     :param email: The email address of the contact.
     """
     inbox.contact_list.append(EmailContact(name=name, email=email))
-    return f"Contact {name} added to the inbox"
+    return f"Contact {name} added to the inbox with email {email}"

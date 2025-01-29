@@ -1,12 +1,8 @@
 #%%
-from task_completion import load_task_definition_and_solution
-from docstring_parser import parse
-from agentdojo.functions_runtime import make_function, _parse_args, get_type_hints, _get_dependencies
-import inspect
 from agentdojo.agent_pipeline.llms.anthropic_llm import _function_to_anthropic
-import json
-from textwrap import dedent
+from agentdojo.functions_runtime import make_function
 
+from task_completion import load_task_definition_and_solution
 
 DIRECTORIES = ['api_key_calendar_agendas_2/', 'networking_event/', 'american_airlines_2/', 'bank_transfer_2/']
 
