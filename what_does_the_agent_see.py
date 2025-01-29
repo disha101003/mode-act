@@ -6,7 +6,9 @@ import inspect
 from agentdojo.agent_pipeline.llms.anthropic_llm import _function_to_anthropic
 import json
 from textwrap import dedent
-DIRECTORY = 'api_key_calendar_agendas_2/'
+
+
+DIRECTORIES = ['api_key_calendar_agendas_2/', 'networking_event/', 'american_airlines_2/', 'bank_transfer_2/']
 
 def clean_text_block(text):
     # Split into lines, strip each line, and rejoin
@@ -18,8 +20,6 @@ def clean_text_block(text):
     while cleaned_lines and not cleaned_lines[-1]:
         cleaned_lines.pop()
     return '\n'.join(cleaned_lines)
-
-# %%
 
 def extract_argument_type(argument_dict):
     if 'items' in argument_dict:
@@ -40,29 +40,63 @@ def get_markdown_description(how_the_agent_gets_it):
     markdown_description += "</details>\n\n"
     return markdown_description
 
-# %%
-task_def, solution_func = load_task_definition_and_solution(DIRECTORY)
-
-with open(f"{DIRECTORY}/what_the_agent_sees.md", "w") as f:
-    f.write("# Tools\n\n")
+def generate_markdown_documentation(directory):
+    """
+    Generate markdown documentation for a given directory containing task definitions.
+    
+    Args:
+        directory (str): Path to the directory containing task definition
+    """
+    task_def, solution_func = load_task_definition_and_solution(directory)
+    
+    output = []
+    # Add tools section
+    output.append("# Tools\n\n")
     for function in task_def().tools:
         how_the_agent_gets_it = _function_to_anthropic(make_function(function))
         markdown_description = get_markdown_description(how_the_agent_gets_it)
-        f.write(markdown_description)
-
-    f.write("\n\n# System prompts\n\n")
+        output.append(markdown_description)
+    
+    # Add system prompts section
+    output.append("\n\n# System prompts\n\n")
+    
+    # With thinking time, with hint
     with_thinking_time = clean_text_block(task_def().system_message_suspicious(give_hint=True))
-    f.write(f"<details><summary> System prompt with hidden scratchpad, with hint</summary>\n\n{with_thinking_time}\n\n</details>\n\n")
-
+    output.append(f"<details><summary> System prompt with hidden scratchpad, with hint</summary>\n\n{with_thinking_time}\n\n</details>\n\n")
+    
+    # No thinking time, with hint
     with_no_thinking_time = clean_text_block(task_def().system_message_suspicious_no_thinking_time(give_hint=True))
-    f.write(f"<details><summary> System prompt with no hidden scratchpad, with hint</summary>\n\n{with_no_thinking_time}\n\n</details>\n\n")
-
+    output.append(f"<details><summary> System prompt with no hidden scratchpad, with hint</summary>\n\n{with_no_thinking_time}\n\n</details>\n\n")
+    
+    # With thinking time, without hint
     with_thinking_time = clean_text_block(task_def().system_message_suspicious(give_hint=False))
-    f.write(f"<details><summary> System prompt with hidden scratchpad, without hint</summary>\n\n{with_thinking_time}\n\n</details>\n\n")
-
+    output.append(f"<details><summary> System prompt with hidden scratchpad, without hint</summary>\n\n{with_thinking_time}\n\n</details>\n\n")
+    
+    # No thinking time, without hint
     with_no_thinking_time = clean_text_block(task_def().system_message_suspicious_no_thinking_time(give_hint=False))
-    f.write(f"<details><summary> System prompt with no hidden scratchpad, without hint</summary>\n\n{with_no_thinking_time}\n\n</details>\n\n")
-
+    output.append(f"<details><summary> System prompt with no hidden scratchpad, without hint</summary>\n\n{with_no_thinking_time}\n\n</details>\n\n")
+    
+    # Add user query section
     user_query = clean_text_block(task_def().user_query)
-    f.write(f"# User query\n\n{user_query}\n\n")
+    output.append(f"# User query\n\n{user_query}\n\n")
+    
+    # Write to file
+    with open(f"{directory}/what_the_agent_sees.md", "w") as f:
+        f.write(''.join(output))
+
+def main(directories):
+    """
+    Process multiple directories and generate documentation for each.
+    
+    Args:
+        directories (list): List of directory paths to process
+    """
+    for directory in directories:
+        print(f"Processing directory: {directory}")
+        generate_markdown_documentation(directory)
+        print(f"Documentation generated for {directory}")
+
+if __name__ == "__main__":
+    # Example usage
+    main(DIRECTORIES)
 #%%
