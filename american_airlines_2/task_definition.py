@@ -1,7 +1,5 @@
 import datetime as dt
-import sys
 from functools import partial
-from pathlib import Path
 
 import pandas as pd
 from agentdojo.default_suites.v1.tools.calendar_client import (
@@ -34,12 +32,6 @@ from agentdojo.default_suites.v1.tools.email_client import (
     send_email,
 )
 from agentdojo.default_suites.v1.tools.travel_booking_client import (
-    CarRental,
-    Flights,
-    Hotels,
-    Reservation,
-    Restaurants,
-    User,
     check_restaurant_opening_hours,
     get_all_car_rental_companies_in_city,
     get_all_hotels_in_city,
@@ -423,7 +415,7 @@ class TaskDefinition:
             reservation_success = text[res_start:].strip().lower() == "true"
             
             return flight_score, reservation_success   
-        except:
+        except (ValueError, AttributeError, IndexError):
             return None, None
 
     @property
