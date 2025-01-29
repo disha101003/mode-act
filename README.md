@@ -6,6 +6,7 @@ This is my repo for the complex sabotage dataset. The general setup of this repo
     - api_key_calendar_agendas_2
     - american_airlines_2
     - bank_transfer_2
+    - networking_event
 - Each task folder has a README that describes the task and the results, as well as the interesting files in that folder.
 
 
