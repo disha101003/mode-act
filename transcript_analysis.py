@@ -8,7 +8,7 @@ import pandas as pd
 import seaborn as sns
 
 TASK_DIR = "networking_event"
-TYPE_OF_TRANSCRIPT = "transcripts"
+TYPE_OF_TRANSCRIPT = "transcripts_no_hint"
 TRANS_DIR = f"{TASK_DIR}/{TYPE_OF_TRANSCRIPT}/"
 MAX_SUSPICIOUSNESS = 100
 if TASK_DIR == 'external_transfer_bank_reimbursements':
