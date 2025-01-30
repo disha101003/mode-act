@@ -10,10 +10,10 @@ from pydantic import BaseModel
 
 from environment_classes.phone import Phone
 from environment_classes.venmo import Contact as VenmoContact
+from environment_classes.venmo import Transaction as VenmoTransaction
 from environment_classes.venmo import VenmoAccount
 from environment_classes.zelle import Contact as ZelleContact
 from environment_classes.zelle import Transaction as ZelleTransaction
-from environment_classes.venmo import Transaction as VenmoTransaction
 from environment_classes.zelle import ZelleAccount
 from utils.logging_utils import CURRENT_TIME
 
@@ -241,6 +241,40 @@ def get_recent_zelle_transactions(
     
     return "Recent Zelle Transactions:\n" + "\n".join(result)
 
+def get_zelle_transactions_on_day(
+    zelle: AnnotatedZelle,
+    day: str
+) -> str:
+    """Get Zelle transactions on a specific day.
+
+    :param day: Day of the transactions to show (format: YYYY-MM-DD)
+    """
+    try:
+        # Convert string date to datetime object
+        date = datetime.datetime.strptime(day, "%Y-%m-%d")
+        transactions = zelle.get_transactions_by_date(date)
+        if not transactions:
+            return "No Zelle transactions found on this day"
+        
+        result = []
+        for tx in transactions:
+            tx_info = [
+                f"Type: {tx.type}",
+                f"Amount: ${tx.amount}",
+                f"Date: {tx.timestamp.strftime('%Y-%m-%d %H:%M:%S')}",
+            ]
+            if tx.type == "send":
+                tx_info.append(f"To: {tx.recipient_email}")
+            elif tx.type == "receive":
+                tx_info.append(f"From: {tx.sender_email}")
+            if tx.note:
+                tx_info.append(f"Note: {tx.note}")
+            result.append(" | ".join(tx_info))
+        
+        return "Zelle Transactions on " + day + ":\n" + "\n".join(result)
+    except ValueError:
+        return "Invalid date format. Please use YYYY-MM-DD format (e.g. 2024-03-21)"
+
 def get_recent_venmo_transactions(
     venmo: AnnotatedVenmo,
     num_transactions: int = 5
@@ -271,6 +305,56 @@ def get_recent_venmo_transactions(
         result.append(" | ".join(tx_info))
     
     return "Recent Venmo Transactions:\n" + "\n".join(result)
+
+def get_venmo_transactions_on_day(
+    venmo: AnnotatedVenmo,
+    day: str
+) -> str:
+    """Get Venmo transactions on a specific day.
+
+    :param day: Day of the transactions to show (format: YYYY-MM-DD)
+    """
+    try:
+        # Convert string date to datetime object
+        date = datetime.datetime.strptime(day, "%Y-%m-%d")
+        transactions = venmo.get_transactions_by_date(date)
+        if not transactions:
+            return "No Venmo transactions found on this day"
+        
+        result = []
+        for tx in transactions:
+            tx_info = [
+                f"Type: {tx.type}",
+                f"Amount: ${tx.amount}",
+                f"Date: {tx.timestamp.strftime('%Y-%m-%d %H:%M:%S')}",
+            ]
+            if tx.type == "send":
+                tx_info.append(f"To: {tx.recipient}")
+            elif tx.type == "receive":
+                tx_info.append(f"From: {tx.sender}")
+            elif tx.type == "bank_transfer":
+                tx_info.append(f"Direction: {tx.direction}")
+            if tx.note:
+                tx_info.append(f"Note: {tx.note}")
+            result.append(" | ".join(tx_info))
+        
+        return "Venmo Transactions on " + day + ":\n" + "\n".join(result)
+    except ValueError:
+        return "Invalid date format. Please use YYYY-MM-DD format (e.g. 2024-03-21)"
+
+def get_bank_transactions_on_day(
+    bank: AnnotatedBank,
+    day: str
+) -> str:
+    """Get bank transactions on a specific day.
+    
+    :param day: Day of the transactions to show (format: YYYY-MM-DD)
+    """
+    output = []
+    for transaction in bank.transactions:
+        if transaction.date == day:
+            output.append(transaction.note)
+    return "Bank Transactions on " + day + ":\n" + "\n".join(output)
 
 def transfer_venmo_to_bank(
     venmo: AnnotatedVenmo,

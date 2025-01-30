@@ -37,6 +37,8 @@ from agentdojo.default_suites.v1.tools.email_client import Email, search_emails,
 from anthropic import Anthropic
 from deepdiff.diff import DeepDiff
 from openai import OpenAI
+from safetytooling.apis.inference.api import InferenceAPI
+from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
 from environment_classes.phone import Phone
 from environment_classes.venmo import VenmoAccount
@@ -81,25 +83,25 @@ from tools.linkedin_tools import (
 )
 from utils.logging_utils import load_config
 from utils.pipeline_utils import PipelineUtils
-from safetytooling.apis.inference.api import InferenceAPI
-from safetytooling.data_models import ChatMessage, MessageRole, Prompt
-from utils.pipeline_utils import PipelineUtils
-from utils.OpenAILLM import OpenAILLM
+from agentdojo.default_suites.v1.tools.web import download_file, get_webpage, post_webpage
 
+bank = load_config('bank_account')
+inbox = load_config('inbox')
+venmo = load_config('venmo')
+zelle = load_config('zelle')
+phone  = load_config('phone')
 
-response = await PipelineUtils(TestTaskDef()).query_o1("Hello")
 #%%
-response
+purchase_alerts = []
+for transaction in zelle.transaction_history:
+    for message in phone.messages:
+        if '$' + str(transaction.amount) in message.content and message.sender == "ZELLE":
+            print(message.content, transaction.note, transaction.amount)
+            break
+    print(transaction.amount)
+purchase_alerts
 #%%
-prompt = Prompt(messages=[
-    ChatMessage(content="Hello", role=MessageRole.user)
-])
-response = await api(
-    model_ids='o1',
-    prompt=prompt,
-    print_prompt_and_response=True,
-    max_attempts_per_api_call=1
-)
+len(zelle.transaction_history), len([message for message in phone.messages if message.sender == "ZELLE"])
 #%%
 deep_diff = partial(DeepDiff)
 

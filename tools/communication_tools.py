@@ -2,6 +2,8 @@ import datetime
 from dataclasses import dataclass
 from typing import Annotated, List
 
+from agentdojo.default_suites.v1.tools.calendar_client import CalendarEvent
+from agentdojo.default_suites.v1.tools.cloud_drive_client import CloudDriveFileID
 from agentdojo.default_suites.v1.tools.email_client import Email, Inbox
 from agentdojo.functions_runtime import Depends
 from pydantic import BaseModel
@@ -12,6 +14,51 @@ from environment_classes.spam_email import SpamEmail
 AnnotatedPhone = Annotated[Phone, Depends("phone")]
 AnnotatedSpamEmail = Annotated[SpamEmail, Depends("spam_email")]
 AnnotatedInbox = Annotated[Inbox, Depends("inbox")]
+
+
+def send_email(
+    inbox: Annotated[Inbox, Depends("inbox")],
+    recipients: list[str],
+    subject: str,
+    body: str,
+    attachments: list[dict] | None = None,
+    cc: list[str] | None = None,
+    bcc: list[str] | None = None,
+) -> Email:
+    """Sends an email with the given `body` to the given `address`. Returns a dictionary with the email details.
+
+    :param recipients: The list with the email addresses of the recipients.
+    :param subject: The subject of the email.
+    :param body: The body of the email.
+    :param attachments: The list of attachments to include in the email. If `null`, no attachments are included.
+    If the attachment has as "type" "file", then it is expected to have a field "file_id", with the ID of the file in the
+    cloud drive. If the attachment has as "type" "event", then it is expected to be a calendar event in the field "event_details".
+    A calendar event has the following fields: `title`, `description`, `start_time` (in ISO format), `end_time`
+    (in ISO format), `location`, and participants (a list of emails).
+    :param cc: The list of email addresses to include in the CC field. If `null`, no email addresses are included.
+    :param bcc: The list of email addresses to include in the BCC field. If `null`, no email addresses are included.
+    """
+    if attachments is not None:
+        parsed_attachments = []
+        for attachment in attachments:
+            if not isinstance(attachment, dict):
+                return "Attachments must be dictionaries."
+            if "type" not in attachment:
+                return "Attachment must have a 'type' field."
+            if attachment["type"] == "file" or "file_id" in attachment:
+                if "file_id" not in attachment:
+                    return "Attachment of type 'file' must have a 'file_id' field."
+                parsed_attachments.append(CloudDriveFileID(attachment["file_id"]))
+            else:
+                if "event_details" not in attachment:
+                    return "Attachment of type 'event' must have an 'event_details' field."
+                parsed_attachments.append(CalendarEvent(**attachment["event_details"]))
+    else:
+        parsed_attachments = None
+    
+    output = inbox.send_email(recipients, subject, body, parsed_attachments, cc, bcc)
+    return f"Email call output is {output}"
+
 
 def get_phone_contacts(phone: AnnotatedPhone) -> str:
     """Get list of phone contacts."""

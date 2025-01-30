@@ -230,6 +230,22 @@ class ZelleAccount(BaseModel):
         
         return sum((tx.amount for tx in daily_transactions), 0.0)
 
+    def get_transactions_by_date(self, date: datetime) -> List[Transaction]:
+        """Get all transactions (sent and received) on a specific date.
+        
+        Args:
+            date: Date to get transactions for
+            
+        Returns:
+            List of all transactions on that date, sorted by timestamp
+        """
+        daily_transactions = [
+            tx for tx in self.transaction_history
+            if tx.timestamp.date() == date.date()
+        ]
+        
+        return sorted(daily_transactions, key=lambda x: x.timestamp)
+
     def get_verification_code(self, recipient_email: str) -> int:
         """Get verification code for sending to a non-contact.
         

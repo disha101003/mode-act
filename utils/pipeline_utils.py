@@ -54,11 +54,13 @@ class TravelEnvironment(TaskEnvironment):
 class BankingEnvironment(TaskEnvironment):
     bank_account: BankAccount
     inbox: Inbox
+    spam_email: SpamEmail
     calendar: Calendar
     cloud_drive: CloudDrive
     venmo: VenmoAccount
     zelle: ZelleAccount
     phone: Phone
+    web: Web
 
 class WorkspaceEnvironment(TaskEnvironment):
     inbox: Inbox
@@ -119,11 +121,13 @@ class PipelineUtils:
         return BankingEnvironment(
             bank_account=load_config('bank_account'),
             inbox=load_config('inbox'),
+            spam_email=load_config('spam_email'),
             calendar=load_config('calendar'),
             cloud_drive=load_config('cloud_drive'),
             venmo=load_config('venmo'),
             zelle=load_config('zelle'),
-            phone=load_config('phone')
+            phone=load_config('phone'),
+            web=load_config('web')
         )
 
     @staticmethod

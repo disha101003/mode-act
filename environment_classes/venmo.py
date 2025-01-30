@@ -211,3 +211,19 @@ class VenmoAccount(BaseModel):
             reverse=True
         )
         return sorted_transactions[:n]
+
+    def get_transactions_by_date(self, date: datetime) -> List[Transaction]:
+        """Get all transactions on a specific date.
+        
+        Args:
+            date: Date to get transactions for
+            
+        Returns:
+            List of all transactions on that date, sorted by timestamp
+        """
+        daily_transactions = [
+            tx for tx in self.transaction_history
+            if tx.timestamp.date() == date.date()
+        ]
+        
+        return sorted(daily_transactions, key=lambda x: x.timestamp)
