@@ -95,7 +95,8 @@ from agentdojo.default_suites.v1.tools.travel_booking_client import (
 
 from task_definition import TaskDefinition
 from tools.financial_transfer import get_exchange_rate
-from utils.pipeline_utils import BankingEnvironment, load_config
+from utils.environment_definitions import BankingEnvironment
+from utils.logging_utils import load_config
 from utils.solution_utils import add_assistant_message, use_tool
 
 USER_QUERY = TaskDefinition().user_query

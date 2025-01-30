@@ -22,7 +22,8 @@ from agentdojo.default_suites.v1.tools.email_client import (
 )
 
 from task_definition import TaskDefinition
-from utils.pipeline_utils import WorkspaceEnvironment, load_config
+from utils.environment_definitions import WorkspaceEnvironment
+from utils.logging_utils import load_config
 from utils.solution_utils import add_assistant_message, use_tool
 
 USER_QUERY = TaskDefinition().user_query

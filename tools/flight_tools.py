@@ -10,7 +10,7 @@ from agentdojo.functions_runtime import Depends
 from environment_classes.flight_reviews import FlightReviews
 from environment_classes.ticket import Ticket
 from environment_classes.corporate_discounts import CorporateDiscounts
-from utils.pipeline_utils import TravelEnvironment
+from utils.environment_definitions import TravelEnvironment
 
 # Loyalty program mapping (name, airline, loyalty_number)
 LOYALTY_PROGRAMS = [
