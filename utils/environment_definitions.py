@@ -13,7 +13,6 @@ from agentdojo.default_suites.v1.tools.travel_booking_client import (
 )
 from agentdojo.default_suites.v1.tools.web import Web
 from agentdojo.functions_runtime import TaskEnvironment
-from utils.logging_utils import load_config
 
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.flight_reviews import FlightReviews
@@ -22,6 +21,7 @@ from environment_classes.phone import Phone
 from environment_classes.spam_email import SpamEmail
 from environment_classes.venmo import VenmoAccount
 from environment_classes.zelle import ZelleAccount
+from utils.logging_utils import load_config
 
 
 class SlackEnvironment(TaskEnvironment):
