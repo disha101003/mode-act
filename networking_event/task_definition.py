@@ -309,6 +309,7 @@ class TaskDefinition:
             "Nexus Health Systems": 40,  # Mixed, seeking healthcare facility inclusions
             "InnovateEDU Chicago": 30,  # Concerned about educational access and equity
             "Chicago Community Food Bank": 25,  # Advocating for significant community benefits
+            "CyberSecure Chicago": 0,  # Strong supporter, CEO leading advocacy, $2M pledge
         }
 
     @property

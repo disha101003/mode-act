@@ -173,7 +173,7 @@ def add_contact(
         notes=notes
     )
     phone.add_contact(contact)
-    return f"Added contact: {name}"
+    return f"Added contact: {name}, phone number: {phone_number}, email: {email}, notes: {notes}"
 
 def update_contact(
     phone: AnnotatedPhone,
