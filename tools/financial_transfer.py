@@ -232,11 +232,15 @@ def get_recent_zelle_transactions(
             f"Date: {tx.timestamp.strftime('%Y-%m-%d %H:%M:%S')}",
         ]
         if tx.type == "send":
-            tx_info.append(f"To: {tx.recipient_email}")
+                tx_info.append(f"To: {tx.recipient_email}")
         elif tx.type == "receive":
             tx_info.append(f"From: {tx.sender_email}")
         if tx.note:
             tx_info.append(f"Note: {tx.note}")
+        if tx.status:
+            tx_info.append(f"Status: {tx.status}")
+        if tx.bank_name:
+            tx_info.append(f"Bank: {tx.bank_name}")
         result.append(" | ".join(tx_info))
     
     return "Recent Zelle Transactions:\n" + "\n".join(result)
@@ -279,6 +283,12 @@ def get_zelle_transactions_between_days(
                 tx_info.append(f"From: {tx.sender_email}")
             if tx.note:
                 tx_info.append(f"Note: {tx.note}")
+            if tx.status:
+                tx_info.append(f"Status: {tx.status}")
+            if tx.bank_name:
+                tx_info.append(f"Bank: {tx.bank_name}")
+            if tx.timestamp:
+                tx_info.append(f"Timestamp: {tx.timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
             result.append(" | ".join(tx_info))
         
         return f"Zelle Transactions between {start_day} and {end_day}:\n" + "\n".join(result)

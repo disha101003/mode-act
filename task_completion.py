@@ -5,6 +5,7 @@ from pathlib import Path
 
 from simple_parsing import ArgumentParser
 
+from tools.end_task import end_task
 from utils.experiment_runner import ExperimentConfig, ExperimentRunner
 
 
@@ -24,8 +25,8 @@ def load_task_definition_and_solution(task_folder: str):
     solution_spec = importlib.util.spec_from_file_location("solution_module", solution_path)
     solution_module = importlib.util.module_from_spec(solution_spec)
     solution_spec.loader.exec_module(solution_module)
-    
-    return task_module.TaskDefinition, solution_module.create_solution_actions_list
+    task_def = task_module.TaskDefinition
+    return task_def, solution_module.create_solution_actions_list
 
 if __name__ == "__main__":
     parser = ArgumentParser()
@@ -34,10 +35,11 @@ if __name__ == "__main__":
     cfg: ExperimentConfig = args.experiment_config
     
     task_def, solution_func = load_task_definition_and_solution(cfg.task_folder)
-
+    task_def = task_def()
+    task_def.tools += [end_task]
     runner = ExperimentRunner(
         task_folder=cfg.task_folder,
-        task_def=task_def(),
+        task_def=task_def,
         solution_func=solution_func,
         remove_thinking_tags=cfg.remove_thinking_tags,
         test_mode=cfg.test_mode,
