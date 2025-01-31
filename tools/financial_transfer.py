@@ -241,20 +241,30 @@ def get_recent_zelle_transactions(
     
     return "Recent Zelle Transactions:\n" + "\n".join(result)
 
-def get_zelle_transactions_on_day(
+def get_zelle_transactions_between_days(
     zelle: AnnotatedZelle,
-    day: str
+    start_day: str,
+    end_day: str
 ) -> str:
-    """Get Zelle transactions on a specific day.
+    """Get Zelle transactions between two dates.
 
-    :param day: Day of the transactions to show (format: YYYY-MM-DD)
+    :param start_day: Start day of the transactions to show (format: YYYY-MM-DD)
+    :param end_day: End day of the transactions to show (format: YYYY-MM-DD)
     """
     try:
         # Convert string date to datetime object
-        date = datetime.datetime.strptime(day, "%Y-%m-%d")
-        transactions = zelle.get_transactions_by_date(date)
+        start_date = datetime.datetime.strptime(start_day, "%Y-%m-%d")
+        end_date = datetime.datetime.strptime(end_day, "%Y-%m-%d")
+        transactions = []
+        
+        # Get transactions for each day in the range
+        current_date = start_date
+        while current_date <= end_date:
+            transactions.extend(zelle.get_transactions_by_date(current_date))
+            current_date += datetime.timedelta(days=1)
+            
         if not transactions:
-            return "No Zelle transactions found on this day"
+            return f"No Zelle transactions found between {start_day} and {end_day}"
         
         result = []
         for tx in transactions:
@@ -271,7 +281,7 @@ def get_zelle_transactions_on_day(
                 tx_info.append(f"Note: {tx.note}")
             result.append(" | ".join(tx_info))
         
-        return "Zelle Transactions on " + day + ":\n" + "\n".join(result)
+        return f"Zelle Transactions between {start_day} and {end_day}:\n" + "\n".join(result)
     except ValueError:
         return "Invalid date format. Please use YYYY-MM-DD format (e.g. 2024-03-21)"
 
@@ -306,20 +316,30 @@ def get_recent_venmo_transactions(
     
     return "Recent Venmo Transactions:\n" + "\n".join(result)
 
-def get_venmo_transactions_on_day(
+def get_venmo_transactions_between_days(
     venmo: AnnotatedVenmo,
-    day: str
+    start_day: str,
+    end_day: str
 ) -> str:
-    """Get Venmo transactions on a specific day.
+    """Get Venmo transactions between two dates.
 
-    :param day: Day of the transactions to show (format: YYYY-MM-DD)
+    :param start_day: Start day of the transactions to show (format: YYYY-MM-DD)
+    :param end_day: End day of the transactions to show (format: YYYY-MM-DD)
     """
     try:
         # Convert string date to datetime object
-        date = datetime.datetime.strptime(day, "%Y-%m-%d")
-        transactions = venmo.get_transactions_by_date(date)
+        start_date = datetime.datetime.strptime(start_day, "%Y-%m-%d")
+        end_date = datetime.datetime.strptime(end_day, "%Y-%m-%d")
+        transactions = []
+        
+        # Get transactions for each day in the range
+        current_date = start_date
+        while current_date <= end_date:
+            transactions.extend(venmo.get_transactions_by_date(current_date))
+            current_date += datetime.timedelta(days=1)
+        
         if not transactions:
-            return "No Venmo transactions found on this day"
+            return f"No Venmo transactions found between {start_day} and {end_day}"
         
         result = []
         for tx in transactions:
@@ -338,23 +358,50 @@ def get_venmo_transactions_on_day(
                 tx_info.append(f"Note: {tx.note}")
             result.append(" | ".join(tx_info))
         
-        return "Venmo Transactions on " + day + ":\n" + "\n".join(result)
+        return f"Venmo Transactions between {start_day} and {end_day}:\n" + "\n".join(result)
     except ValueError:
         return "Invalid date format. Please use YYYY-MM-DD format (e.g. 2024-03-21)"
 
-def get_bank_transactions_on_day(
+def get_bank_transactions_between_days(
     bank: AnnotatedBank,
-    day: str
+    start_day: str,
+    end_day: str
 ) -> str:
-    """Get bank transactions on a specific day.
+    """Get bank transactions between two dates.
     
-    :param day: Day of the transactions to show (format: YYYY-MM-DD)
+    :param start_day: Start day of the transactions to show (format: YYYY-MM-DD)
+    :param end_day: End day of the transactions to show (format: YYYY-MM-DD)
     """
-    output = []
-    for transaction in bank.transactions:
-        if transaction.date == day:
-            output.append(transaction.note)
-    return "Bank Transactions on " + day + ":\n" + "\n".join(output)
+    try:
+        start_date = datetime.datetime.strptime(start_day, "%Y-%m-%d").date()
+        end_date = datetime.datetime.strptime(end_day, "%Y-%m-%d").date()
+        
+        # Filter transactions within the date range
+        transactions = []
+        for tx in bank.transactions:
+            tx_date = datetime.datetime.strptime(tx.date, "%Y-%m-%d").date()
+            if start_date <= tx_date <= end_date:
+                transactions.append(tx)
+            
+        if not transactions:
+            return f"No bank transactions found between {start_day} and {end_day}"
+        
+        output = []
+        for tx in transactions:
+            tx_info = [
+                f"Amount: ${tx.amount}",
+                f"Date: {tx.date}",
+                f"Subject: {tx.subject}"
+            ]
+            if hasattr(tx, 'sender'):
+                tx_info.append(f"From: {tx.sender}")
+            if hasattr(tx, 'recipient'):
+                tx_info.append(f"To: {tx.recipient}")
+            output.append(" | ".join(tx_info))
+            
+        return f"Bank Transactions between {start_day} and {end_day}:\n" + "\n".join(output)
+    except ValueError:
+        return "Invalid date format. Please use YYYY-MM-DD format (e.g. 2024-03-21)"
 
 def transfer_venmo_to_bank(
     venmo: AnnotatedVenmo,

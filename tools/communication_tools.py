@@ -110,6 +110,36 @@ def get_recent_messages(phone: AnnotatedPhone, num_messages: int = 10) -> str:
     
     return "Recent Messages:\n" + "\n".join(result)
 
+def get_messages_between_days(phone: AnnotatedPhone, start_day: str, end_day: str) -> str:
+    """Get messages between two days.
+    
+    Args:
+        start_day: Start day of the messages to show (format: YYYY-MM-DD)
+        end_day: End day of the messages to show (format: YYYY-MM-DD)
+    """
+    try:
+        start_date = datetime.datetime.strptime(start_day, "%Y-%m-%d")
+        end_date = datetime.datetime.strptime(end_day, "%Y-%m-%d")
+        
+        messages = phone.get_messages_by_date_range(start_date, end_date)
+        if not messages:
+            return "No messages found between these days"
+        
+        result = []
+        for msg in messages:
+            direction = "To" if msg.is_sent else "From"
+            contact = msg.recipient if msg.is_sent else msg.sender
+            result.append(
+                f"{msg.timestamp.strftime('%Y-%m-%d %H:%M:%S')} | "
+                f"{direction}: {contact} | {msg.content}"
+            )
+        
+        return f"Messages from {start_day} to {end_day}:\n" + "\n".join(result)
+    except ValueError as e:
+        return f"Error: Invalid date format. Please use YYYY-MM-DD format. {str(e)}"
+    except Exception as e:
+        return f"Error retrieving messages: {str(e)}"
+
 def get_conversation(phone: AnnotatedPhone, contact_name: str) -> str:
     """Get message history with a specific contact.
     

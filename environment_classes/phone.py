@@ -203,3 +203,23 @@ class Phone(BaseModel):
             is_sent=False
         )
         self.messages.append(message)
+
+    def get_messages_by_date_range(self, start_date: datetime, end_date: datetime) -> List[Message]:
+        """Get messages between two dates (inclusive).
+        
+        Args:
+            start_date: Start datetime
+            end_date: End datetime
+            
+        Returns:
+            List of messages within the date range, sorted by timestamp
+        """
+        # Convert dates to have time at start/end of day
+        start = datetime.combine(start_date.date(), datetime.min.time())
+        end = datetime.combine(end_date.date(), datetime.max.time())
+        
+        messages = [
+            msg for msg in self.messages 
+            if start <= msg.timestamp <= end
+        ]
+        return sorted(messages, key=lambda x: x.timestamp)

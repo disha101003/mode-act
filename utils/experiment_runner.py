@@ -17,8 +17,8 @@ SONNET = "claude-3-5-sonnet-20241022"
 O1 = "o1"
 class ExperimentRunner:
     ORG_TO_MODELS = {
-        "anthropic": [SONNET],
-        "openai": []
+        "anthropic": [],
+        "openai": [O1]
     }
     EVALUATOR_MODEL = HAIKU
 

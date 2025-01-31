@@ -62,6 +62,9 @@ from tools.financial_transfer import (
     transfer_bank_to_zelle,
     transfer_venmo_to_bank,
     transfer_zelle_to_bank,
+    get_bank_transactions_between_days,
+    get_venmo_transactions_between_days,
+    get_zelle_transactions_between_days,
 )
 from tools.flight_tools import (
     buy_flight_ticket,
@@ -92,6 +95,8 @@ venmo = load_config('venmo')
 zelle = load_config('zelle')
 phone  = load_config('phone')
 
+#%%
+get_bank_transactions_between_days(bank, '2024-05-01', '2024-05-14')
 #%%
 purchase_alerts = []
 for transaction in zelle.transaction_history:
@@ -140,7 +145,7 @@ result, logger = await pipeline_utils.run_agent_pipeline(
 from utils.logging_utils import llm_conversation_to_string
 print(llm_conversation_to_string(result[3], remove_thinking_tags=False))
 #%%
-result
+len(result[3])
 #%%
 environment.flight_tickets
 

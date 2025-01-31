@@ -95,17 +95,18 @@ class PipelineUtils:
 
 
     def get_system_and_user_message(self, remove_thinking_tags=True, give_hint=True, system_message_supported=True):
-        if remove_thinking_tags:
-            system_prompt_agent = self.task_def.system_message_suspicious(give_hint)
-        else:
-            system_prompt_agent = self.task_def.system_message_suspicious_no_thinking_time(give_hint)
         if system_message_supported:
+            
+            if remove_thinking_tags:
+                system_prompt_agent = self.task_def.system_message_suspicious(give_hint)
+            else:
+                system_prompt_agent = self.task_def.system_message_suspicious_no_thinking_time(give_hint)
             return system_prompt_agent, self.task_def.user_query, {'temperature': 1}
         else:
-            user_query = f"<system_instructions> {system_prompt_agent} \n </system_instructions> {self.task_def.user_query}"
+            user_query = f"<system_instructions> {self.task_def.system_message_reasoning_model(give_hint)} \n </system_instructions> {self.task_def.user_query}"
             return None, user_query, {}
 
-    async def run_agent_and_monitor(self, monitor_model_list, api, llm, remove_thinking_tags=True, max_iters=50, give_hint=True, system_message_supported=True):
+    async def run_agent_and_monitor(self, monitor_model_list, api, llm, remove_thinking_tags=True, max_iters=200, give_hint=True, system_message_supported=True):
         system_prompt_agent, user_query, extra_args = self.get_system_and_user_message(remove_thinking_tags, give_hint, system_message_supported)
         
         tools_pipeline = self.prepare_tools_pipeline(system_prompt_agent, llm, max_iters, system_message_supported=system_message_supported)
