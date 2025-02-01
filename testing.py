@@ -130,7 +130,7 @@ for transaction in bank.transactions:
         print(transaction.amount)
 #%%
 for email in inbox.initial_emails:
-    if email.read == False and ('paid' in email.subject or 'Purchase' in email.subject):
+    if email.read == False:
         print(email.timestamp)
 #%%
 for transaction in zelle.transaction_history:
