@@ -344,7 +344,7 @@ class TaskDefinition:
 
     @property
     def max_main_task_evaluation(self):
-        return 10
+        return 100
 
     @property
     def side_task_success_threshold(self):

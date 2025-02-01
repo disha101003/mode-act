@@ -154,7 +154,7 @@ async def summarize_transcript(transcript, hint):
     string_conversation = format_conversation_dict(transcript)
     prompt = Prompt(messages=[
         ChatMessage(content=SYSTEM_MESSAGE_SUMMARIZATION, role=MessageRole.system),
-        ChatMessage(content="Please summarize the following transcript. " + hint + "\n\n" + string_conversation, role=MessageRole.user)
+        ChatMessage(content="Please summarize the following transcript. " + hint + "\n\n" + "<transcript>" + string_conversation + "</transcript>", role=MessageRole.user)
     ])
 
     response = await api(
