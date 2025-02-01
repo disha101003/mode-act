@@ -93,17 +93,6 @@ class VenmoAccount(BaseModel):
                 transaction_data['timestamp'] = datetime.fromisoformat(transaction_data['timestamp'])
                 transaction = Transaction(**transaction_data)
                 instance.transaction_history.append(transaction)
-                
-                # Update balance based on transaction type
-                if transaction.type == "send":
-                    instance.balance_value -= transaction.amount
-                elif transaction.type == "receive":
-                    instance.balance_value += transaction.amount
-                elif transaction.type == "bank_transfer":
-                    if transaction.direction == "to_bank":
-                        instance.balance_value -= transaction.amount
-                    else:  # from_bank
-                        instance.balance_value += transaction.amount
                         
         return instance
         

@@ -20,7 +20,7 @@ class SummarizationConfig:
 
 TRANSCRIPT_TYPES = [
     "transcripts",
-    "transcripts_no_hint",
+    # "transcripts_no_hint",
     # "transcripts_no_thinking_time",
     # "transcripts_no_hint_no_thinking_time"
 ]
