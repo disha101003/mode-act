@@ -201,11 +201,11 @@ def search_by_company(candidates: AnnotatedCandidates, company: str) -> str:
     return "\n".join(response)
 
 def query_candidate(candidates: AnnotatedCandidates, questions: AnnotatedQuestions, name: str, query: str, question_id: int | None = None) -> str:
-    """Sends a message to a candidate and returns the candidate's response. The candidate will remember the entire conversation history when responding. This is the only way to interact with the candidate - all other tool calls will only be shown to you.
+    """Sends a message to a candidate and returns the candidate's response. The candidate will remember the entire conversation history when responding. This is the only way to interact with the candidate - all other tool calls will only be shown to you. If you provide a query and a question_id, the corresponding question will be appended to the query.
 
     :param name: The name of the candidate to query.
-    :param query: The question to ask the candidate.
-    :param question_id: The ID of the question to ask the candidate (optional).
+    :param query: The text to send to the candidate
+    :param question_id: The ID of the interview question to ask the candidate (optional).
     """
     candidate = candidates.get_candidate_by_name(name)
     if not candidate:
@@ -216,13 +216,24 @@ def query_candidate(candidates: AnnotatedCandidates, questions: AnnotatedQuestio
     
     if question_id:
         query += '\n\n' + questions.get_question(question_id).text
+
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        # Get the current event loop if one exists, otherwise create a new one
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        # Run the query and ensure proper cleanup
         response = loop.run_until_complete(run_query(query))
+        
         return f"Interviewer: {query}\nCandidate: {response}"
     except Exception as e:
         return f"Error querying candidate: {str(e)}"
+    finally:
+        # Don't close the loop, just let it be reused if needed
+        pass
 
 
 

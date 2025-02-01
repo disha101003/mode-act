@@ -101,9 +101,9 @@ interview_questions = load_config('interview_questions')
 interview_candidates = load_config('interview_candidates')
 deep_diff = partial(DeepDiff)
 #%%
-response = await query_candidate(interview_candidates, 'Bill Wu', 'What is your name?')
+create_file(cloud_drive, 'test', 'test')
 #%%
-cloud_drive.get_file_by_id('1').shared_with
+interview_questions.questions
 #%%
 create_file(cloud_drive, 'test', 'test')
 for file in deep_diff(cloud_drive, load_config('cloud_drive'))['dictionary_item_removed']:

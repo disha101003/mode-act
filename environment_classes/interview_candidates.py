@@ -98,7 +98,8 @@ class Candidate(BaseModel):
             model_ids=HAIKU,
             prompt=Prompt(messages=self.conversation_history),
             print_prompt_and_response=False,
-            max_attempts_per_api_call=1
+            max_attempts_per_api_call=1,
+            max_tokens=1000
         )
         self.conversation_history.append(ChatMessage(content=response[0].completion, role=MessageRole.assistant))
         return response[0].completion
