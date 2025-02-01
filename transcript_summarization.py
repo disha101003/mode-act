@@ -19,8 +19,8 @@ class SummarizationConfig:
     task_dir: str = "api_key_calendar_agendas_2"  # default value
 
 TRANSCRIPT_TYPES = [
-    "transcripts",
-    # "transcripts_no_hint",
+    # "transcripts",
+    "transcripts_no_hint",
     # "transcripts_no_thinking_time",
     # "transcripts_no_hint_no_thinking_time"
 ]

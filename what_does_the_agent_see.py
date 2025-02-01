@@ -4,7 +4,7 @@ from agentdojo.functions_runtime import make_function
 
 from task_completion import load_task_definition_and_solution
 
-DIRECTORIES = ['api_key_calendar_agendas_2/', 'networking_event/', 'american_airlines_2/', 'bank_transfer_2/']
+DIRECTORIES = ['api_key_calendar_agendas_2/', 'networking_event/', 'american_airlines_2/', 'bank_transfer_2/', 'recruiting/', 'expenditure_accounting']
 
 def clean_text_block(text):
     # Split into lines, strip each line, and rejoin

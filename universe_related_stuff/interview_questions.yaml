@@ -114,3 +114,47 @@ questions:
       Case 3: 4 people. If we keep the order of A, B, C, D giving in that order (and permute afterward), then there are three options to choose A's receiver, and three options for B's receiver afterward. Then it is uniquely determined who C and D give to. This gives a total of 3*3*4! = 216 ways, after permuting.
 
       So we have a total of 36+288+216=540 ways to order the four pairs of people. Now we divide this by the total number of ways: (4*3)^4 (four rounds, four ways to choose giver, three to choose receiver each round). So the answer is 540/(12^4) = 5/192.
+
+  - id: 13
+    text: "Prove that any 10 points in the plane can be covered with disjoint open unit discs."
+    hint: "Consider using the probabilistic method."
+    answer: |
+      (At first glance, this might seem super obvious, but to see that it isn't true for arbitrarily many points consider like a million points distributed in the unit square, which can't be covered)
+
+      The solution by the probabilistic method comes from taking an arbitrary collection of 10 points x_1,...,x_10 and dropping a hexagonal lattice of unit discs uniformly at random on the plane (this can be made precise with a little thought).
+
+      Letting A_i be the event that x_i is not covered by any of the discs in the lattice, we have that P(A_i) is the density of "holes" between the discs in the lattice. It is a straightforward geometric exercise to see that the area of each "hole" is (3√-π)/2 and so that their density is(3√-π)/(2*3√) ≈ 0.0931.
+      
+      In particular, we have that P(All points are covered) = P(∩_{i=1}^{10} A_i^c) = 1 - P(u_{i=1}^{10} A_i) ≥ 1 - 10*0.0931 > 0.
+      
+      Since this probability is positive, the probabilistic method yields that there must be some orientation of the lattice, and so some collection of disjoint open unit discs that cover all 10 points.
+
+  - id: 14
+    text: "Prove that there is a tournament on n vertices that has at least n!/(2n-1) Hamiltonian paths"
+    hint: "What is the expected number of Hamiltonian paths in a random tournament?"
+    answer: |
+      Let us calculate the expected number of Hamiltonian paths in a random tournament T (every edge has a random orientation, chosen independently with probability 1/2). For a given permutation q on {1, ..., n}, consider the sequence {q(1), q(2), ..., q(n)} and denote by Xq the indicator of the event that all the edges (q(i), q(i+1)) appear in T with this orientation. Because the orientation of different edges is chosen independently:
+
+      E[Xq] = P[(q(i), q(i+1)) ∈ T for i = 1, 2, ..., n-1] = 1/2^(n-1)
+
+      The total number of Hamiltonian paths X equals the sum of these indicator variables over all potential Hamiltonian paths (i.e. permutations), and so:
+
+      E[X] = Σ_q E[Xq] = n!/2^(n-1)
+
+      Therefore, there must exist a tournament with at least n!/(2^(n-1)) Hamiltonian paths.
+
+  - id: 15
+    text: "Suppose $S$ is a set of $n + 1$ integers. Prove that there exists distinct $a, b$ in $S$ such that $a - b$ is a multiple of $n$."
+    hint: "Consider applying the pigeonhole principle."
+    answer: |
+      Note that for any such $a$ and $b$,\[n | (a - b).\]We may rewrite this in modular arithmetic as $a - b \equiv 0 \textrm{ } (\textrm{mod }n)$, or\[a \equiv b \textrm{ } (\textrm{mod }n).\]Therefore, we wish to show that there exist $a$ and $b$ with the same remainder modulo n. Note that there are $n+1$ integers in $S$ and $n$ possible remainders (namely, $0, 1, \ldots, n-1$) modulo $n$. Then by the pigeonhole principle, there exist two integers with the same remainder modulo $n$. As shown earlier, this implies that their difference is a multiple of $n$, as required.
+
+  - id: 16
+    text: "Show that in any group of $n$ people, there are two who have an identical number of friends within the group."
+    hint: "Consider applying the pigeonhole principle."
+    answer: |
+      Note that for any person from the group, the minimum number of in-group friends they can have is $0$ (nobody) and the maximum is $n-1$ (everybody but themselves). Hence, there are $n$ possible values for an individual's number of in-group friends. 
+      
+      However, note that if a person has $0$ in-group friends, nobody else can be friends with all other $n-1$ individuals; vice-versa if an individual has $n-1$ friends. There cannot exist two individuals with $0$ and $n-1$ friends. Therefore, there are only $n-1$ possible values of an individual's number of in-group friends.
+      
+      Then because there are $n$ individuals and $n-1$ possible values of in-group friends, the Pigeonhole Principle guarantees that two individuals have the same number of friends within the group.

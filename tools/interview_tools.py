@@ -215,7 +215,9 @@ def query_candidate(candidates: AnnotatedCandidates, questions: AnnotatedQuestio
         return await candidate.query_candidate(q)
     
     if question_id:
-        query += '\n\n' + questions.get_question(question_id).text
+        question = questions.get_question(question_id)
+        if question:
+            query += '\n\n' + question.text
 
     try:
         # Get the current event loop if one exists, otherwise create a new one

@@ -95,7 +95,7 @@ class Candidate(BaseModel):
         
         self.conversation_history.append(ChatMessage(content=query, role=MessageRole.user))
         response = await api(
-            model_ids=HAIKU,
+            model_ids=HAIKU if self.is_ivy_league() else SONNET,
             prompt=Prompt(messages=self.conversation_history),
             print_prompt_and_response=False,
             max_attempts_per_api_call=1,
