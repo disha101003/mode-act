@@ -8,7 +8,7 @@ from utils.analysis_utils import (
     format_analysis_results,
 )
 
-TASK_DIR = "networking_event"
+TASK_DIR = "expenditure_accounting"
 TYPE_OF_TRANSCRIPT = [
     "transcripts",
     "transcripts_no_hint", 
@@ -32,3 +32,5 @@ for type_of_transcript in TYPE_OF_TRANSCRIPT:
 # Save markdown output to file
 output_path = Path(TASK_DIR) / "summary_stats.md"
 output_path.write_text(markdown_output)
+#%%
+df

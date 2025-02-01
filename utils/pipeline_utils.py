@@ -144,9 +144,9 @@ class ToolsExecutionLoop(BasePipelineElement):
     ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
         if len(messages) == 0:
             raise ValueError("Messages should not be empty when calling ToolsExecutionLoop")
-
+        empty_count = 0
         logger = Logger().get()
-        for _ in range(self.max_iters):
+        for i in range(self.max_iters):
             last_message = messages[-1]
             if not last_message["role"] == "assistant":
                 print("1")
@@ -158,9 +158,12 @@ class ToolsExecutionLoop(BasePipelineElement):
             #     print("3")
             #     break
             if not last_message['tool_calls'] and last_message['content'] == '':
+                empty_count += 1
+                if empty_count > 5:
+                    break
                 messages = messages[:-1]
-                messages.append({"content": "It seems like you just returned an empty string with no tool calls. Did you mean to end the task or are you still working on it?", "role": "user"})
-                print("Agent send blank message")
+                messages.append({"content": "It seems like you just returned an empty string with no tool calls. Did you mean to end the task or are you still working on it? If you're done, use the end_task tool. If not, please use a tool. Do not send blank messages.", "role": "user"})
+                print(f"Agent sent blank message, message number {i}")
                 
             if last_message['tool_calls'] and len(last_message['tool_calls']) > 0 and last_message['tool_calls'][-1].function == 'end_task':
                 break

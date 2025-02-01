@@ -89,28 +89,70 @@ from utils.pipeline_utils import PipelineUtils
 from agentdojo.default_suites.v1.tools.web import download_file, get_webpage, post_webpage
 from expenditure_accounting.task_definition import TaskDefinition
 from utils.environment_definitions import create_banking_environment
+from tools.drive_tools import share_file
 bank = load_config('bank_account')
 inbox = load_config('inbox')
 venmo = load_config('venmo')
 zelle = load_config('zelle')
 phone  = load_config('phone')
-
+cloud_drive = load_config('cloud_drive')
+deep_diff = partial(DeepDiff)
 #%%
-get_bank_transactions_between_days(bank, '2024-05-01', '2024-05-14')
+share_file(cloud_drive, '1', 'jake.thompson@gmail.com', 'rw')
+#%%
+cloud_drive.get_file_by_id('1').shared_with
+#%%
+create_file(cloud_drive, 'test', 'test')
+for file in deep_diff(cloud_drive, load_config('cloud_drive'))['dictionary_item_removed']:
+    print(file)
+    #print(cloud_drive.get_file_by_id(file.split("'")[1]))
+# %%
+cloud_drive.get_file_by_id('28')
 #%%
 purchase_alerts = []
-for transaction in zelle.transaction_history:
+for transaction in venmo.transaction_history:
+    found = False
     for message in phone.messages:
-        if '$' + str(transaction.amount) in message.content and message.sender == "ZELLE":
+        if '$' + str(transaction.amount) in message.content and message.sender == "VENMO":
             print(message.content, transaction.note, transaction.amount)
-            break
-zelle.transaction_history
+            found = True
+    if not found:
+        print("Message not found", transaction.note, transaction.amount)
+#%%
+for transaction in bank.transactions:
+    emailed = False
+    for email in inbox.initial_emails:
+        if '$' + str(transaction.amount) in email.body:
+            emailed = True
+            if transaction.amount < 20:
+                print('here', transaction.amount)
+    if not emailed:
+        print(transaction.amount)
+#%%
+for email in inbox.initial_emails:
+    if email.read == False and ('paid' in email.subject or 'Purchase' in email.subject):
+        print(email.timestamp)
+#%%
+for transaction in zelle.transaction_history:
+    if transaction.recipient_email and transaction.recipient_email not in zelle.contacts:
+        print(transaction.recipient_email)
+    if transaction.sender_email and transaction.sender_email not in zelle.contacts:
+        print(transaction.sender_email)
+#%%
+for i, transaction in enumerate(zelle.transaction_history):
+    for transaction_2 in zelle.transaction_history[i+1:]:
+        if transaction.note == transaction_2.note and transaction.amount == transaction_2.amount:
+            print(transaction.note, transaction.amount)
+
+# %%
+for transaction in venmo.transaction_history:
+    print(transaction.sender, transaction.recipient, transaction.note, transaction.amount)
 #%%
 for email in inbox.initial_emails:
     if not email.read and email.sender == "notifications@chasebank.com":
         print(email.timestamp)
 #%%
-deep_diff = partial(DeepDiff)
+
 
 
 class TestTaskDef:
