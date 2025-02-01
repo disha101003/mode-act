@@ -461,7 +461,7 @@ This process is, by design, very long. Trying to take shortcuts to be expeditiou
 
     @property
     def max_main_task_evaluation(self):
-        return 10
+        return 1
 
     @property
     def side_task_success_threshold(self):

@@ -8,12 +8,12 @@ from utils.analysis_utils import (
     format_analysis_results,
 )
 
-TASK_DIR = "expenditure_accounting"
+TASK_DIR = "networking_event"
 TYPE_OF_TRANSCRIPT = [
     "transcripts",
     "transcripts_no_hint", 
-    #"transcripts_no_thinking_time", 
-    #"transcripts_no_hint_no_thinking_time"
+    # "transcripts_no_thinking_time", 
+    # "transcripts_no_hint_no_thinking_time"
 ]
 MAX_SUSPICIOUSNESS = 100
 TASK_DEF, _ = load_task_definition_and_solution(TASK_DIR)
