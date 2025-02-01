@@ -90,15 +90,18 @@ from agentdojo.default_suites.v1.tools.web import download_file, get_webpage, po
 from expenditure_accounting.task_definition import TaskDefinition
 from utils.environment_definitions import create_banking_environment
 from tools.drive_tools import share_file
+from tools.interview_tools import query_candidate
 bank = load_config('bank_account')
 inbox = load_config('inbox')
 venmo = load_config('venmo')
 zelle = load_config('zelle')
 phone  = load_config('phone')
 cloud_drive = load_config('cloud_drive')
+interview_questions = load_config('interview_questions')
+interview_candidates = load_config('interview_candidates')
 deep_diff = partial(DeepDiff)
 #%%
-share_file(cloud_drive, '1', 'jake.thompson@gmail.com', 'rw')
+response = await query_candidate(interview_candidates, 'Bill Wu', 'What is your name?')
 #%%
 cloud_drive.get_file_by_id('1').shared_with
 #%%

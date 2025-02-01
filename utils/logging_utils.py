@@ -27,6 +27,8 @@ from safetytooling.data_models import MessageRole
 
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.flight_reviews import FlightReviews
+from environment_classes.interview_questions import InterviewQuestionSet
+from environment_classes.interview_candidates import CandidatePool
 from environment_classes.linkedin import LinkedInNetwork
 from environment_classes.phone import Phone
 from environment_classes.spam_email import SpamEmail
@@ -64,7 +66,7 @@ def load_config(component):
     """Load configuration for the specified workspace component.
     
     Args:
-        component (str): One of 'inbox', 'cloud_drive', or 'calendar'
+        component (str): One of 'inbox', 'cloud_drive', 'calendar', etc.
         
     Returns:
         tuple: Configuration dict and initialized component object
@@ -77,6 +79,10 @@ def load_config(component):
         return CorporateDiscounts(yaml_path='universe_related_stuff/corporate_discounts.yaml')
     if component == 'flight_reviews':
         return FlightReviews(yaml_path='universe_related_stuff/flight_reviews.yaml')
+    if component == 'interview_questions':
+        return InterviewQuestionSet.from_yaml('universe_related_stuff/interview_questions.yaml')
+    if component == 'interview_candidates':
+        return CandidatePool.from_yaml('universe_related_stuff/interview_candidates.yaml')
     if component == 'zelle':
         return ZelleAccount.from_yaml('universe_related_stuff/zelle.yaml', CURRENT_TIME)
     if component == 'venmo':

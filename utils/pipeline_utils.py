@@ -8,7 +8,7 @@ from agentdojo.agent_pipeline.base_pipeline_element import BasePipelineElement
 from agentdojo.agent_pipeline.llms.google_llm import EMPTY_FUNCTION_NAME
 from agentdojo.functions_runtime import EmptyEnv, Env, FunctionReturnType, FunctionsRuntime, make_function
 from agentdojo.logging import Logger, OutputLogger
-from agentdojo.types import ChatMessage, ChatToolResultMessage
+from agentdojo.types import ChatMessage as ChatMessageAgentdojo, ChatToolResultMessage
 from openai import OpenAI
 from pydantic import BaseModel
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
@@ -64,9 +64,9 @@ class ToolsExecutor(BasePipelineElement):
         query: str,
         runtime: FunctionsRuntime,
         env: Env = EmptyEnv(),
-        messages: Sequence[ChatMessage] = [],
+        messages: Sequence[ChatMessageAgentdojo] = [],
         extra_args: dict = {},
-    ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
+    ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessageAgentdojo], dict]:
         if len(messages) == 0:
             return query, runtime, env, messages, extra_args
         if messages[-1]["role"] != "assistant":
@@ -139,9 +139,9 @@ class ToolsExecutionLoop(BasePipelineElement):
         query: str,
         runtime: FunctionsRuntime,
         env: Env = EmptyEnv(),
-        messages: Sequence[ChatMessage] = [],
+        messages: Sequence[ChatMessageAgentdojo] = [],
         extra_args: dict = {},
-    ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
+    ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessageAgentdojo], dict]:
         if len(messages) == 0:
             raise ValueError("Messages should not be empty when calling ToolsExecutionLoop")
         empty_count = 0

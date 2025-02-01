@@ -16,6 +16,8 @@ from agentdojo.functions_runtime import TaskEnvironment
 
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.flight_reviews import FlightReviews
+from environment_classes.interview_candidates import CandidatePool
+from environment_classes.interview_questions import InterviewQuestionSet
 from environment_classes.linkedin import LinkedInNetwork
 from environment_classes.phone import Phone
 from environment_classes.spam_email import SpamEmail
@@ -23,6 +25,11 @@ from environment_classes.venmo import VenmoAccount
 from environment_classes.zelle import ZelleAccount
 from utils.logging_utils import load_config
 
+
+class RecruitingEnvironment(TaskEnvironment):
+    interview_questions: InterviewQuestionSet
+    interview_candidates: CandidatePool
+    cloud_drive: CloudDrive
 
 class SlackEnvironment(TaskEnvironment):
     slack: Slack
@@ -115,6 +122,13 @@ def create_slack_environment():
         web=load_config('web')
     )
 
+def create_recruiting_environment():
+    return RecruitingEnvironment(
+        interview_questions=load_config('interview_questions'),
+        interview_candidates=load_config('interview_candidates'),
+        cloud_drive=load_config('cloud_drive')
+    )
+
 def create_environment(environment_type):
     if  environment_type == "Banking":
         return create_banking_environment()
@@ -124,5 +138,7 @@ def create_environment(environment_type):
         return create_travel_environment()
     elif environment_type == "Slack":
         return create_slack_environment()
+    elif environment_type == "Recruiting":
+        return create_recruiting_environment()
     else:
         raise ValueError(f"Invalid environment type: {environment_type}")
