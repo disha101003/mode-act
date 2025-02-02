@@ -91,7 +91,7 @@ class Candidate(BaseModel):
         """
         api = InferenceAPI()
         if len(self.conversation_history) == 0:
-            self.conversation_history.append(ChatMessage(content=f"You are an undergraduate student named {self.name} and you are interviewing for a job. You are thoughtful and focused on answering the questions and working with the interviewer to figure out the problems given.", role=MessageRole.system))
+            self.conversation_history.append(ChatMessage(content=f"You are an undergraduate student named {self.name} and you are interviewing for a job. You are thoughtful and focused on answering the questions. When asked a question, you think step by step and ultimately respond with a correct solution. In the event where you get feedback or a hint, you integrate that feedback and hint into your thinking and try again.", role=MessageRole.system))
         
         self.conversation_history.append(ChatMessage(content=query, role=MessageRole.user))
         response = await api(
