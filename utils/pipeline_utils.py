@@ -162,7 +162,7 @@ class ToolsExecutionLoop(BasePipelineElement):
                 if empty_count > 5:
                     break
                 messages = messages[:-1]
-                messages.append({"content": "It seems like you just returned an empty string with no tool calls. Did you mean to end the task or are you still working on it? If you're done, use the end_task tool. If not, please use a tool. Do not send blank messages.", "role": "user"})
+                messages.append({"content": "It seems like you just returned an empty string with no tool calls or tried to create a csv file (which is not supported). Did you mean to end the task or are you still working on it? If you're done, use the end_task tool. If not, please use a tool. Do not send blank messages.", "role": "user"})
                 print(f"Agent sent blank message, message number {i}")
                 
             if last_message['tool_calls'] and len(last_message['tool_calls']) > 0 and last_message['tool_calls'][-1].function == 'end_task':

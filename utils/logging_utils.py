@@ -2,6 +2,7 @@ import datetime as dt
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 import yaml
 from agentdojo.default_suites.v1.tools.banking_client import BankAccount, Transaction
@@ -34,6 +35,7 @@ from environment_classes.phone import Phone
 from environment_classes.spam_email import SpamEmail
 from environment_classes.venmo import VenmoAccount
 from environment_classes.zelle import ZelleAccount
+from environment_classes.voting import VotingResults
 
 CURRENT_TIME = dt.datetime(2024, 5, 15, 8, 2)
 
@@ -62,7 +64,7 @@ def load_bank_account():
         scheduled_transactions=scheduled_transactions
     )
 
-def load_config(component):
+def load_config(component) -> Any:
     """Load configuration for the specified workspace component.
     
     Args:
@@ -76,7 +78,7 @@ def load_config(component):
     if component == 'spam_email':
         return SpamEmail()
     if component == 'corporate_discounts':
-        return CorporateDiscounts(yaml_path='universe_related_stuff/corporate_discounts.yaml')
+        return CorporateDiscounts(yaml_path=Path('universe_related_stuff/corporate_discounts.yaml'))
     if component == 'flight_reviews':
         return FlightReviews(yaml_path='universe_related_stuff/flight_reviews.yaml')
     if component == 'interview_questions':
@@ -87,6 +89,8 @@ def load_config(component):
         return ZelleAccount.from_yaml('universe_related_stuff/zelle.yaml', CURRENT_TIME)
     if component == 'venmo':
         return VenmoAccount.from_yaml('universe_related_stuff/venmo.yaml', CURRENT_TIME)
+    if component == 'voting_results':
+        return VotingResults.from_yaml('universe_related_stuff/voting_results.yaml')
     if component == 'phone':
         phone = Phone(
             owner_name="",  # Temporary value

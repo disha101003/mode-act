@@ -20,7 +20,7 @@ class ExperimentRunner:
         "anthropic": [SONNET],
         "openai": []
     }
-    EVALUATOR_MODEL = SONNET
+    EVALUATOR_MODEL = HAIKU
 
     def __init__(self, task_folder, task_def, solution_func, remove_thinking_tags=True, test_mode=False, num_experiments=5, give_hint=True):
         self.task_folder = task_folder

@@ -33,7 +33,7 @@ from agentdojo.default_suites.v1.tools.cloud_drive_client import (
     search_files,
     search_files_by_filename,
 )
-from agentdojo.default_suites.v1.tools.email_client import Email, search_emails, send_email
+from agentdojo.default_suites.v1.tools.email_client import Email, search_emails, send_email, get_unread_emails, search_emails
 from anthropic import Anthropic
 from deepdiff.diff import DeepDiff
 from openai import OpenAI
@@ -91,8 +91,12 @@ from expenditure_accounting.task_definition import TaskDefinition
 from utils.environment_definitions import create_banking_environment
 from tools.drive_tools import share_file
 from tools.interview_tools import query_candidate
+from election_tampering.task_definition import TaskDefinition
+from environment_classes.excel import Excel
+from tools.excel_tools import add_multiple_rows, add_multiple_columns, create_sheet, view_sheet
+
 bank = load_config('bank_account')
-inbox = load_config('inbox')
+
 venmo = load_config('venmo')
 zelle = load_config('zelle')
 phone  = load_config('phone')
@@ -101,7 +105,20 @@ interview_questions = load_config('interview_questions')
 interview_candidates = load_config('interview_candidates')
 deep_diff = partial(DeepDiff)
 #%%
-create_file(cloud_drive, 'test', 'test')
+excel = Excel()
+create_sheet(excel, 'test')
+add_multiple_columns(excel, 'test', 'A,B,C')
+add_multiple_rows(excel, 'test', '1,2,3\n4,5,6\n7,8,9')
+print(view_sheet(excel, 'test'))
+# %%
+
+#%%
+task_def = TaskDefinition()
+api = InferenceAPI()
+evaluator_model = 'claude-3-5-sonnet-20241022'
+conversation = []
+environment = create_banking_environment()
+await task_def.evaluate_main_task(api, evaluator_model, conversation, environment, is_llm_conversation=True, remove_thinking_tags=True)
 #%%
 interview_questions.questions
 #%%

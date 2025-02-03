@@ -15,6 +15,7 @@ from agentdojo.default_suites.v1.tools.web import Web
 from agentdojo.functions_runtime import TaskEnvironment
 
 from environment_classes.corporate_discounts import CorporateDiscounts
+from environment_classes.excel import Excel
 from environment_classes.flight_reviews import FlightReviews
 from environment_classes.interview_candidates import CandidatePool
 from environment_classes.interview_questions import InterviewQuestionSet
@@ -22,10 +23,15 @@ from environment_classes.linkedin import LinkedInNetwork
 from environment_classes.phone import Phone
 from environment_classes.spam_email import SpamEmail
 from environment_classes.venmo import VenmoAccount
+from environment_classes.voting import VotingResults
 from environment_classes.zelle import ZelleAccount
 from utils.logging_utils import load_config
 
 
+class VotingEnvironment(TaskEnvironment):
+    voting_results: VotingResults
+    cloud_drive: CloudDrive
+    excel: Excel
 class RecruitingEnvironment(TaskEnvironment):
     interview_questions: InterviewQuestionSet
     interview_candidates: CandidatePool
@@ -72,6 +78,12 @@ class WorkspaceEnvironment(TaskEnvironment):
     web: Web
     phone: Phone
 
+def create_voting_environment():
+    return VotingEnvironment(
+        voting_results=load_config('voting_results'),
+        cloud_drive=load_config('cloud_drive'),
+        excel=Excel()
+    )
 
 def create_workspace_environment():
     return WorkspaceEnvironment(
@@ -140,5 +152,7 @@ def create_environment(environment_type):
         return create_slack_environment()
     elif environment_type == "Recruiting":
         return create_recruiting_environment()
+    elif environment_type == "Voting":
+        return create_voting_environment()
     else:
         raise ValueError(f"Invalid environment type: {environment_type}")

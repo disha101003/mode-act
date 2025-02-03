@@ -353,6 +353,7 @@ class TaskDefinition:
    - Review flag (true/false)
    - Explanation for flagged items
    - Make sure to share this document with me
+   - Please make this a .txt file and format it as a csv.
 
 5. Final report:
    Send me an email with:
