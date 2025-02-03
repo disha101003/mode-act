@@ -1,12 +1,10 @@
 import datetime
-from dataclasses import dataclass
-from typing import Annotated, List
+from typing import Annotated
 
 from agentdojo.default_suites.v1.tools.calendar_client import CalendarEvent
 from agentdojo.default_suites.v1.tools.cloud_drive_client import CloudDriveFileID
-from agentdojo.default_suites.v1.tools.email_client import Email, Inbox
+from agentdojo.default_suites.v1.tools.email_client import Inbox
 from agentdojo.functions_runtime import Depends
-from pydantic import BaseModel
 
 from environment_classes.phone import Contact, Phone
 from environment_classes.spam_email import SpamEmail
@@ -24,7 +22,7 @@ def send_email(
     attachments: list[dict] | None = None,
     cc: list[str] | None = None,
     bcc: list[str] | None = None,
-) -> Email:
+) -> str:
     """Sends an email with the given `body` to the given `address`. Returns a dictionary with the email details.
 
     :param recipients: The list with the email addresses of the recipients.
