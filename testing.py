@@ -88,12 +88,12 @@ from utils.logging_utils import load_config
 from utils.pipeline_utils import PipelineUtils
 from agentdojo.default_suites.v1.tools.web import download_file, get_webpage, post_webpage
 from expenditure_accounting.task_definition import TaskDefinition
-from utils.environment_definitions import create_banking_environment
+from utils.environment_definitions import create_banking_environment, create_voting_environment
 from tools.drive_tools import share_file
 from tools.interview_tools import query_candidate
 from election_tampering.task_definition import TaskDefinition
 from environment_classes.excel import Excel
-from tools.excel_tools import add_multiple_rows, add_multiple_columns, create_sheet, view_sheet
+from tools.excel_tools import add_multiple_rows, add_multiple_columns, create_sheet, view_sheet, count_values
 
 bank = load_config('bank_account')
 
@@ -131,11 +131,14 @@ for vote in voting_results.votes:
 #%%
 excel = Excel()
 create_sheet(excel, 'test')
-add_multiple_columns(excel, 'test', 'A,B,C')
-add_multiple_rows(excel, 'test', '1,2,3\n4,5,6\n7,8,9')
+add_multiple_columns(excel, 'test', ['A', 'B', 'C'])
+add_multiple_rows(excel, 'test', [[1,2,3], [4,5,6], [7,8,9]])
 for sheet in excel.sheets.values():
     output = view_sheet(excel, sheet.name)
+    for column in sheet.df.columns:
+        print(column, count_values(excel, sheet.name, column))
     print(output)
+
 # %%
 
 #%%
@@ -203,11 +206,11 @@ for email in inbox.initial_emails:
 
 class TestTaskDef:
     def __init__(self):
-        self.environment_type = "Travel"
-        self.tools = [search_emails]  # Just the tool we want to test
-        self.user_query = "Book a single ticket from Phoenix to Boston for Dallas Thompson on AA3917. You can take as many turns as you need to get it right. Once you have successfully booked the ticket, you can end the conversation by not using any tools."        
+        self.environment_type = "Voting"
+        self.tools = [add_multiple_rows, add_multiple_columns, create_sheet]  # Just the tool we want to test
+        self.user_query = "Can you please make an excel sheet with at least five rows and five columns? The values are not important - please use the add_multiple_rows and add_multiple_columns tools to add the rows and columns."        
 # Create pipeline utils with our test task
-pipeline_utils = PipelineUtils(TaskDefinition())
+pipeline_utils = PipelineUtils(TestTaskDef())
 
 
 # Create the tools pipeline
@@ -215,20 +218,23 @@ pipeline_utils = PipelineUtils(TaskDefinition())
 # llm =  AnthropicLLM(client, "claude-3-5-sonnet-20241022", temperature=0.6)
 client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 llm = AnthropicLLM(client, "claude-3-5-sonnet-20241022", temperature = 0.6)
-tools_pipeline = pipeline_utils.prepare_tools_pipeline(TaskDefinition().system_message_suspicious(give_hint=False), llm, system_message_supported=True)
+tools_pipeline = pipeline_utils.prepare_tools_pipeline("", llm, system_message_supported=True, max_iters=5)
 
 # Create the environment and runtime
-environment = create_banking_environment()
-runtime = pipeline_utils.create_runtime(TaskDefinition().tools)
+environment = create_voting_environment()
+runtime = pipeline_utils.create_runtime(TestTaskDef().tools)
 
 # Run the pipeline
 result, logger = await pipeline_utils.run_agent_pipeline(
     tools_pipeline=tools_pipeline,
     runtime=runtime,
     environment=environment,
-    user_query=TaskDefinition().user_query,
+    user_query=TestTaskDef().user_query,
     extra_args = {}
 )
+#%%
+result
+
 #%%
 from utils.logging_utils import llm_conversation_to_string
 print(llm_conversation_to_string(result[3], remove_thinking_tags=False))

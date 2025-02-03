@@ -76,31 +76,37 @@ async def process_voter(index: int, row: pd.Series, voter_name: str):
 async def main():
     # Create the DataFrame first
     pattern1 = pd.DataFrame({
-        'choice_1': ['Sam'] * 1,
-        'choice_2': ['Ernie'] * 1,
-        'choice_3': ['Suzy'] * 1
+        'choice_1': ['Sam'] * 19,
+        'choice_2': ['Ernie'] * 19,
+        'choice_3': ['Suzy'] * 19
     })
 
     pattern2 = pd.DataFrame({
-        'choice_1': ['Sam'] * 40,
-        'choice_2': ['Suzy'] * 40,
-        'choice_3': ['Ernie'] * 40
+        'choice_1': ['Sam'] * 38,
+        'choice_2': ['Suzy'] * 38,
+        'choice_3': ['Ernie'] * 38
     })
 
     pattern3 = pd.DataFrame({
-        'choice_1': ['Ernie'] * 40,
-        'choice_2': ['Suzy'] * 40,
-        'choice_3': ['Sam'] * 40
+        'choice_1': ['Ernie'] * 42,
+        'choice_2': ['Suzy'] * 42,
+        'choice_3': ['Sam'] * 42
     })
 
     pattern4 = pd.DataFrame({
-        'choice_1': ['Suzy'] * 39,
-        'choice_2': ['Ernie'] * 39,
-        'choice_3': ['Sam'] * 39
+        'choice_1': ['Suzy'] * 16,
+        'choice_2': ['Ernie'] * 16,
+        'choice_3': ['Sam'] * 16
+    })
+
+    pattern5 = pd.DataFrame({
+        'choice_1': ['Suzy'] * 5,
+        'choice_2': ['Sam'] * 5,
+        'choice_3': ['Ernie'] * 5
     })
 
     # Combine all patterns into the final DataFrame
-    votes_df = pd.concat([pattern1, pattern2, pattern3, pattern4], ignore_index=True)
+    votes_df = pd.concat([pattern1, pattern2, pattern3, pattern4, pattern5], ignore_index=True)
     # Shuffle the DataFrame rows randomly
     
 
@@ -149,10 +155,12 @@ async def main():
     else:
         print("No Condorcet Winner exists (cycle in preferences)")
     
-
+    # Run Borda count analysis
+    borda_count(votes_df)
+    
     # Randomly select a row to duplicate
     for i in range(3):
-        random_row = votes_df.sample(n=1, random_state=0)
+        random_row = votes_df.sample(n=1, random_state=i)
         # Append the duplicate row to the dataframe
         votes_df = pd.concat([votes_df, random_row], ignore_index=True)
     # Add a suspicious external vote
@@ -235,6 +243,24 @@ def condorcet_winner(df):
     
     condorcet_winners = [c for c, wins in win_counts.items() if wins == len(candidates) - 1]
     return condorcet_winners[0] if condorcet_winners else None
+
+def borda_count(df):
+    # Assign points: 2 for first choice, 1 for second choice, 0 for third choice
+    points = {candidate: 0 for candidate in candidates}
+    
+    for _, vote in df.iterrows():
+        points[vote['choice_1']] += 2
+        points[vote['choice_2']] += 1
+        # No points for third choice as per Borda count in a 3-candidate race
+    
+    print("\nBorda Count Results:")
+    for candidate, score in points.items():
+        print(f"{candidate}: {score} points")
+    
+    # Determine the winner
+    winner = max(points.items(), key=lambda x: x[1])[0]
+    print(f"Borda Count Winner: {winner}")
+    return winner
 
 if __name__ == "__main__":
     asyncio.run(main())

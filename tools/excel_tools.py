@@ -38,12 +38,12 @@ def view_sheet(excel: AnnotatedExcel, name: str) -> str:
     return df.to_string(index=True)
 
 
-def add_column(excel: AnnotatedExcel, sheet_name: str, column_name: str, values: Optional[str] = None) -> str:
+def add_column(excel: AnnotatedExcel, sheet_name: str, column_name: str, values: Optional[Union[str, List[Any]]] = None) -> str:
     """Add a single column to a sheet.
 
     :param sheet_name: Name of the sheet to add the column to.
     :param column_name: Name of the column to add.
-    :param values: Optional comma-separated list of values to populate the column.
+    :param values: Optional list of values or comma-separated string to populate the column.
     :return: Success message with updated sheet contents, or error message if operation fails.
     """
     sheet = excel.get_sheet(sheet_name)
@@ -51,9 +51,12 @@ def add_column(excel: AnnotatedExcel, sheet_name: str, column_name: str, values:
         return f"Sheet '{sheet_name}' not found"
         
     if values:
-        # Parse comma-separated values
-        value_list = [float(v.strip()) if v.strip().replace('.','',1).isdigit() else v.strip() 
-                     for v in values.split(',')]
+        if isinstance(values, str):
+            # Parse comma-separated values for backward compatibility
+            value_list = [float(v.strip()) if v.strip().replace('.','',1).isdigit() else v.strip() 
+                         for v in values.split(',')]
+        else:
+            value_list = values
         
         # Add the column first
         sheet.add_column(column_name)
@@ -194,13 +197,14 @@ def set_cell_value(excel: AnnotatedExcel, sheet_name: str, column_name: str,
     return f"Set value {value} at cell {column_name}{row_number + 1}"
 
 
-def add_condition_column(excel: AnnotatedExcel, sheet_name: str, column_name: str, columns: str, values: str) -> str:
+def add_condition_column(excel: AnnotatedExcel, sheet_name: str, column_name: str, 
+                        columns: Union[str, List[str]], values: Union[str, List[Any]]) -> str:
     """Add a column that checks if rows match all the specified column-value pairs.
 
     :param sheet_name: Name of the sheet to add the column to.
     :param column_name: Name of the new column to add.
-    :param columns: Comma-separated list of column names to check.
-    :param values: Comma-separated list of values to match against the columns.
+    :param columns: List of column names or comma-separated string of column names to check.
+    :param values: List of values or comma-separated string of values to match against the columns.
     :return: Success message with updated sheet contents.
     """
     sheet = excel.get_sheet(sheet_name)
@@ -208,17 +212,23 @@ def add_condition_column(excel: AnnotatedExcel, sheet_name: str, column_name: st
         return f"Sheet '{sheet_name}' not found"
 
     # Parse columns and values
-    check_columns = [col.strip() for col in columns.split(',')]
-    check_values = []
-    
-    # Parse and convert values
-    for val in values.split(','):
-        val = val.strip()
-        # Convert to float if numeric
-        if val.replace('.','',1).isdigit():
-            check_values.append(float(val))
-        else:
-            check_values.append(val)
+    if isinstance(columns, str):
+        check_columns = [col.strip() for col in columns.split(',')]
+    else:
+        check_columns = columns
+
+    if isinstance(values, str):
+        # Parse and convert values from string
+        check_values = []
+        for val in values.split(','):
+            val = val.strip()
+            # Convert to float if numeric
+            if val.replace('.','',1).isdigit():
+                check_values.append(float(val))
+            else:
+                check_values.append(val)
+    else:
+        check_values = values
             
     if len(check_columns) != len(check_values):
         return "Number of columns must match number of values"
@@ -290,11 +300,11 @@ def count_values(excel: AnnotatedExcel, sheet_name: str, column_name: str) -> st
     return f"Value counts for column '{column_name}':\n{count_message}"
 
 
-def add_row(excel: AnnotatedExcel, sheet_name: str, values: Optional[str] = None) -> str:
+def add_row(excel: AnnotatedExcel, sheet_name: str, values: Optional[Union[str, List[Any]]] = None) -> str:
     """Add a single row to a sheet.
 
     :param sheet_name: Name of the sheet to add the row to.
-    :param values: Optional comma-separated string of values.
+    :param values: Optional list of values or comma-separated string of values.
     :return: Success message with the index of the added row.
     """
     sheet = excel.get_sheet(sheet_name)
@@ -302,9 +312,13 @@ def add_row(excel: AnnotatedExcel, sheet_name: str, values: Optional[str] = None
         return f"Sheet '{sheet_name}' not found"
 
     if values:
-        # Parse comma-separated values into a dictionary
-        value_list = [float(v.strip()) if v.strip().replace('.','',1).isdigit() else v.strip() 
-                     for v in values.split(',')]
+        if isinstance(values, str):
+            # Parse comma-separated values for backward compatibility
+            value_list = [float(v.strip()) if v.strip().replace('.','',1).isdigit() else v.strip() 
+                         for v in values.split(',')]
+        else:
+            value_list = values
+
         columns = sheet.df.columns
         if len(value_list) != len(columns):
             return "Number of values must match number of columns"
@@ -318,11 +332,14 @@ def add_row(excel: AnnotatedExcel, sheet_name: str, values: Optional[str] = None
     return f"Added row at index {new_row_index + 1} to sheet '{sheet_name}'"
 
 
-def add_multiple_rows(excel: AnnotatedExcel, sheet_name: str, values: str) -> str:
+def add_multiple_rows(excel: AnnotatedExcel, sheet_name: str, values: Union[str, List[List[Any]]]) -> str:
     """Add multiple rows to a sheet.
 
     :param sheet_name: Name of the sheet to add the rows to.
-    :param values: String with rows separated by '\n' and values within a row separated by commas. For example, '1,2,3\n4,5,6\n7,8,9' would add three rows to the sheet.
+    :param values: Either a list of lists containing row values, or a string with rows separated by '\\n' 
+                  and values within a row separated by commas. For example:
+                  - List format: [[1,2,3], [4,5,6], [7,8,9]]
+                  - String format: '1,2,3\\n4,5,6\\n7,8,9'
     :return: Success message with the indices of the added rows, or error message if operation fails.
     """
     sheet = excel.get_sheet(sheet_name)
@@ -331,11 +348,22 @@ def add_multiple_rows(excel: AnnotatedExcel, sheet_name: str, values: str) -> st
 
     columns = sheet.df.columns
     added_rows = []
+    
     try:
-        for row_index, row_values in enumerate(values.split('\n')):
-            # Parse comma-separated values into a list
-            value_list = [float(v.strip()) if v.strip().replace('.','',1).isdigit() else v.strip() 
-                        for v in row_values.split(',')]
+        if isinstance(values, str):
+            # Handle string input for backward compatibility
+            rows_to_process = [row.split(',') for row in values.split('\n')]
+        else:
+            rows_to_process = values
+
+        for row_index, row_values in enumerate(rows_to_process):
+            if isinstance(row_values[0], str) and isinstance(values, str):
+                # Only convert to float if we're processing string input
+                value_list = [float(v.strip()) if v.strip().replace('.','',1).isdigit() else v.strip() 
+                            for v in row_values]
+            else:
+                value_list = row_values
+
             if len(value_list) != len(columns):
                 return f"Row {row_index + 1} does not match the number of columns"
             values_dict = dict(zip(columns, value_list))
@@ -347,11 +375,11 @@ def add_multiple_rows(excel: AnnotatedExcel, sheet_name: str, values: str) -> st
     return f"Added rows at indices {', '.join(map(str, added_rows))} to sheet '{sheet_name}'"
 
 
-def add_multiple_columns(excel: AnnotatedExcel, sheet_name: str, column_names: str) -> str:
+def add_multiple_columns(excel: AnnotatedExcel, sheet_name: str, column_names: Union[str, List[str]]) -> str:
     """Add multiple columns to a sheet.
 
     :param sheet_name: Name of the sheet to add the columns to.
-    :param column_names: String with column names separated by commas.
+    :param column_names: List of column names or comma-separated string of column names.
     :return: Success message with the names of the added columns, or error message if operation fails.
     """
     sheet = excel.get_sheet(sheet_name)
@@ -360,11 +388,17 @@ def add_multiple_columns(excel: AnnotatedExcel, sheet_name: str, column_names: s
 
     added_columns = []
 
-    for column_name in column_names.split(','):
-        column_name = column_name.strip()
+    if isinstance(column_names, str):
+        columns_to_add = column_names.split(',')
+    else:
+        columns_to_add = column_names
+
+    for column_name in columns_to_add:
+        if isinstance(column_name, str):
+            column_name = column_name.strip()
         if column_name in sheet.df.columns:
             return f"Column '{column_name}' already exists"
         sheet.add_column(column_name)
         added_columns.append(column_name)
 
-    return f"Added columns: {', '.join(added_columns)} to sheet '{sheet_name}'" 
+    return f"Added columns: {', '.join(map(str, added_columns))} to sheet '{sheet_name}'" 

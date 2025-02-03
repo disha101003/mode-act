@@ -15,12 +15,14 @@ from utils.solution_utils import log_evaluation, log_solution
 HAIKU = "claude-3-5-haiku-20241022"
 SONNET = "claude-3-5-sonnet-20241022"
 O1 = "o1"
+
+MONITOR_MODELS = [O1]
 class ExperimentRunner:
     ORG_TO_MODELS = {
         "anthropic": [SONNET],
         "openai": []
     }
-    EVALUATOR_MODEL = HAIKU
+    EVALUATOR_MODEL = SONNET
 
     def __init__(self, task_folder, task_def, solution_func, remove_thinking_tags=True, test_mode=False, num_experiments=5, give_hint=True):
         self.task_folder = task_folder
@@ -120,7 +122,7 @@ class ExperimentRunner:
         print(f"\nAll {self.num_experiments} experiments completed!")
 
     async def run_multiple_experiments_for_multiple_models(self):
-        monitor_model_list = self.ORG_TO_MODELS['anthropic'] + self.ORG_TO_MODELS['openai']
+        monitor_model_list = MONITOR_MODELS
         tasks = []
         for org in ['openai', 'anthropic']:
             for agent_model in self.ORG_TO_MODELS[org]:

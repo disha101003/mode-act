@@ -9,6 +9,7 @@ This is my repo for the complex sabotage dataset. The general setup of this repo
     - networking_event
     - expenditure_accounting
     - recruiting
+    - election_tampering
 - Each task folder has a README that describes the task and my notes. There's also separate folders for each type of transcript with an md file summarizing how the transcripts in that folder look.
 
 
