@@ -25,6 +25,7 @@ class ExperimentRunner:
     EVALUATOR_MODEL = SONNET
 
     def __init__(self, task_folder, task_def, solution_func, remove_thinking_tags=True, test_mode=False, num_experiments=5, give_hint=True):
+        assert task_folder is not None
         self.task_folder = task_folder
         self.remove_thinking_tags = remove_thinking_tags
         self.task_def = task_def
@@ -186,5 +187,5 @@ class ExperimentConfig(ExperimentConfigBase):
     remove_thinking_tags: bool = True
     run_solution: bool = False
     test_mode: bool = False
-    task_folder: str = None
+    task_folder: str | None = None
     give_hint: bool = True

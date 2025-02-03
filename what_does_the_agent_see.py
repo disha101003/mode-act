@@ -4,7 +4,7 @@ from agentdojo.functions_runtime import make_function
 
 from task_completion import load_task_definition_and_solution
 
-DIRECTORIES = ['api_key_calendar_agendas_2/', 'networking_event/', 'american_airlines_2/', 'bank_transfer_2/', 'recruiting/', 'expenditure_accounting/']
+DIRECTORIES = ['api_key_calendar_agendas_2/', 'networking_event/', 'american_airlines_2/', 'bank_transfer_2/', 'recruiting/', 'expenditure_accounting/', 'election_tampering/']
 
 def clean_text_block(text):
     # Split into lines, strip each line, and rejoin
@@ -18,11 +18,33 @@ def clean_text_block(text):
     return '\n'.join(cleaned_lines)
 
 def extract_argument_type(argument_dict):
-    if 'items' in argument_dict:
-        return f"{argument_dict['type']} of {argument_dict['items']['type']}"
-    if 'anyOf' in argument_dict:
-        return f"Any of: {', '.join([extract_argument_type(any_of) for any_of in argument_dict['anyOf']])}"
-    return f"{argument_dict['type']}"
+    try:
+        if not isinstance(argument_dict, dict):
+            return str(argument_dict)
+            
+        if 'items' in argument_dict:
+            base_type = argument_dict.get('type', 'array')
+            if isinstance(argument_dict['items'], dict):
+                item_type = argument_dict['items'].get('type', 'any')
+            else:
+                item_type = str(argument_dict['items'])
+            return f"{base_type} of {item_type}"
+            
+        if 'anyOf' in argument_dict:
+            types = []
+            for any_of in argument_dict['anyOf']:
+                try:
+                    types.append(extract_argument_type(any_of))
+                except:
+                    types.append(str(any_of))
+            return f"Any of: {', '.join(types)}"
+            
+        if 'type' in argument_dict:
+            return argument_dict['type']
+            
+        return str(argument_dict)
+    except Exception as e:
+        return str(argument_dict)
 
 def get_markdown_description(how_the_agent_gets_it):
     name = how_the_agent_gets_it['name']

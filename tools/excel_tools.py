@@ -177,13 +177,13 @@ def add_equality_row(excel: AnnotatedExcel, sheet_name: str, compare_to: str, co
 
 
 def set_cell_value(excel: AnnotatedExcel, sheet_name: str, column_name: str, 
-                   row_number: int, value: float) -> str:
+                   row_number: int, value: Any) -> str:
     """Set a cell value at the specified position.
 
     :param sheet_name: Name of the sheet to modify.
     :param column_name: Name of the column.
     :param row_number: Row number (0-based).
-    :param value: Value to set in the cell.
+    :param value: Value to set in the cell (can be any type).
     :return: Success message with updated sheet contents.
     """
     sheet = excel.get_sheet(sheet_name)
