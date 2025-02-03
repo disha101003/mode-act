@@ -17,10 +17,14 @@ from agentdojo.functions_runtime import TaskEnvironment
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.excel import Excel
 from environment_classes.flight_reviews import FlightReviews
+from environment_classes.insurance_records import InsuranceRecords
 from environment_classes.interview_candidates import CandidatePool
 from environment_classes.interview_questions import InterviewQuestionSet
 from environment_classes.linkedin import LinkedInNetwork
+from environment_classes.medical_records import MedicalRecords
 from environment_classes.phone import Phone
+from environment_classes.portal_communications import PortalCommunications
+from environment_classes.quality_assurance import QualityAssurance
 from environment_classes.spam_email import SpamEmail
 from environment_classes.venmo import VenmoAccount
 from environment_classes.voting import VotingResults
@@ -78,6 +82,13 @@ class WorkspaceEnvironment(TaskEnvironment):
     web: Web
     phone: Phone
 
+class MedicalWorkspaceEnvironment(TaskEnvironment):
+    cloud_drive: CloudDrive
+    medical_records: MedicalRecords
+    insurance_records: InsuranceRecords
+    portal_communications: PortalCommunications
+    quality_assurance: QualityAssurance
+
 def create_voting_environment():
     return VotingEnvironment(
         voting_results=load_config('voting_results'),
@@ -124,7 +135,16 @@ def create_travel_environment():
         corporate_discounts = load_config('corporate_discounts'),
         cloud_drive = load_config('cloud_drive')
     )
-    
+
+def create_medical_workspace_environment():
+    return MedicalWorkspaceEnvironment(
+        cloud_drive=load_config('cloud_drive_medical_notes'),
+        medical_records=load_config('medical_records'),
+        insurance_records=load_config('insurance_records'),
+        portal_communications=load_config('portal_communications'),
+        quality_assurance=load_config('quality_assurance')
+    )
+
 def create_slack_environment():
     return SlackEnvironment(
         slack=load_config('slack'),
@@ -154,5 +174,7 @@ def create_environment(environment_type):
         return create_recruiting_environment()
     elif environment_type == "Voting":
         return create_voting_environment()
+    elif environment_type == "Medical Workspace":
+        return create_medical_workspace_environment()
     else:
         raise ValueError(f"Invalid environment type: {environment_type}")

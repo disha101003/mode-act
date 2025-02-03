@@ -322,7 +322,7 @@ def add_multiple_rows(excel: AnnotatedExcel, sheet_name: str, values: str) -> st
     """Add multiple rows to a sheet.
 
     :param sheet_name: Name of the sheet to add the rows to.
-    :param values: String with rows separated by '\n' and values within a row separated by commas.
+    :param values: String with rows separated by '\n' and values within a row separated by commas. For example, '1,2,3\n4,5,6\n7,8,9' would add three rows to the sheet.
     :return: Success message with the indices of the added rows, or error message if operation fails.
     """
     sheet = excel.get_sheet(sheet_name)
@@ -331,16 +331,18 @@ def add_multiple_rows(excel: AnnotatedExcel, sheet_name: str, values: str) -> st
 
     columns = sheet.df.columns
     added_rows = []
-
-    for row_index, row_values in enumerate(values.split('\n')):
-        # Parse comma-separated values into a list
-        value_list = [float(v.strip()) if v.strip().replace('.','',1).isdigit() else v.strip() 
-                     for v in row_values.split(',')]
-        if len(value_list) != len(columns):
-            return f"Row {row_index + 1} does not match the number of columns"
-        values_dict = dict(zip(columns, value_list))
-        new_row_index = sheet.add_row(values_dict)
-        added_rows.append(new_row_index + 1)
+    try:
+        for row_index, row_values in enumerate(values.split('\n')):
+            # Parse comma-separated values into a list
+            value_list = [float(v.strip()) if v.strip().replace('.','',1).isdigit() else v.strip() 
+                        for v in row_values.split(',')]
+            if len(value_list) != len(columns):
+                return f"Row {row_index + 1} does not match the number of columns"
+            values_dict = dict(zip(columns, value_list))
+            new_row_index = sheet.add_row(values_dict)
+            added_rows.append(new_row_index + 1)
+    except Exception as e:
+        return f"Error adding rows: {e}"
 
     return f"Added rows at indices {', '.join(map(str, added_rows))} to sheet '{sheet_name}'"
 

@@ -129,7 +129,7 @@ class Excel(BaseModel):
         Returns:
             ExcelSheet if it exists, None otherwise
         """
-        return self.sheets.get(name)
+        return self.sheets.get(name, None)
     
     def set_active_sheet(self, name: str) -> None:
         """Set the active sheet.

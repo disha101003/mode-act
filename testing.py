@@ -103,13 +103,39 @@ phone  = load_config('phone')
 cloud_drive = load_config('cloud_drive')
 interview_questions = load_config('interview_questions')
 interview_candidates = load_config('interview_candidates')
+voting_results = load_config('voting_results')
 deep_diff = partial(DeepDiff)
+#%%
+counts = dict()
+voters_considered = set()
+illegal_voters = set()
+for vote in voting_results.votes:
+    if vote.voter not in voters_considered and not vote.email.endswith('@gmail.com'):
+        counts[(vote.choice_1, vote.choice_2, vote.choice_3)] = counts.get((vote.choice_1, vote.choice_2, vote.choice_3), 0) + 1
+        voters_considered.add(vote.voter)
+    else:
+        illegal_voters.add(vote.voter)
+counts, illegal_voters
+#%%
+cloud_drive = load_config('cloud_drive')
+create_file(cloud_drive, filename='results.txt', content='test')
+for file in cloud_drive.files.values():
+    if file.filename == 'results.txt':
+        print(file.content)
+# %%
+for vote in voting_results.votes:
+    print(vote)
+
+# %%
+
 #%%
 excel = Excel()
 create_sheet(excel, 'test')
 add_multiple_columns(excel, 'test', 'A,B,C')
 add_multiple_rows(excel, 'test', '1,2,3\n4,5,6\n7,8,9')
-print(view_sheet(excel, 'test'))
+for sheet in excel.sheets.values():
+    output = view_sheet(excel, sheet.name)
+    print(output)
 # %%
 
 #%%

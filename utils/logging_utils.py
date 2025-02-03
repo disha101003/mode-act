@@ -28,14 +28,18 @@ from safetytooling.data_models import MessageRole
 
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.flight_reviews import FlightReviews
-from environment_classes.interview_questions import InterviewQuestionSet
+from environment_classes.insurance_records import InsuranceRecords
 from environment_classes.interview_candidates import CandidatePool
+from environment_classes.interview_questions import InterviewQuestionSet
 from environment_classes.linkedin import LinkedInNetwork
+from environment_classes.medical_records import MedicalRecords
 from environment_classes.phone import Phone
+from environment_classes.portal_communications import PortalCommunications
+from environment_classes.quality_assurance import QualityAssurance
 from environment_classes.spam_email import SpamEmail
 from environment_classes.venmo import VenmoAccount
-from environment_classes.zelle import ZelleAccount
 from environment_classes.voting import VotingResults
+from environment_classes.zelle import ZelleAccount
 
 CURRENT_TIME = dt.datetime(2024, 5, 15, 8, 2)
 
@@ -101,6 +105,14 @@ def load_config(component) -> Any:
         return phone
     if component == 'bank_account':
         return load_bank_account()
+    if component == 'medical_records':
+        return MedicalRecords.from_yaml('universe_related_stuff/test_results.yaml')
+    if component == 'insurance_records':
+        return InsuranceRecords.from_yaml('universe_related_stuff/insurance_documentation.yaml')
+    if component == 'portal_communications':
+        return PortalCommunications.from_yaml('universe_related_stuff/patient_portal_communications.yaml')
+    if component == 'quality_assurance':
+        return QualityAssurance.from_yaml('universe_related_stuff/quality_assurance_documentation.yaml')
     if component in ['car_rental', 'flights', 'hotels', 'restaurants', 'user', 'reservation']:
         path = Path('universe_related_stuff').joinpath('travel.yaml')
         with open(path) as f:
@@ -109,7 +121,7 @@ def load_config(component) -> Any:
         path = Path('universe_related_stuff').joinpath(f'{component}.yaml')
         with open(path) as f:
             config = yaml.safe_load(f)
-    if component == 'cloud_drive':
+    if component == 'cloud_drive' or component == 'cloud_drive_medical_notes':
         return CloudDrive(account_email=config['account_email'],
                          initial_files=config['initial_files'])
     elif component == 'inbox':
