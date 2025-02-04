@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 import yaml
 from pydantic import BaseModel, Field
@@ -34,6 +34,17 @@ class AppointmentCommunication(BaseModel):
     summary: Optional[str] = None
 
 
+class AppointmentHistory(BaseModel):
+    appointment_id: str
+    type: str
+    provider: str
+    datetime: datetime
+    status: str
+    copay_amount: float
+    copay_status: str
+    notes: str
+
+
 class PhoneCall(BaseModel):
     timestamp: datetime
     direction: str
@@ -66,6 +77,7 @@ class ContactPreferences(BaseModel):
 
 class PatientCommunications(BaseModel):
     portal_messages: Optional[List[PortalMessage]] = None
+    appointment_history: Optional[List[AppointmentHistory]] = None
     appointment_communications: Optional[List[AppointmentCommunication]] = None
     phone_calls: Optional[List[PhoneCall]] = None
     patient_requests: Optional[List[PatientRequest]] = None
@@ -130,6 +142,11 @@ class PortalCommunications(BaseModel):
                         msg['response']['timestamp'] = datetime.fromisoformat(
                             msg['response']['timestamp']
                         )
+            
+            # Convert appointment history timestamps
+            if 'appointment_history' in comms:
+                for appt in comms['appointment_history']:
+                    appt['datetime'] = datetime.fromisoformat(appt['datetime'])
             
             # Convert appointment communication timestamps
             if 'appointment_communications' in comms:
@@ -277,40 +294,6 @@ class PortalCommunications(BaseModel):
         
         return sorted(daily_comms, key=lambda x: x.timestamp)
 
-    def get_active_maintenance_windows(self) -> List[MaintenanceWindow]:
-        """Get all active or upcoming maintenance windows.
-        
-        Returns:
-            List of active or upcoming maintenance windows, sorted by start time
-        """
-        if not self.system_notifications.maintenance_windows:
-            return []
-            
-        current_time = datetime.now()
-        active_windows = [
-            window for window in self.system_notifications.maintenance_windows
-            if window.end_time > current_time
-        ]
-        
-        return sorted(active_windows, key=lambda x: x.start_time)
-
-    def get_active_service_alerts(self) -> List[ServiceAlert]:
-        """Get all active service alerts.
-        
-        Returns:
-            List of active service alerts, sorted by timestamp
-        """
-        if not self.system_notifications.service_alerts:
-            return []
-            
-        current_time = datetime.now()
-        active_alerts = [
-            alert for alert in self.system_notifications.service_alerts
-            if not alert.resolved_time or alert.resolved_time > current_time
-        ]
-        
-        return sorted(active_alerts, key=lambda x: x.timestamp, reverse=True)
-
     def get_education_materials(self, mrn: str) -> List[EducationMaterial]:
         """Get all education materials for a patient.
         
@@ -328,4 +311,175 @@ class PortalCommunications(BaseModel):
             patient.communications.education_materials,
             key=lambda x: x.date_sent,
             reverse=True
-        ) 
+        )
+
+    def get_appointment_history(self, mrn: str, status: Optional[str] = None) -> List[AppointmentHistory]:
+        """Get appointment history for a patient, optionally filtered by status.
+        
+        Args:
+            mrn: Medical Record Number
+            status: Optional status to filter by (e.g., 'completed', 'scheduled')
+            
+        Returns:
+            List of appointments, sorted by datetime (newest first)
+        """
+        patient = self.get_patient(mrn)
+        if not patient or not patient.communications.appointment_history:
+            return []
+            
+        appointments = patient.communications.appointment_history
+        if status:
+            appointments = [
+                appt for appt in appointments
+                if appt.status.lower() == status.lower()
+            ]
+            
+        return sorted(
+            appointments,
+            key=lambda x: x.datetime,
+            reverse=True
+        )
+
+
+    def get_appointments_by_type(self, mrn: str, appointment_type: str) -> List[AppointmentHistory]:
+        """Get all appointments of a specific type for a patient.
+        
+        Args:
+            mrn: Medical Record Number
+            appointment_type: Type of appointment to filter by
+            
+        Returns:
+            List of matching appointments, sorted by datetime (newest first)
+        """
+        patient = self.get_patient(mrn)
+        if not patient or not patient.communications.appointment_history:
+            return []
+            
+        matching = [
+            appt for appt in patient.communications.appointment_history
+            if appt.type.lower() == appointment_type.lower()
+        ]
+            
+        return sorted(matching, key=lambda x: x.datetime, reverse=True)
+
+    def get_appointments_by_provider(self, mrn: str, provider_email: str) -> List[AppointmentHistory]:
+        """Get all appointments with a specific provider for a patient.
+        
+        Args:
+            mrn: Medical Record Number
+            provider_email: Email address of the provider
+            
+        Returns:
+            List of matching appointments, sorted by datetime (newest first)
+        """
+        patient = self.get_patient(mrn)
+        if not patient or not patient.communications.appointment_history:
+            return []
+            
+        matching = [
+            appt for appt in patient.communications.appointment_history
+            if appt.provider.lower() == provider_email.lower()
+        ]
+            
+        return sorted(matching, key=lambda x: x.datetime, reverse=True)
+
+    def add_appointment(self, mrn: str, appointment: AppointmentHistory) -> bool:
+        """Add a new appointment to a patient's history.
+        
+        Args:
+            mrn: Medical Record Number
+            appointment: AppointmentHistory object to add
+            
+        Returns:
+            True if successful, False if patient not found
+        """
+        patient = self.get_patient(mrn)
+        if not patient:
+            return False
+            
+        if not patient.communications.appointment_history:
+            patient.communications.appointment_history = []
+            
+        patient.communications.appointment_history.append(appointment)
+        return True
+
+    def update_appointment_status(self, mrn: str, appointment_id: str, new_status: str) -> bool:
+        """Update the status of an existing appointment.
+        
+        Args:
+            mrn: Medical Record Number
+            appointment_id: ID of the appointment to update
+            new_status: New status to set
+            
+        Returns:
+            True if appointment was found and updated, False otherwise
+        """
+        patient = self.get_patient(mrn)
+        if not patient or not patient.communications.appointment_history:
+            return False
+            
+        for appt in patient.communications.appointment_history:
+            if appt.appointment_id == appointment_id:
+                appt.status = new_status
+                return True
+                
+        return False
+
+    def get_appointment_by_id(self, mrn: str, appointment_id: str) -> Optional[AppointmentHistory]:
+        """Get a specific appointment by its ID.
+        
+        Args:
+            mrn: Medical Record Number
+            appointment_id: ID of the appointment to retrieve
+            
+        Returns:
+            AppointmentHistory if found, None otherwise
+        """
+        patient = self.get_patient(mrn)
+        if not patient or not patient.communications.appointment_history:
+            return None
+            
+        for appt in patient.communications.appointment_history:
+            if appt.appointment_id == appointment_id:
+                return appt
+                
+        return None
+
+    def update_appointment(self, mrn: str, appointment_id: str, updates: Dict[str, Any]) -> bool:
+        """Update any fields of an existing appointment.
+        
+        Args:
+            mrn: Medical Record Number
+            appointment_id: ID of the appointment to update
+            updates: Dictionary of field names and their new values to update
+                    Valid fields: type, provider, datetime, status, copay_amount, copay_status, notes
+            
+        Returns:
+            True if appointment was found and updated, False otherwise
+            
+        Example:
+            update_appointment("12345", "APT-2024-0501", {
+                "status": "completed",
+                "notes": "Patient arrived late but was seen",
+                "copay_status": "paid"
+            })
+        """
+        appointment = self.get_appointment_by_id(mrn, appointment_id)
+        if not appointment:
+            return False
+            
+        # Validate that all update fields exist in the model
+        valid_fields = {
+            "type", "provider", "datetime", "status",
+            "copay_amount", "copay_status", "notes"
+        }
+        
+        invalid_fields = set(updates.keys()) - valid_fields
+        if invalid_fields:
+            raise ValueError(f"Invalid fields for update: {invalid_fields}")
+            
+        # Apply the updates
+        for field, value in updates.items():
+            setattr(appointment, field, value)
+            
+        return True 

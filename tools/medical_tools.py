@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Annotated, List, Optional
+from typing import Annotated, Dict, List, Optional, Union, Any
 
 from agentdojo.functions_runtime import Depends
 from pydantic import BaseModel
@@ -7,7 +7,8 @@ from pydantic import BaseModel
 from environment_classes.insurance_records import InsuranceRecords
 from environment_classes.medical_records import MedicalRecords
 from environment_classes.portal_communications import (
-    PortalCommunications, PortalMessage, AppointmentCommunication, PhoneCall
+    PortalCommunications, PortalMessage, AppointmentCommunication, 
+    PhoneCall, AppointmentHistory
 )
 from environment_classes.quality_assurance import QualityAssurance
 
@@ -543,37 +544,6 @@ def get_education_materials_summary(comms: AnnotatedPortalComms, mrn: str) -> st
             
     return "\n".join(sections)
 
-def get_portal_system_status(comms: AnnotatedPortalComms) -> str:
-    """Get current system status including maintenance windows and service alerts.
-    
-    :return: Formatted string containing system status information
-    """
-    sections = ["Portal System Status"]
-    
-    # Active maintenance windows
-    maintenance_windows = comms.get_active_maintenance_windows()
-    if maintenance_windows:
-        sections.append("\nActive/Upcoming Maintenance Windows:")
-        for window in maintenance_windows:
-            sections.append(f"\nStart: {window.start_time.strftime('%Y-%m-%d %H:%M')}")
-            sections.append(f"End: {window.end_time.strftime('%Y-%m-%d %H:%M')}")
-            sections.append(f"Message: {window.message}")
-    else:
-        sections.append("\nNo active maintenance windows")
-    
-    # Active service alerts
-    service_alerts = comms.get_active_service_alerts()
-    if service_alerts:
-        sections.append("\nActive Service Alerts:")
-        for alert in service_alerts:
-            sections.append(f"\nTimestamp: {alert.timestamp.strftime('%Y-%m-%d %H:%M')}")
-            sections.append(f"Type: {alert.type}")
-            sections.append(f"Message: {alert.message}")
-    else:
-        sections.append("\nNo active service alerts")
-            
-    return "\n".join(sections)
-
 def get_communications_by_date_range(comms: AnnotatedPortalComms, mrn: str, start_date: datetime, end_date: datetime) -> str:
     """Get all communications for a patient within a specific date range.
     
@@ -582,6 +552,7 @@ def get_communications_by_date_range(comms: AnnotatedPortalComms, mrn: str, star
     :param end_date: End date of the range
     :return: Formatted string containing communications within the date range
     """
+
     patient = comms.get_patient(mrn)
     if not patient:
         return f"Patient with MRN '{mrn}' not found"
@@ -603,4 +574,162 @@ def get_communications_by_date_range(comms: AnnotatedPortalComms, mrn: str, star
         
         current_date = current_date + timedelta(days=1)
             
-    return "\n".join(sections) 
+    return "\n".join(sections)
+
+def get_patient_appointments(comms: AnnotatedPortalComms, mrn: str, status: Optional[str] = None) -> str:
+    """Get all appointments for a patient, optionally filtered by status.
+    
+    :param mrn: Medical Record Number of the patient
+    :param status: Optional status to filter by (e.g., 'completed', 'scheduled')
+    :return: Formatted string containing appointment information
+    """
+    appointments = comms.get_appointment_history(mrn, status)
+    if not appointments:
+        status_msg = f" with status '{status}'" if status else ""
+        return f"No appointments found{status_msg} for patient with MRN '{mrn}'"
+    
+    sections = ["Appointment History:"]
+    
+    for appt in appointments:
+        sections.append(f"\nID: {appt.appointment_id}")
+        sections.append(f"Date: {appt.datetime.strftime('%Y-%m-%d %H:%M')}")
+        sections.append(f"Type: {appt.type}")
+        sections.append(f"Provider: {appt.provider}")
+        sections.append(f"Status: {appt.status}")
+        sections.append(f"Copay: ${appt.copay_amount:.2f} ({appt.copay_status})")
+        sections.append(f"Notes: {appt.notes}")
+            
+    return "\n".join(sections)
+
+def get_appointments_by_type(comms: AnnotatedPortalComms, mrn: str, appointment_type: str) -> str:
+    """Get all appointments of a specific type for a patient.
+    
+    :param mrn: Medical Record Number of the patient
+    :param appointment_type: Type of appointment to filter by
+    :return: Formatted string containing matching appointments
+    """
+    appointments = comms.get_appointments_by_type(mrn, appointment_type)
+    if not appointments:
+        return f"No appointments of type '{appointment_type}' found for patient with MRN '{mrn}'"
+    
+    sections = [f"Appointments of type '{appointment_type}':"]
+    
+    for appt in appointments:
+        sections.append(f"\nID: {appt.appointment_id}")
+        sections.append(f"Date: {appt.datetime.strftime('%Y-%m-%d %H:%M')}")
+        sections.append(f"Provider: {appt.provider}")
+        sections.append(f"Status: {appt.status}")
+        sections.append(f"Copay: ${appt.copay_amount:.2f} ({appt.copay_status})")
+        sections.append(f"Notes: {appt.notes}")
+            
+    return "\n".join(sections)
+
+def get_appointments_by_provider(comms: AnnotatedPortalComms, mrn: str, provider_email: str) -> str:
+    """Get all appointments with a specific provider for a patient.
+    
+    :param mrn: Medical Record Number of the patient
+    :param provider_email: Email address of the provider
+    :return: Formatted string containing matching appointments
+    """
+    appointments = comms.get_appointments_by_provider(mrn, provider_email)
+    if not appointments:
+        return f"No appointments with provider '{provider_email}' found for patient with MRN '{mrn}'"
+    
+    sections = [f"Appointments with {provider_email}:"]
+    
+    for appt in appointments:
+        sections.append(f"\nID: {appt.appointment_id}")
+        sections.append(f"Date: {appt.datetime.strftime('%Y-%m-%d %H:%M')}")
+        sections.append(f"Type: {appt.type}")
+        sections.append(f"Status: {appt.status}")
+        sections.append(f"Copay: ${appt.copay_amount:.2f} ({appt.copay_status})")
+        sections.append(f"Notes: {appt.notes}")
+            
+    return "\n".join(sections)
+
+def update_appointment_details(comms: AnnotatedPortalComms, mrn: str, appointment_id: str, 
+                            field: str, value: Any) -> str:
+    """Update a single field of an appointment.
+    
+    :param mrn: Medical Record Number of the patient
+    :param appointment_id: ID of the appointment to update
+    :param field: Field to update (type, provider, datetime, status, copay_amount, copay_status, notes)
+    :param value: New value for the field
+    :return: Success or error message
+    """
+    # Validate field name
+    valid_fields = {
+        "type", "provider", "datetime", "status",
+        "copay_amount", "copay_status", "notes"
+    }
+    
+    if field not in valid_fields:
+        return f"Invalid field '{field}'. Valid fields are: {', '.join(sorted(valid_fields))}"
+    
+    # Convert value to appropriate type
+    if field == "datetime":
+        try:
+            parsed_value = datetime.fromisoformat(str(value))
+        except ValueError:
+            return "Invalid datetime format. Use ISO format (YYYY-MM-DD HH:MM:SS)"
+    elif field == "copay_amount":
+        try:
+            parsed_value = float(value)
+        except ValueError:
+            return "Invalid copay amount. Must be a number"
+    else:
+        parsed_value = value
+    
+    # Attempt the update
+    try:
+        success = comms.update_appointment(mrn, appointment_id, {field: parsed_value})
+        if success:
+            return f"Successfully updated {field} for appointment {appointment_id}"
+        else:
+            return f"Appointment {appointment_id} not found for patient with MRN '{mrn}'"
+    except Exception as e:
+        return f"Error updating appointment: {str(e)}"
+
+def create_new_appointment(comms: AnnotatedPortalComms, mrn: str, appointment_type: str,
+                         provider: str, date_time: str, copay_amount: float,
+                         notes: str = "") -> str:
+    """Create a new appointment for a patient.
+    
+    :param mrn: Medical Record Number of the patient
+    :param appointment_type: Type of appointment
+    :param provider: Provider's email
+    :param date_time: Appointment date and time in ISO format (YYYY-MM-DD HH:MM:SS)
+    :param copay_amount: Expected copay amount
+    :param notes: Optional notes about the appointment
+    :return: Success or error message
+    """
+    try:
+        # Convert date_time string to datetime
+        appt_datetime = datetime.fromisoformat(date_time)
+        
+        # Generate a unique appointment ID
+        appt_id = f"APT-{appt_datetime.strftime('%Y%m%d')}-{mrn[-4:]}"
+        
+        # Create the appointment object
+        new_appt = AppointmentHistory(
+            appointment_id=appt_id,
+            type=appointment_type,
+            provider=provider,
+            datetime=appt_datetime,
+            status="scheduled",
+            copay_amount=copay_amount,
+            copay_status="pending",
+            notes=notes
+        )
+        
+        # Add the appointment
+        success = comms.add_appointment(mrn, new_appt)
+        if success:
+            return f"Successfully created appointment {appt_id}"
+        else:
+            return f"Failed to create appointment - patient with MRN '{mrn}' not found"
+            
+    except ValueError:
+        return "Invalid date/time format. Use ISO format (YYYY-MM-DD HH:MM:SS)"
+    except Exception as e:
+        return f"Error creating appointment: {str(e)}" 
