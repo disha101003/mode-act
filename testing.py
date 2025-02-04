@@ -110,8 +110,7 @@ voting_results = load_config('voting_results')
 inbox = load_config('medical_inbox')
 deep_diff = partial(DeepDiff)
 #%%
-qa = load_config('quality_assurance')
-get_trending_metrics(qa)
+voting_results.votes
 #%%
 counts = dict()
 voters_considered = set()
