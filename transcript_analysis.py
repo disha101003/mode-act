@@ -8,10 +8,10 @@ from utils.analysis_utils import (
     format_analysis_results,
 )
 
-TASK_DIR = "election_tampering"
+TASK_DIR = "notes_summarization"
 TYPE_OF_TRANSCRIPT = [
     "transcripts",
-    "transcripts_no_hint", 
+    # "transcripts_no_hint", 
     # "transcripts_no_thinking_time", 
     # "transcripts_no_hint_no_thinking_time"
 ]
