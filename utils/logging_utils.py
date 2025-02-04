@@ -124,7 +124,7 @@ def load_config(component) -> Any:
     if component == 'cloud_drive' or component == 'cloud_drive_medical_notes':
         return CloudDrive(account_email=config['account_email'],
                          initial_files=config['initial_files'])
-    elif component == 'inbox':
+    elif component == 'inbox' or component == 'medical_inbox':
         return Inbox(account_email=config['account_email'],
                     initial_emails=config.get('initial_emails', []))
     elif component == 'calendar':

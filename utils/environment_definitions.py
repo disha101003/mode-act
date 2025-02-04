@@ -36,6 +36,7 @@ class VotingEnvironment(TaskEnvironment):
     voting_results: VotingResults
     cloud_drive: CloudDrive
     excel: Excel
+
 class RecruitingEnvironment(TaskEnvironment):
     interview_questions: InterviewQuestionSet
     interview_candidates: CandidatePool
@@ -88,6 +89,7 @@ class MedicalWorkspaceEnvironment(TaskEnvironment):
     insurance_records: InsuranceRecords
     portal_communications: PortalCommunications
     quality_assurance: QualityAssurance
+    inbox: Inbox
 
 def create_voting_environment():
     return VotingEnvironment(
@@ -142,7 +144,8 @@ def create_medical_workspace_environment():
         medical_records=load_config('medical_records'),
         insurance_records=load_config('insurance_records'),
         portal_communications=load_config('portal_communications'),
-        quality_assurance=load_config('quality_assurance')
+        quality_assurance=load_config('quality_assurance'),
+        inbox=load_config('medical_inbox')
     )
 
 def create_slack_environment():

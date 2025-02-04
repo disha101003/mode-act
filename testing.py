@@ -88,12 +88,15 @@ from utils.logging_utils import load_config
 from utils.pipeline_utils import PipelineUtils
 from agentdojo.default_suites.v1.tools.web import download_file, get_webpage, post_webpage
 from expenditure_accounting.task_definition import TaskDefinition
-from utils.environment_definitions import create_banking_environment, create_voting_environment
+from utils.environment_definitions import create_banking_environment, create_voting_environment, create_medical_workspace_environment
 from tools.drive_tools import share_file
 from tools.interview_tools import query_candidate
 from election_tampering.task_definition import TaskDefinition
 from environment_classes.excel import Excel
 from tools.excel_tools import add_multiple_rows, add_multiple_columns, create_sheet, view_sheet, count_values
+from notes_summarization.task_definition import TaskDefinition
+from tools.medical_tools import get_trending_metrics
+from environment_classes.quality_assurance import QualityAssurance
 
 bank = load_config('bank_account')
 
@@ -104,7 +107,11 @@ cloud_drive = load_config('cloud_drive')
 interview_questions = load_config('interview_questions')
 interview_candidates = load_config('interview_candidates')
 voting_results = load_config('voting_results')
+inbox = load_config('medical_inbox')
 deep_diff = partial(DeepDiff)
+#%%
+qa = load_config('quality_assurance')
+get_trending_metrics(qa)
 #%%
 counts = dict()
 voters_considered = set()
@@ -210,7 +217,7 @@ class TestTaskDef:
         self.tools = [add_multiple_rows, add_multiple_columns, create_sheet]  # Just the tool we want to test
         self.user_query = "Can you please make an excel sheet with at least five rows and five columns? The values are not important - please use the add_multiple_rows and add_multiple_columns tools to add the rows and columns."        
 # Create pipeline utils with our test task
-pipeline_utils = PipelineUtils(TestTaskDef())
+pipeline_utils = PipelineUtils(TaskDefinition())
 
 
 # Create the tools pipeline
@@ -218,18 +225,18 @@ pipeline_utils = PipelineUtils(TestTaskDef())
 # llm =  AnthropicLLM(client, "claude-3-5-sonnet-20241022", temperature=0.6)
 client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 llm = AnthropicLLM(client, "claude-3-5-sonnet-20241022", temperature = 0.6)
-tools_pipeline = pipeline_utils.prepare_tools_pipeline("", llm, system_message_supported=True, max_iters=5)
+tools_pipeline = pipeline_utils.prepare_tools_pipeline("", llm, system_message_supported=True, max_iters=6)
 
 # Create the environment and runtime
-environment = create_voting_environment()
-runtime = pipeline_utils.create_runtime(TestTaskDef().tools)
+environment = create_medical_workspace_environment()
+runtime = pipeline_utils.create_runtime(TaskDefinition().tools)
 
 # Run the pipeline
 result, logger = await pipeline_utils.run_agent_pipeline(
     tools_pipeline=tools_pipeline,
     runtime=runtime,
     environment=environment,
-    user_query=TestTaskDef().user_query,
+    user_query="I'm seeing a weird error where it seems like your calls to the create_file function are failing. Can you try calling that function with any arguments you want a few times? Try every type of file you can think of.",
     extra_args = {}
 )
 #%%

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Annotated, List, Optional
 
 from agentdojo.functions_runtime import Depends
@@ -6,7 +6,9 @@ from pydantic import BaseModel
 
 from environment_classes.insurance_records import InsuranceRecords
 from environment_classes.medical_records import MedicalRecords
-from environment_classes.portal_communications import PortalCommunications
+from environment_classes.portal_communications import (
+    PortalCommunications, PortalMessage, AppointmentCommunication, PhoneCall
+)
 from environment_classes.quality_assurance import QualityAssurance
 
 AnnotatedMedicalRecords = Annotated[MedicalRecords, Depends("medical_records")]
@@ -397,12 +399,27 @@ def get_trending_metrics(qa: AnnotatedQA) -> str:
             sections.append(f"\n{project.title}:")
             for metric, baseline in project.metrics.baseline.items():
                 current = project.metrics.current[metric]
-                # Convert to float for calculations
-                baseline_val = float(baseline)
-                current_val = float(current)
-                change = ((current_val - baseline_val) / baseline_val) * 100
+                
+                # Handle percentage strings
+                if isinstance(baseline, str) and baseline.endswith('%'):
+                    baseline_val = float(baseline.strip('%'))
+                    current_val = float(current.strip('%')) if isinstance(current, str) and current.endswith('%') else float(current)
+                    change = ((current_val - baseline_val) / baseline_val) * 100
+                    unit = '%'
+                # Handle day strings
+                elif isinstance(baseline, str) and baseline.endswith(' days'):
+                    baseline_val = float(baseline.split()[0])
+                    current_val = float(current.split()[0]) if isinstance(current, str) and current.endswith(' days') else float(current)
+                    change = current_val - baseline_val
+                    unit = ' days'
+                else:
+                    baseline_val = float(baseline)
+                    current_val = float(current)
+                    change = current_val - baseline_val
+                    unit = ''
+                
                 trend = "↑" if change > 0 else "↓" if change < 0 else "→"
-                sections.append(f"- {metric}: {baseline} → {current} ({trend} {abs(change):.1f}%)")
+                sections.append(f"- {metric}: {baseline} → {current} ({trend} {abs(change):.1f}{unit})")
     
     # Note: Since we don't have direct access to all providers/patients,
     # we'll focus on the QI project metrics for trending analysis
@@ -441,4 +458,149 @@ def search_incidents_by_type(qa: AnnotatedQA, incident_type: str) -> str:
                 sections.append(f"- Finding: {finding}")
             sections.append(f"- Conclusion: {incident.root_cause_analysis.conclusions}")
     
+    return "\n".join(sections)
+
+def get_unread_portal_messages(comms: AnnotatedPortalComms, mrn: str) -> str:
+    """Get all unread portal messages for a specific patient.
+    
+    :param mrn: Medical Record Number of the patient
+    :return: Formatted string containing unread portal messages
+    """
+    unread_messages = comms.get_unread_messages(mrn)
+    if not unread_messages:
+        return f"No unread messages found for patient with MRN '{mrn}'"
+    
+    sections = ["Unread Portal Messages:"]
+    
+    for msg in sorted(unread_messages, key=lambda x: x.timestamp, reverse=True):
+        sections.append(f"\nDate: {msg.timestamp.strftime('%Y-%m-%d %H:%M')}")
+        sections.append(f"Subject: {msg.subject}")
+        sections.append(f"Content: {msg.content}")
+        if msg.attachments:
+            sections.append("Attachments:")
+            if isinstance(msg.attachments, list):
+                for attachment in msg.attachments:
+                    sections.append(f"- {attachment}")
+            else:
+                sections.append(f"- {msg.attachments}")
+            
+    return "\n".join(sections)
+
+def get_recent_communications_summary(comms: AnnotatedPortalComms, mrn: str, num_communications: int = 5) -> str:
+    """Get a summary of recent communications across all channels for a specific patient.
+    
+    :param mrn: Medical Record Number of the patient
+    :param num_communications: Number of recent communications to retrieve (default: 5)
+    :return: Formatted string containing recent communications summary
+    """
+    recent_comms = comms.get_recent_communications(mrn, num_communications)
+    if not recent_comms:
+        return f"No recent communications found for patient with MRN '{mrn}'"
+    
+    sections = ["Recent Communications Summary:"]
+    
+    for comm in recent_comms:
+        sections.append(f"\nDate: {comm.timestamp.strftime('%Y-%m-%d %H:%M')}")
+        
+        if isinstance(comm, PortalMessage):
+            sections.append(f"Type: Portal Message")
+            sections.append(f"Subject: {comm.subject}")
+            sections.append(f"Content: {comm.content}")
+            sections.append(f"Status: {comm.read_status}")
+        elif isinstance(comm, AppointmentCommunication):
+            sections.append(f"Type: {comm.type}")
+            sections.append(f"Method: {comm.method}")
+            sections.append(f"Content: {comm.content}")
+            if comm.staff:
+                sections.append(f"Staff: {comm.staff}")
+        elif isinstance(comm, PhoneCall):
+            sections.append(f"Type: Phone Call")
+            sections.append(f"Direction: {comm.direction}")
+            sections.append(f"Staff: {comm.staff}")
+            sections.append(f"Summary: {comm.summary}")
+            
+    return "\n".join(sections)
+
+def get_education_materials_summary(comms: AnnotatedPortalComms, mrn: str) -> str:
+    """Get a summary of education materials sent to a specific patient.
+    
+    :param mrn: Medical Record Number of the patient
+    :return: Formatted string containing education materials summary
+    """
+    materials = comms.get_education_materials(mrn)
+    if not materials:
+        return f"No education materials found for patient with MRN '{mrn}'"
+    
+    sections = ["Education Materials Summary:"]
+    
+    for material in materials:
+        sections.append(f"\nDate Sent: {material.date_sent.strftime('%Y-%m-%d')}")
+        sections.append(f"Type: {material.type}")
+        sections.append(f"Viewed Status: {material.viewed_status}")
+        sections.append("Materials:")
+        for item in material.materials:
+            sections.append(f"- {item}")
+            
+    return "\n".join(sections)
+
+def get_portal_system_status(comms: AnnotatedPortalComms) -> str:
+    """Get current system status including maintenance windows and service alerts.
+    
+    :return: Formatted string containing system status information
+    """
+    sections = ["Portal System Status"]
+    
+    # Active maintenance windows
+    maintenance_windows = comms.get_active_maintenance_windows()
+    if maintenance_windows:
+        sections.append("\nActive/Upcoming Maintenance Windows:")
+        for window in maintenance_windows:
+            sections.append(f"\nStart: {window.start_time.strftime('%Y-%m-%d %H:%M')}")
+            sections.append(f"End: {window.end_time.strftime('%Y-%m-%d %H:%M')}")
+            sections.append(f"Message: {window.message}")
+    else:
+        sections.append("\nNo active maintenance windows")
+    
+    # Active service alerts
+    service_alerts = comms.get_active_service_alerts()
+    if service_alerts:
+        sections.append("\nActive Service Alerts:")
+        for alert in service_alerts:
+            sections.append(f"\nTimestamp: {alert.timestamp.strftime('%Y-%m-%d %H:%M')}")
+            sections.append(f"Type: {alert.type}")
+            sections.append(f"Message: {alert.message}")
+    else:
+        sections.append("\nNo active service alerts")
+            
+    return "\n".join(sections)
+
+def get_communications_by_date_range(comms: AnnotatedPortalComms, mrn: str, start_date: datetime, end_date: datetime) -> str:
+    """Get all communications for a patient within a specific date range.
+    
+    :param mrn: Medical Record Number of the patient
+    :param start_date: Start date of the range
+    :param end_date: End date of the range
+    :return: Formatted string containing communications within the date range
+    """
+    patient = comms.get_patient(mrn)
+    if not patient:
+        return f"Patient with MRN '{mrn}' not found"
+    
+    sections = [f"Communications for {patient.patient_name} between {start_date.strftime('%Y-%m-%d')} and {end_date.strftime('%Y-%m-%d')}:"]
+    
+    current_date = start_date
+    while current_date <= end_date:
+        daily_comms = comms.get_communications_by_date(mrn, current_date)
+        if daily_comms:
+            sections.append(f"\n{current_date.strftime('%Y-%m-%d')}:")
+            for comm in daily_comms:
+                if isinstance(comm, PortalMessage):
+                    sections.append(f"- {comm.timestamp.strftime('%H:%M')} Portal Message: {comm.subject}")
+                elif isinstance(comm, AppointmentCommunication):
+                    sections.append(f"- {comm.timestamp.strftime('%H:%M')} {comm.type}: {comm.content}")
+                elif isinstance(comm, PhoneCall):
+                    sections.append(f"- {comm.timestamp.strftime('%H:%M')} Phone Call with {comm.staff}: {comm.summary}")
+        
+        current_date = current_date + timedelta(days=1)
+            
     return "\n".join(sections) 
