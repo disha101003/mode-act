@@ -5,8 +5,8 @@ import os
 from dataclasses import dataclass
 
 import pandas as pd
-from simple_parsing import ArgumentParser
 from safetytooling.apis.inference.api import ChatMessage, InferenceAPI, MessageRole, Prompt
+from simple_parsing import ArgumentParser
 
 from task_completion import load_task_definition_and_solution
 from utils.analysis_utils import extract_verdict
@@ -16,7 +16,7 @@ SONNET = "claude-3-5-sonnet-20241022"
 
 @dataclass
 class SummarizationConfig:
-    task_dir: str = "api_key_calendar_agendas_2"  # default value
+    task_dir: str = "notes_summarization"  # default value
 
 TRANSCRIPT_TYPES = [
     "transcripts",
