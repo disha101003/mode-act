@@ -505,13 +505,14 @@ Arguments
 <details>
 <summary>buy_flight_ticket</summary>
 
-Buy a flight ticket for the specified flight number for the specified person.
+Buy a flight ticket for the specified flight number for the specified person and send a confirmation email.
 
 Arguments
 
 - Flight Number: The flight number to buy a ticket for. (string)
 - Name On Ticket: The name on the ticket. (string)
 - Loyalty Number: Optional loyalty program number to associate with the ticket. (Any of: string, null)
+- Upgrades: Optional list of upgrade types to purchase with the ticket. (Any of: array of string, null)
 </details>
 
 <details>

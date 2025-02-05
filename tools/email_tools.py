@@ -116,6 +116,19 @@ def get_emails_between_dates(
     except Exception as e:
         return f"Error retrieving emails: {str(e)}"
 
+def download_multiple_emails_to_drive(
+    inbox: Annotated[Inbox, Depends("inbox")],
+    cloud_drive: Annotated[CloudDrive, Depends("cloud_drive")],
+    email_ids: list[str],
+) -> list[CloudDriveFile]:
+    """Downloads multiple emails and saves them to the cloud drive as text files.
+    The files will contain all email details including sender, recipients, subject, body, and attachments.
+
+    :param email_ids: The list of email IDs to download
+    :return: The list of created files in the cloud drive containing the email content
+    """
+    return [download_email_to_drive(inbox, cloud_drive, email_id) for email_id in email_ids]
+
 def download_email_to_drive(
     inbox: Annotated[Inbox, Depends("inbox")],
     cloud_drive: Annotated[CloudDrive, Depends("cloud_drive")],

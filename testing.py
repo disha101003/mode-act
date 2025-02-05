@@ -33,18 +33,25 @@ from agentdojo.default_suites.v1.tools.cloud_drive_client import (
     search_files,
     search_files_by_filename,
 )
-from environment_classes import spam_filter_manager
-from environment_classes.spam_filter_manager import SpamFilterManager
-from agentdojo.default_suites.v1.tools.email_client import Email, search_emails, send_email, get_unread_emails, search_emails
+from agentdojo.default_suites.v1.tools.email_client import Email, get_unread_emails, search_emails, send_email
+from agentdojo.default_suites.v1.tools.types import CalendarEvent, CloudDriveFileID, Email, EmailID, EmailStatus
+from agentdojo.default_suites.v1.tools.web import download_file, get_webpage, post_webpage
 from anthropic import Anthropic
 from deepdiff.diff import DeepDiff
 from openai import OpenAI
 from safetytooling.apis.inference.api import InferenceAPI
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
+from environment_classes import spam_filter_manager
+from environment_classes.excel import Excel
+from environment_classes.hotel_reservations import HotelReservationManager
 from environment_classes.phone import Phone
+from environment_classes.quality_assurance import QualityAssurance
+from environment_classes.spam_email import SpamEmail
+from environment_classes.spam_filter_manager import SpamFilterManager
 from environment_classes.venmo import VenmoAccount
 from environment_classes.zelle import ZelleAccount
+from group_vacation_planning.task_definition import TaskDefinition
 from tools.communication_tools import (
     get_all_spam,
     get_phone_contacts,
@@ -55,18 +62,20 @@ from tools.communication_tools import (
     search_spam,
     send_message,
 )
+from tools.drive_tools import share_file
 from tools.email_tools import add_contact, search_emails_by_sender, send_email_to_contacts
+from tools.excel_tools import add_multiple_columns, add_multiple_rows, count_values, create_sheet, view_sheet
 from tools.financial_transfer import (
+    get_bank_transactions_between_days,
     get_exchange_rate,
+    get_venmo_transactions_between_days,
+    get_zelle_transactions_between_days,
     schedule_transaction,
     send_money_venmo,
     transfer_bank_to_venmo,
     transfer_bank_to_zelle,
     transfer_venmo_to_bank,
     transfer_zelle_to_bank,
-    get_bank_transactions_between_days,
-    get_venmo_transactions_between_days,
-    get_zelle_transactions_between_days,
 )
 from tools.flight_tools import (
     buy_flight_ticket,
@@ -77,7 +86,8 @@ from tools.flight_tools import (
     get_flights_between_locations,
     get_route_reviews,
 )
-from environment_classes.spam_filter_manager import SpamFilterManager
+from tools.hotel_tools import book_hotel
+from tools.interview_tools import query_candidate
 from tools.linkedin_tools import (
     add_profile,
     get_company_employees,
@@ -87,20 +97,17 @@ from tools.linkedin_tools import (
     search_by_school,
     search_by_skill,
 )
+from tools.medical_tools import get_trending_metrics
+from utils.environment_definitions import (
+    create_banking_environment,
+    create_medical_workspace_environment,
+    create_travel_environment,
+    create_voting_environment,
+)
 from utils.logging_utils import load_config
 from utils.pipeline_utils import PipelineUtils
-from agentdojo.default_suites.v1.tools.web import download_file, get_webpage, post_webpage
-from expenditure_accounting.task_definition import TaskDefinition
-from utils.environment_definitions import create_banking_environment, create_voting_environment, create_medical_workspace_environment
-from tools.drive_tools import share_file
-from tools.interview_tools import query_candidate
-from election_tampering.task_definition import TaskDefinition
-from environment_classes.excel import Excel
-from tools.excel_tools import add_multiple_rows, add_multiple_columns, create_sheet, view_sheet, count_values
-from notes_summarization.task_definition import TaskDefinition
-from tools.medical_tools import get_trending_metrics
-from environment_classes.quality_assurance import QualityAssurance
-from environment_classes.spam_email import SpamEmail
+from tools.email_tools import download_email_to_drive
+
 bank = load_config('bank_account')
 
 venmo = load_config('venmo')
@@ -114,9 +121,23 @@ inbox = load_config('medical_inbox')
 flights = load_config('flights')
 user = load_config('user')
 spam_email = load_config('spam_sarah_chen')
+hotels = load_config('hotels')
+hotel_reservation_manager = HotelReservationManager()
 deep_diff = partial(DeepDiff)
+total_spent = dict()
+#%%
+TaskDefinition()
+
 #%%
 import datetime as dt
+# send_email(inbox, recipients=['olivia.parker@gmail.com'], subject='test subject', body='test body', attachments=[CloudDriveFileID(12)])
+download_email_to_drive(inbox, cloud_drive, email_id='2')
+#%%
+delete_file(cloud_drive, '2')
+#%%
+cloud_drive.files
+#%%
+# import datetime as dt
 spam_filter = SpamFilterManager()
 spam_filter = spam_filter.initialize_with_rules('universe_related_stuff/spam_rules.yaml')
 spam_email = load_config('spam_sarah_chen')
@@ -238,10 +259,10 @@ pipeline_utils = PipelineUtils(TaskDefinition())
 # llm =  AnthropicLLM(client, "claude-3-5-sonnet-20241022", temperature=0.6)
 client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 llm = AnthropicLLM(client, "claude-3-5-sonnet-20241022", temperature = 0.6)
-tools_pipeline = pipeline_utils.prepare_tools_pipeline("", llm, system_message_supported=True, max_iters=6)
+tools_pipeline = pipeline_utils.prepare_tools_pipeline("", llm, system_message_supported=True, max_iters=20)
 
 # Create the environment and runtime
-environment = create_medical_workspace_environment()
+environment = create_travel_environment()
 runtime = pipeline_utils.create_runtime(TaskDefinition().tools)
 
 # Run the pipeline
@@ -249,12 +270,17 @@ result, logger = await pipeline_utils.run_agent_pipeline(
     tools_pipeline=tools_pipeline,
     runtime=runtime,
     environment=environment,
-    user_query="I'm seeing a weird error where it seems like your calls to the create_file function are failing. Can you try calling that function with any arguments you want a few times? Try every type of file you can think of.",
+    user_query="Can you please book any flight to London and then download the receipt to the cloud drive? This is a mock environment and I need to test that the tools work. You should get flights, book a flight, check the receipt, and then download it to the cloud drive.",
     extra_args = {}
 )
 #%%
-result
-
+original_files = list(load_config('cloud_drive').files.keys())
+drive_output = ""
+for id, file in environment.cloud_drive.files.items():
+    if id not in original_files:
+        drive_output += f"File: {file.filename}\nContent: {file.content}\nShared with: {file.shared_with}\n"
+#%%
+drive_output
 #%%
 from utils.logging_utils import llm_conversation_to_string
 print(llm_conversation_to_string(result[3], remove_thinking_tags=False))

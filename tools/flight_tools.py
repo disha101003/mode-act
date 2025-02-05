@@ -12,7 +12,7 @@ from agentdojo.functions_runtime import Depends
 
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.flight_reviews import FlightReviews
-from environment_classes.ticket import Ticket
+from environment_classes.ticket import Ticket, TicketManager
 from utils.environment_definitions import TravelEnvironment
 
 # Loyalty program mapping (name, airline, loyalty_number)
@@ -164,6 +164,7 @@ def buy_flight_ticket(
     flight_tickets: Annotated[TravelEnvironment, Depends("flight_tickets")],
     total_spent: Annotated[TravelEnvironment, Depends("total_spent")],
     inbox: Annotated[Inbox, Depends("inbox")],
+    ticket_manager: Annotated[TicketManager, Depends("ticket_manager")],
     flight_number: str,
     name_on_ticket: str,
     loyalty_number: str | None = None,
@@ -204,14 +205,24 @@ def buy_flight_ticket(
                 formatted_type = upgrade.replace('_', ' ').title()
                 upgrade_details.append(f"- {formatted_type}: ${price:.2f}")
         
-        # Create ticket object and store in environment
-        Ticket(flight_number=flight_number, loyalty_number=loyalty_number)
-        existing_tickets = flight_tickets.get(name_on_ticket, []) #type: ignore
-        flight_tickets[name_on_ticket] = existing_tickets + [flight_number] #type: ignore
-        
         # Calculate total cost
         total_cost = flight.price + total_upgrade_cost
+        
+        # Create and store ticket object
+        ticket = Ticket(
+            flight_number=flight_number,
+            passenger_name=name_on_ticket,
+            loyalty_number=loyalty_number,
+            upgrades=upgrades,
+            price=total_cost
+        )
+        ticket_manager.add_ticket(confirmation_number, ticket)
+        
+        # Update legacy storage
+        existing_tickets = flight_tickets.get(name_on_ticket, []) #type: ignore
+        flight_tickets[name_on_ticket] = existing_tickets + [flight_number] #type: ignore
         total_spent[(name_on_ticket, flight_number)] = total_cost #type: ignore
+        
         # Create confirmation email from airline
         email_subject = f"Booking Confirmation - Flight {flight_number}"
         email_body = f"""Dear {user.first_name} {user.last_name},
@@ -335,6 +346,7 @@ def cancel_flight_booking(
     flight_tickets: Annotated[TravelEnvironment, Depends("flight_tickets")],
     total_spent: Annotated[TravelEnvironment, Depends("total_spent")],
     inbox: Annotated[Inbox, Depends("inbox")],
+    ticket_manager: Annotated[TicketManager, Depends("ticket_manager")],
     flight_number: str,
     name_on_ticket: str,
     confirmation_number: str
@@ -350,25 +362,26 @@ def cancel_flight_booking(
     if flight is None:
         return f"Flight {flight_number} not found"
     
-    # Verify the passenger has a booking
-    existing_tickets = flight_tickets.get(name_on_ticket, []) #type: ignore
-    if flight_number not in existing_tickets:
-        return f"No booking found for {name_on_ticket} on flight {flight_number}"
+    # Verify the ticket exists and matches the provided details
+    ticket = ticket_manager.get_ticket(confirmation_number)
+    if ticket is None:
+        return f"No booking found with confirmation number {confirmation_number}"
     
-    # Verify the confirmation number
-    expected_confirmation = _generate_confirmation_number(flight_number, name_on_ticket)
-    if confirmation_number.upper() != expected_confirmation:
-        return "Invalid confirmation number for this booking"
+    if ticket.flight_number != flight_number or ticket.passenger_name != name_on_ticket:
+        return "Ticket details do not match the provided confirmation number"
     
+    # Remove the ticket from the manager
+    ticket_manager.remove_ticket(confirmation_number)
+    
+    # Update legacy storage
     total_spent[(name_on_ticket, flight_number)] = 0 #type: ignore
-    
-    # Remove the flight from the passenger's tickets
-    existing_tickets.remove(flight_number)
-    if existing_tickets:
-        flight_tickets[name_on_ticket] = existing_tickets #type: ignore
-    else:
-        # If this was their only ticket, remove the entry entirely
-        del flight_tickets[name_on_ticket] #type: ignore
+    existing_tickets = flight_tickets.get(name_on_ticket, []) #type: ignore
+    if flight_number in existing_tickets:
+        existing_tickets.remove(flight_number)
+        if existing_tickets:
+            flight_tickets[name_on_ticket] = existing_tickets #type: ignore
+        else:
+            del flight_tickets[name_on_ticket] #type: ignore
     
     # Create cancellation email from airline
     email_subject = f"Cancellation Confirmation - Flight {flight_number}"

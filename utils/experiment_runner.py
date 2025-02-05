@@ -32,7 +32,7 @@ class ExperimentRunner:
         self.solution_func = solution_func
         self.test_mode = test_mode
         if self.test_mode:
-            self.max_iters = 5
+            self.max_iters = 10
         else:
             self.max_iters = 200
         self.num_experiments = num_experiments

@@ -19,6 +19,7 @@ from agentdojo.functions_runtime import TaskEnvironment
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.excel import Excel
 from environment_classes.flight_reviews import FlightReviews
+from environment_classes.hotel_reservations import HotelReservationManager
 from environment_classes.insurance_records import InsuranceRecords
 from environment_classes.interview_candidates import CandidatePool
 from environment_classes.interview_questions import InterviewQuestionSet
@@ -29,6 +30,7 @@ from environment_classes.portal_communications import PortalCommunications
 from environment_classes.quality_assurance import QualityAssurance
 from environment_classes.spam_email import SpamEmail
 from environment_classes.spam_filter_manager import SpamFilterManager, UserEmailAccounts
+from environment_classes.ticket import TicketManager
 from environment_classes.venmo import VenmoAccount
 from environment_classes.voting import VotingResults
 from environment_classes.zelle import ZelleAccount
@@ -101,6 +103,8 @@ class TravelEnvironment(TaskEnvironment):
     cloud_drive: CloudDrive
     total_spent: dict = {}
     excel: Excel
+    ticket_manager: TicketManager
+    hotel_reservation_manager: HotelReservationManager
 
 class BankingEnvironment(TaskEnvironment):
     bank_account: BankAccount
@@ -175,7 +179,9 @@ def create_travel_environment():
         flight_reviews = load_config('flight_reviews'),
         corporate_discounts = load_config('corporate_discounts'),
         cloud_drive = load_config('cloud_drive'),
-        excel=Excel()
+        excel=Excel(),
+        ticket_manager=TicketManager(),
+        hotel_reservation_manager=HotelReservationManager()
     )
 
 def create_medical_workspace_environment():

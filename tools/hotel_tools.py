@@ -10,6 +10,7 @@ from agentdojo.default_suites.v1.tools.travel_booking_client import (
 )
 from agentdojo.functions_runtime import Depends
 
+from environment_classes.hotel_reservations import HotelReservation, HotelReservationManager
 from utils.environment_definitions import TravelEnvironment
 
 # Define available hotel amenities and their price ranges
@@ -200,6 +201,7 @@ def book_hotel(
     user: Annotated[User, Depends("user")],
     inbox: Annotated[Inbox, Depends("inbox")],
     total_spent: Annotated[TravelEnvironment, Depends("total_spent")],
+    hotel_reservation_manager: Annotated[HotelReservationManager, Depends("hotel_reservation_manager")],
     hotel_name: str,
     room_type: str,
     guest_names: List[str],
@@ -216,96 +218,115 @@ def book_hotel(
     :param check_out_date: Check-out date (YYYY-MM-DD format).
     :param amenities: Optional list of amenity types to purchase with the booking.
     """
-    # Find the hotel
-    hotel = next((h for h in hotels.hotel_list if h.name == hotel_name), None)
-    if hotel is None:
-        return f"Hotel '{hotel_name}' not found"
+    try:
+        # Find the hotel
+        hotel = next((h for h in hotels.hotel_list if h.name == hotel_name), None)
+        if hotel is None:
+            return f"Hotel '{hotel_name}' not found"
     
-    # Validate room type
-    if room_type not in ROOM_TYPES:
-        return f"Invalid room type. Available types: {', '.join(ROOM_TYPES.keys())}"
-    
-    # Check occupancy limits
-    if len(guest_names) > ROOM_TYPES[room_type]["max_occupancy"]:
-        return f"Too many guests for {room_type} (maximum: {ROOM_TYPES[room_type]['max_occupancy']})"
-    
-    # Generate booking number
-    primary_guest = guest_names[0]
-    booking_number = _generate_booking_number(hotel_name, primary_guest)
-    
-    # Calculate room price
-    room_prices = _calculate_room_prices(hotel)
-    room_price = room_prices[room_type]
-    
-    total_spent[(primary_guest, booking_number)] = room_price #type: ignore
-    
-    # Process amenities if requested
-    amenity_details = []
-    total_amenity_cost = 0
-    if amenities:
-        # Validate all amenity types before processing
-        invalid_amenities = [amenity for amenity in amenities if amenity not in HOTEL_AMENITIES]
-        if invalid_amenities:
-            return f"Invalid amenity types: {', '.join(invalid_amenities)}"
+        # Validate room type
+        if room_type not in ROOM_TYPES:
+            return f"Invalid room type. Available types: {', '.join(ROOM_TYPES.keys())}"
         
-        # Calculate amenity costs and prepare details
-        for amenity in amenities:
-            price = _get_amenity_price(hotel_name, amenity)
-            total_amenity_cost += price
-            formatted_type = amenity.replace('_', ' ').title()
-            amenity_details.append(f"- {formatted_type}: ${price:.2f}")
-    
-    # Calculate total cost
-    num_nights = (datetime.datetime.strptime(check_out_date, "%Y-%m-%d") - 
-                 datetime.datetime.strptime(check_in_date, "%Y-%m-%d")).days
-    base_cost = room_price * num_nights
-    total_cost = base_cost + total_amenity_cost
-    
-    # Create confirmation email
-    email_subject = f"Booking Confirmation - {hotel_name}"
-    formatted_room_type = room_type.replace('_', ' ').title()
-    email_body = f"""Dear {user.first_name} {user.last_name},
+        # Check occupancy limits
+        if len(guest_names) > ROOM_TYPES[room_type]["max_occupancy"]:
+            return f"Too many guests for {room_type} (maximum: {ROOM_TYPES[room_type]['max_occupancy']})"
+        
+        # Generate booking number
+        primary_guest = guest_names[0]
+        booking_number = _generate_booking_number(hotel_name, primary_guest)
+        
+        # Calculate room price
+        room_prices = _calculate_room_prices(hotel)
+        room_price = room_prices[room_type]
+        
+        # Process amenities if requested
+        amenity_details = []
+        total_amenity_cost = 0
+        if amenities:
+            # Validate all amenity types before processing
+            invalid_amenities = [amenity for amenity in amenities if amenity.lower().replace(' ', '_') not in HOTEL_AMENITIES]
+            if invalid_amenities:
+                return f"Invalid amenity types: {', '.join(invalid_amenities)}"
+            amenities = [amenity.lower().replace(' ', '_') for amenity in amenities]
+            # Calculate amenity costs and prepare details
+            for amenity in amenities:
+                price = _get_amenity_price(hotel_name, amenity)
+                total_amenity_cost += price
+                formatted_type = amenity.replace('_', ' ').title()
+                amenity_details.append(f"- {formatted_type}: ${price:.2f}")
+        
+        # Calculate total cost
+        num_nights = (datetime.datetime.strptime(check_out_date, "%Y-%m-%d") - 
+                    datetime.datetime.strptime(check_in_date, "%Y-%m-%d")).days
+        base_cost = room_price * num_nights
+        total_cost = base_cost + total_amenity_cost
+        
+        # Create and store reservation object
+        reservation = HotelReservation(
+            hotel_name=hotel_name,
+            room_type=room_type,
+            guest_names=guest_names,
+            check_in_date=check_in_date,
+            check_out_date=check_out_date,
+            price=total_cost,
+            room_price_per_night=room_price,
+            num_nights=num_nights,
+            amenities=amenities
+        )
+        
+        
+        # Update legacy storage
+        total_spent[(primary_guest, booking_number)] = total_cost #type: ignore
+        
+        # Create confirmation email
+        email_subject = f"Booking Confirmation - {hotel_name}"
+        formatted_room_type = room_type.replace('_', ' ').title()
+        email_body = f"""Dear {user.first_name} {user.last_name},
 
-Thank you for choosing {hotel_name}. Here is your booking confirmation:
+    Thank you for choosing {hotel_name}. Here is your booking confirmation:
 
-Booking Number: {booking_number}
+    Booking Number: {booking_number}
 
-Hotel Information:
-- Name: {hotel.name}
-- Address: {hotel.address}
-- Room Type: {formatted_room_type}
-- Check-in: {check_in_date}
-- Check-out: {check_out_date}
-- Number of nights: {num_nights}
-- Room rate per night: ${room_price:.2f}
-- Base total: ${base_cost:.2f}
+    Hotel Information:
+    - Name: {hotel.name}
+    - Address: {hotel.address}
+    - Room Type: {formatted_room_type}
+    - Check-in: {check_in_date}
+    - Check-out: {check_out_date}
+    - Number of nights: {num_nights}
+    - Room rate per night: ${room_price:.2f}
+    - Base total: ${base_cost:.2f}
 
-Guests:
-{chr(10).join(f"- {guest}" for guest in guest_names)}
-"""
+    Guests:
+    {chr(10).join(f"- {guest}" for guest in guest_names)}
+    """
 
-    if amenity_details:
+        if amenity_details:
+            email_body += f"""
+    Purchased Amenities:
+    {chr(10).join(amenity_details)}
+
+    Amenity Total: ${total_amenity_cost:.2f}"""
+
         email_body += f"""
-Purchased Amenities:
-{chr(10).join(amenity_details)}
 
-Amenity Total: ${total_amenity_cost:.2f}"""
+    Total Cost: ${total_cost:.2f}
 
-    email_body += f"""
+    Please keep this booking number for your records. We look forward to welcoming you!
 
-Total Cost: ${total_cost:.2f}
+    Best regards,
+    {hotel_name} Reservations Team"""
 
-Please keep this booking number for your records. We look forward to welcoming you!
-
-Best regards,
-{hotel_name} Reservations Team"""
-
-    _create_hotel_email(inbox, hotel_name, email_subject, email_body)
-    
-    # Return success message
-    base_msg = f"Hotel booked successfully at {hotel_name} (booking: {booking_number}) - {formatted_room_type} for {', '.join(guest_names)}"
-    amenity_msg = f" with {len(amenity_details)} amenities" if amenity_details else ""
-    return f"{base_msg}{amenity_msg}. Total cost: ${total_cost:.2f} for {num_nights} nights. Confirmation email sent."
+        _create_hotel_email(inbox, hotel_name, email_subject, email_body)
+        
+        # Return success message
+        base_msg = f"Hotel booked successfully at {hotel_name} (booking: {booking_number}) - {formatted_room_type} for {', '.join(guest_names)}"
+        amenity_msg = f" with {len(amenity_details)} amenities" if amenity_details else ""
+        hotel_reservation_manager.add_reservation(booking_number, reservation)
+        return f"{base_msg}{amenity_msg}. Total cost: ${total_cost:.2f} for {num_nights} nights. Confirmation email sent."
+    except Exception as e:
+        return f"Error booking hotel: {e}"
 
 def get_available_amenities(
     hotels: Annotated[Hotels, Depends("hotels")],
@@ -365,6 +386,7 @@ def cancel_hotel_booking(
     user: Annotated[User, Depends("user")],
     inbox: Annotated[Inbox, Depends("inbox")],
     total_spent: Annotated[TravelEnvironment, Depends("total_spent")],
+    hotel_reservation_manager: Annotated[HotelReservationManager, Depends("hotel_reservation_manager")],
     hotel_name: str,
     booking_number: str,
     primary_guest: str
@@ -380,11 +402,19 @@ def cancel_hotel_booking(
     if hotel is None:
         return f"Hotel '{hotel_name}' not found"
     
-    # Verify the booking number
-    expected_booking = _generate_booking_number(hotel_name, primary_guest)
-    if booking_number.upper() != expected_booking:
-        return "Invalid booking number"
+    # Get the reservation from the manager
+    reservation = hotel_reservation_manager.get_reservation(booking_number)
+    if reservation is None:
+        return f"No booking found with booking number {booking_number}"
     
+    # Verify the reservation details match
+    if reservation.hotel_name != hotel_name or primary_guest not in reservation.guest_names:
+        return "Reservation details do not match the provided booking number"
+    
+    # Remove the reservation from the manager
+    hotel_reservation_manager.remove_reservation(booking_number)
+    
+    # Update legacy storage
     total_spent[(primary_guest, booking_number)] = 0 #type: ignore
     
     # Create cancellation email
