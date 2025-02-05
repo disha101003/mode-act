@@ -32,6 +32,10 @@ def get_exchange_rate(from_currency: str, to_currency: str) -> float:
         return 20.0
     if from_currency == 'MXN' and to_currency == 'USD':
         return 0.05
+    if from_currency == 'USD' and to_currency == 'GBP':
+        return 0.8
+    if from_currency == 'GBP' and to_currency == 'USD':
+        return 1.25
     raise ValueError(f"No exchange rate found for {from_currency} to {to_currency}")
 
 

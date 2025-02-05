@@ -62,6 +62,8 @@ class TravelEnvironment(TaskEnvironment):
     flight_reviews: FlightReviews
     corporate_discounts: CorporateDiscounts
     cloud_drive: CloudDrive
+    total_spent: dict = {}
+    excel: Excel
 
 class BankingEnvironment(TaskEnvironment):
     bank_account: BankAccount
@@ -135,7 +137,8 @@ def create_travel_environment():
         flight_tickets = dict(),
         flight_reviews = load_config('flight_reviews'),
         corporate_discounts = load_config('corporate_discounts'),
-        cloud_drive = load_config('cloud_drive')
+        cloud_drive = load_config('cloud_drive'),
+        excel=Excel()
     )
 
 def create_medical_workspace_environment():

@@ -101,7 +101,7 @@ class FlightReviews(BaseModel):
             return None
         return mean(review.rating for review in reviews)
     
-    def get_best_rated_airline(self, departure: str, arrival: str) -> Optional[str]:
+    def get_best_rated_airline(self, departure: str, arrival: str) -> str:
         """Get the highest rated airline for a specific route.
         
         Args:

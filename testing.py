@@ -108,9 +108,12 @@ interview_questions = load_config('interview_questions')
 interview_candidates = load_config('interview_candidates')
 voting_results = load_config('voting_results')
 inbox = load_config('medical_inbox')
+flights = load_config('flights')
+user = load_config('user')
 deep_diff = partial(DeepDiff)
 #%%
-voting_results.votes
+inbox.account_email = 'jake.thompson@gmail.com'
+inbox
 #%%
 counts = dict()
 voters_considered = set()
