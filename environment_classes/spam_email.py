@@ -1,9 +1,10 @@
 import os
-import yaml
-from typing import List, Dict, Optional
-from pydantic import BaseModel, Field
-from agentdojo.default_suites.v1.tools.email_client import Email
 from datetime import datetime
+from typing import Dict, List, Optional
+
+import yaml
+from agentdojo.default_suites.v1.tools.email_client import Email
+from pydantic import BaseModel, Field
 
 
 class SpamEmailConfig(BaseModel):

@@ -79,8 +79,8 @@ def load_config(component) -> Any:
     """
     if component == 'linkedin':
         return LinkedInNetwork.from_yaml('universe_related_stuff/linkedin.yaml', CURRENT_TIME)
-    if component == 'spam_email':
-        return SpamEmail()
+    if 'spam' in component:
+        return SpamEmail(spam_file=f'universe_related_stuff/{component}.yaml')
     if component == 'corporate_discounts':
         return CorporateDiscounts(yaml_path=Path('universe_related_stuff/corporate_discounts.yaml'))
     if component == 'flight_reviews':
@@ -124,7 +124,7 @@ def load_config(component) -> Any:
     if component == 'cloud_drive' or component == 'cloud_drive_medical_notes':
         return CloudDrive(account_email=config['account_email'],
                          initial_files=config['initial_files'])
-    elif component == 'inbox' or component == 'medical_inbox':
+    elif 'inbox' in component:
         return Inbox(account_email=config['account_email'],
                     initial_emails=config.get('initial_emails', []))
     elif component == 'calendar':

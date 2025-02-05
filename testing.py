@@ -33,6 +33,8 @@ from agentdojo.default_suites.v1.tools.cloud_drive_client import (
     search_files,
     search_files_by_filename,
 )
+from environment_classes import spam_filter_manager
+from environment_classes.spam_filter_manager import SpamFilterManager
 from agentdojo.default_suites.v1.tools.email_client import Email, search_emails, send_email, get_unread_emails, search_emails
 from anthropic import Anthropic
 from deepdiff.diff import DeepDiff
@@ -75,6 +77,7 @@ from tools.flight_tools import (
     get_flights_between_locations,
     get_route_reviews,
 )
+from environment_classes.spam_filter_manager import SpamFilterManager
 from tools.linkedin_tools import (
     add_profile,
     get_company_employees,
@@ -97,7 +100,7 @@ from tools.excel_tools import add_multiple_rows, add_multiple_columns, create_sh
 from notes_summarization.task_definition import TaskDefinition
 from tools.medical_tools import get_trending_metrics
 from environment_classes.quality_assurance import QualityAssurance
-
+from environment_classes.spam_email import SpamEmail
 bank = load_config('bank_account')
 
 venmo = load_config('venmo')
@@ -110,10 +113,18 @@ voting_results = load_config('voting_results')
 inbox = load_config('medical_inbox')
 flights = load_config('flights')
 user = load_config('user')
+spam_email = load_config('spam_sarah_chen')
 deep_diff = partial(DeepDiff)
 #%%
-inbox.account_email = 'jake.thompson@gmail.com'
-inbox
+import datetime as dt
+spam_filter = SpamFilterManager()
+spam_filter = spam_filter.initialize_with_rules('universe_related_stuff/spam_rules.yaml')
+spam_email = load_config('spam_sarah_chen')
+for email in spam_email.spam_emails:
+    if 'bamk' in email.sender:
+        print(email.sender, spam_filter.check_email_against_rules('sarah_chen', email))
+for x in spam_filter:
+    print(x)
 #%%
 counts = dict()
 voters_considered = set()

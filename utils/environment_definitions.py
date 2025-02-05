@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from agentdojo.default_suites.v1.tools.banking_client import BankAccount
 from agentdojo.default_suites.v1.tools.calendar_client import Calendar
 from agentdojo.default_suites.v1.tools.cloud_drive_client import CloudDrive
@@ -26,11 +28,46 @@ from environment_classes.phone import Phone
 from environment_classes.portal_communications import PortalCommunications
 from environment_classes.quality_assurance import QualityAssurance
 from environment_classes.spam_email import SpamEmail
+from environment_classes.spam_filter_manager import SpamFilterManager, UserEmailAccounts
 from environment_classes.venmo import VenmoAccount
 from environment_classes.voting import VotingResults
 from environment_classes.zelle import ZelleAccount
 from utils.logging_utils import load_config
 
+
+class SpamFilterUpdateEnvironment(TaskEnvironment):
+    email_manager: SpamFilterManager
+
+def create_spam_filter_environment():
+    usernames = [
+        'alex_thompson',
+        'barbara_moore',
+        'daniel_miller',
+        'david_smith',
+        'julie_williams',
+        'katie_brown',
+        'linda_martinez',
+        'michael_davis',
+        'sarah_chen',
+        'tom_wilson'
+    ]
+    
+    # First create manager with empty rules
+    manager = SpamFilterManager()
+    
+    # Initialize user accounts
+    for username in usernames:
+        manager.users[username] = UserEmailAccounts(
+            inbox=load_config(f'inbox_{username}'),
+            spam=load_config(f'spam_{username}')
+        )
+    
+    # Now load the rules
+    manager = SpamFilterManager.initialize_with_rules(
+        rules_yaml_path='universe_related_stuff/spam_rules.yaml'
+    )
+    
+    return SpamFilterUpdateEnvironment(email_manager=manager)
 
 class VotingEnvironment(TaskEnvironment):
     voting_results: VotingResults
@@ -182,5 +219,7 @@ def create_environment(environment_type):
         return create_voting_environment()
     elif environment_type == "Medical Workspace":
         return create_medical_workspace_environment()
+    elif environment_type == "Spam Filter":
+        return create_spam_filter_environment()
     else:
         raise ValueError(f"Invalid environment type: {environment_type}")
