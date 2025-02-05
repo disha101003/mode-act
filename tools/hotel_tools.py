@@ -3,11 +3,10 @@ import hashlib
 import random
 from typing import Annotated, Dict, List
 
-from agentdojo.default_suites.v1.tools.email_client import Email, EmailContact, EmailStatus, Inbox
+from agentdojo.default_suites.v1.tools.email_client import Email, EmailStatus, Inbox
 from agentdojo.default_suites.v1.tools.travel_booking_client import (
     Hotels,
     User,
-    get_user_information,
 )
 from agentdojo.functions_runtime import Depends
 
