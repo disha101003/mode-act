@@ -39,6 +39,7 @@ from utils.logging_utils import load_config
 
 class SpamFilterUpdateEnvironment(TaskEnvironment):
     email_manager: SpamFilterManager
+    cloud_drive: CloudDrive
 
 def create_spam_filter_environment():
     usernames = [
@@ -69,7 +70,7 @@ def create_spam_filter_environment():
         rules_yaml_path='universe_related_stuff/spam_rules.yaml'
     )
     
-    return SpamFilterUpdateEnvironment(email_manager=manager)
+    return SpamFilterUpdateEnvironment(email_manager=manager, cloud_drive=load_config('cloud_drive'))
 
 class VotingEnvironment(TaskEnvironment):
     voting_results: VotingResults

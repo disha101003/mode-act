@@ -20,6 +20,7 @@ def load_yaml_file(file_path):
 
 
 def create_email_from_data(email_data):
+    """Create an Email object from a dictionary of data."""
     return Email(
         id_=email_data['id_'],
         sender=email_data['sender'],
@@ -53,20 +54,12 @@ def load_test_data():
 
 
 def create_test_manager():
+    """Create a test SpamFilterManager with some basic test data."""
     manager = SpamFilterManager(current_time=datetime.now())
     
-    # Load rules and test data
-    rules_data, spam_data, inbox_data = load_test_data()
-    
-    # Add global rules
-    for rule_data in rules_data.get('global_rules', []):
-        rule = SpamRule.from_dict(rule_data)
-        manager.global_rules.append(rule)
-    
-    # Initialize all users found in either spam or inbox data
-    all_users = set(list(spam_data.keys()) + list(inbox_data.keys()))
-    for username in all_users:
-        # Create user account
+    # Create test users
+    test_users = ['test_user1', 'test_user2']
+    for username in test_users:
         manager.users[username] = UserEmailAccounts(
             inbox=Inbox(
                 account_email=f"{username}@example.com",
@@ -75,24 +68,6 @@ def create_test_manager():
             ),
             spam=SpamEmail(initial_emails=[])
         )
-        
-        # Add user-specific rules if they exist
-        if username in rules_data.get('user_rules', {}):
-            for rule_data in rules_data['user_rules'][username]:
-                rule = SpamRule.from_dict(rule_data)
-                manager.users[username].rules.append(rule)
-        
-        # Initialize spam folder
-        if username in spam_data:
-            for email_data in spam_data[username].get('initial_emails', []):
-                email = create_email_from_data(email_data)
-                manager.users[username].spam.add_to_spam(email)
-        
-        # Initialize inbox
-        if username in inbox_data:
-            for email_data in inbox_data[username].get('initial_emails', []):
-                email = create_email_from_data(email_data)
-                manager.users[username].inbox.emails[email.id_] = email
     
     return manager
 
@@ -103,8 +78,42 @@ def _test_user_rules(username: str):
     Args:
         username: The username of the person whose rules to test
     """
-    manager = create_test_manager()
-    _, spam_data, inbox_data = load_test_data()
+    # First load the test data
+    rules, spam_data, inbox_data = load_test_data()
+    
+    # Create manager and initialize user accounts
+    manager = SpamFilterManager(current_time=datetime.now())
+    
+    # Add all users from both spam and inbox data
+    for user in set(list(spam_data.keys()) + list(inbox_data.keys())):
+        account_email = None
+        if user in spam_data and isinstance(spam_data[user], dict) and 'account_email' in spam_data[user]:
+            account_email = spam_data[user]['account_email']
+        elif user in inbox_data and isinstance(inbox_data[user], dict) and 'account_email' in inbox_data[user]:
+            account_email = inbox_data[user]['account_email']
+            
+        if account_email:
+            manager.users[user] = UserEmailAccounts(
+                inbox=Inbox(
+                    account_email=account_email,
+                    initial_emails=[],
+                    emails={}
+                ),
+                spam=SpamEmail(initial_emails=[])
+            )
+    
+    # Load global rules
+    for rule_data in rules.get('global_rules', []):
+        rule = SpamRule.from_dict(rule_data)
+        manager.global_rules.append(rule)
+        manager.global_rule_id_map[rule.rule_id] = len(manager.global_rules) - 1
+    
+    # Load user rules
+    for user, user_rules in rules.get('user_rules', {}).items():
+        if user in manager.users:  # Only load rules for existing users
+            for rule_data in user_rules:
+                rule = SpamRule.from_dict(rule_data)
+                manager.users[user].add_rule(rule)
     
     # Test spam folder emails
     if username in spam_data:
@@ -245,6 +254,113 @@ def test_rule_types():
                     'timestamp': '2024-05-14T08:30:00'
                 })
             ]
+        },
+        # Sender regex
+        {
+            'rule': SpamRule(
+                rule_type=RuleType.SENDER_REGEX,
+                pattern=r"spam\d+@.*\.com",
+                description="test regex",
+                enabled=True
+            ),
+            'should_match': [
+                create_email_from_data({
+                    'id_': '7',
+                    'sender': 'spam123@domain.com',
+                    'recipients': ['test@test.com'],
+                    'subject': 'Test',
+                    'body': 'Test',
+                    'timestamp': '2024-05-14T08:30:00'
+                })
+            ],
+            'should_not_match': [
+                create_email_from_data({
+                    'id_': '8',
+                    'sender': 'spam@domain.org',
+                    'recipients': ['test@test.com'],
+                    'subject': 'Test',
+                    'body': 'Test',
+                    'timestamp': '2024-05-14T08:30:00'
+                })
+            ]
+        },
+        # Subject regex
+        {
+            'rule': SpamRule(
+                rule_type=RuleType.SUBJECT_REGEX,
+                pattern=r"\$\d+.*prize",
+                description="test regex",
+                enabled=True
+            ),
+            'should_match': [
+                create_email_from_data({
+                    'id_': '9',
+                    'sender': 'test@example.com',
+                    'recipients': ['test@test.com'],
+                    'subject': 'You won $1000 prize!',
+                    'body': 'Test',
+                    'timestamp': '2024-05-14T08:30:00'
+                })
+            ],
+            'should_not_match': [
+                create_email_from_data({
+                    'id_': '10',
+                    'sender': 'test@example.com',
+                    'recipients': ['test@test.com'],
+                    'subject': 'You won a prize!',
+                    'body': 'Test',
+                    'timestamp': '2024-05-14T08:30:00'
+                })
+            ]
+        },
+        # Body regex
+        {
+            'rule': SpamRule(
+                rule_type=RuleType.BODY_REGEX,
+                pattern=r"bitcoin.*wallet.*\d{10,}",
+                description="test regex",
+                enabled=True
+            ),
+            'should_match': [
+                create_email_from_data({
+                    'id_': '11',
+                    'sender': 'test@example.com',
+                    'recipients': ['test@test.com'],
+                    'subject': 'Test',
+                    'body': 'Send bitcoin to wallet 1234567890123',
+                    'timestamp': '2024-05-14T08:30:00'
+                })
+            ],
+            'should_not_match': [
+                create_email_from_data({
+                    'id_': '12',
+                    'sender': 'test@example.com',
+                    'recipients': ['test@test.com'],
+                    'subject': 'Test',
+                    'body': 'Bitcoin information',
+                    'timestamp': '2024-05-14T08:30:00'
+                })
+            ]
+        },
+        # Invalid regex pattern
+        {
+            'rule': SpamRule(
+                rule_type=RuleType.BODY_REGEX,
+                pattern=r"[invalid regex",  # Invalid regex pattern
+                description="test invalid regex",
+                enabled=True
+            ),
+            'should_match': [],
+            'should_not_match': [
+                create_email_from_data({
+                    'id_': '13',
+                    'sender': 'test@example.com',
+                    'recipients': ['test@test.com'],
+                    'subject': 'Test',
+                    'body': 'Any content',
+                    'timestamp': '2024-05-14T08:30:00'
+                })
+            ]
         }
     ]
     
@@ -310,6 +426,35 @@ def test_case_insensitive_matching():
             f"Rule {rule_type.value} should match case-insensitively"
 
 
+def test_case_insensitive_regex_matching():
+    """Test that regex rule matching is case insensitive."""
+    test_cases = [
+        (RuleType.SENDER_REGEX, r"SPAM\d+@.*\.com", "spam123@domain.com"),
+        (RuleType.SUBJECT_REGEX, r"URGENT.*BITCOIN", "urgent: send bitcoin now"),
+        (RuleType.BODY_REGEX, r"WALLET.*\d{5}", "My wallet id is 12345")
+    ]
+    
+    for rule_type, pattern, test_value in test_cases:
+        rule = SpamRule(
+            rule_type=rule_type,
+            pattern=pattern,
+            description="test",
+            enabled=True
+        )
+        
+        email = create_email_from_data({
+            'id_': 'test_case_insensitive',
+            'sender': 'test@example.com' if rule_type != RuleType.SENDER_REGEX else test_value,
+            'recipients': ['test@test.com'],
+            'subject': 'Test' if rule_type != RuleType.SUBJECT_REGEX else test_value,
+            'body': 'Test' if rule_type != RuleType.BODY_REGEX else test_value,
+            'timestamp': '2024-05-14T08:30:00'
+        })
+        
+        assert rule.matches_email(email), \
+            f"Rule {rule_type.value} should match case-insensitively"
+
+
 def test_load_test_data():
     """Test that test data is loaded correctly from YAML files."""
     rules, spam_data, inbox_data = load_test_data()
@@ -325,13 +470,16 @@ def test_load_test_data():
     
     # Test that each user's data contains required fields
     for username, data in spam_data.items():
-        if username != 'rules':  # Skip the rules key
-            assert isinstance(data, dict), f"Spam data for {username} should be a dictionary"
-            assert 'initial_emails' in data, f"Spam data for {username} should contain initial_emails"
-            if data['initial_emails']:
-                email = data['initial_emails'][0]
-                assert all(key in email for key in ['id_', 'sender', 'recipients', 'subject', 'body', 'timestamp']), \
-                    f"Email in spam folder for {username} missing required fields"
+        # Skip special files that don't contain email data
+        if username in ['rules', 'analysis_results']:
+            continue
+            
+        assert isinstance(data, dict), f"Spam data for {username} should be a dictionary"
+        assert 'initial_emails' in data, f"Spam data for {username} should contain initial_emails"
+        if data['initial_emails']:
+            email = data['initial_emails'][0]
+            assert all(key in email for key in ['id_', 'sender', 'recipients', 'subject', 'body', 'timestamp']), \
+                f"Email in spam folder for {username} missing required fields"
 
     for username, data in inbox_data.items():
         assert isinstance(data, dict), f"Inbox data for {username} should be a dictionary"

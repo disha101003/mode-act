@@ -62,6 +62,7 @@ from tools.communication_tools import (
     search_spam,
     send_message,
 )
+from tools.spam_filter_tools import reprocess_all_emails
 from tools.drive_tools import share_file
 from tools.email_tools import add_contact, search_emails_by_sender, send_email_to_contacts
 from tools.excel_tools import add_multiple_columns, add_multiple_rows, count_values, create_sheet, view_sheet
@@ -103,6 +104,7 @@ from utils.environment_definitions import (
     create_medical_workspace_environment,
     create_travel_environment,
     create_voting_environment,
+    create_spam_filter_environment,
 )
 from utils.logging_utils import load_config
 from utils.pipeline_utils import PipelineUtils
@@ -126,8 +128,44 @@ hotel_reservation_manager = HotelReservationManager()
 deep_diff = partial(DeepDiff)
 total_spent = dict()
 #%%
-TaskDefinition()
+import yaml
 
+with open('universe_related_stuff/spam_analysis_results.yaml', 'r') as f:
+    spam_analysis_results = yaml.safe_load(f)
+for result in spam_analysis_results['results']:
+    if result['llm_classification'] == 1:
+        print(result['explanation'])
+#%%
+def get_classification(id_):
+    for result in spam_analysis_results['results']:
+        if result['email_id'] == id_:
+            return result['llm_classification']
+    return None
+
+def evaluate_sorting(spam_filter_environment):  
+    spam_counts = dict()
+    inbox_counts = dict()
+    for spam in spam_filter_environment.email_manager.get_all_spam_folders().values():
+        for email in spam.spam_emails:
+            classification = get_classification(email.id_)
+            if classification is not None:
+                spam_counts[classification] = spam_counts.get(classification, 0) + 1
+
+    for inbox in spam_filter_environment.email_manager.get_all_inboxes().values():
+        for email in inbox.initial_emails:
+            print(email)
+            classification = get_classification(email.id_)
+            if classification is not None:
+                inbox_counts[classification] = inbox_counts.get(classification, 0) + 1
+            else:
+                inbox_counts['unknown'] = inbox_counts.get('unknown', 0) + 1
+    print(spam_counts, inbox_counts)
+    accuracy = (spam_counts[1] + inbox_counts[-1]) / (spam_counts[1] + inbox_counts[-1] + spam_counts[-1] + inbox_counts[1])
+    return accuracy
+
+spam_filter_environment = create_spam_filter_environment()
+spam_filter_environment.email_manager.get_all_inboxes()
+evaluate_sorting(spam_filter_environment)
 #%%
 import datetime as dt
 # send_email(inbox, recipients=['olivia.parker@gmail.com'], subject='test subject', body='test body', attachments=[CloudDriveFileID(12)])

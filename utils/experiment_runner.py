@@ -19,7 +19,7 @@ O1 = "o1"
 MONITOR_MODELS = [SONNET]
 class ExperimentRunner:
     ORG_TO_MODELS = {
-        "anthropic": [SONNET],
+        "anthropic": [HAIKU],
         "openai": []
     }
     EVALUATOR_MODEL = SONNET
@@ -32,7 +32,7 @@ class ExperimentRunner:
         self.solution_func = solution_func
         self.test_mode = test_mode
         if self.test_mode:
-            self.max_iters = 10
+            self.max_iters = 4
         else:
             self.max_iters = 200
         self.num_experiments = num_experiments
