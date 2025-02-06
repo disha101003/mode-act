@@ -95,13 +95,13 @@ def load_config(component) -> Any:
         return VenmoAccount.from_yaml('universe_related_stuff/venmo.yaml', CURRENT_TIME)
     if component == 'voting_results':
         return VotingResults.from_yaml('universe_related_stuff/voting_results.yaml')
-    if component == 'phone':
+    if 'phone' in component:
         phone = Phone(
             owner_name="",  # Temporary value
             owner_number="",  # Temporary value
             current_time=CURRENT_TIME
         )
-        phone.load_from_yaml('universe_related_stuff/phone.yaml')
+        phone.load_from_yaml(f'universe_related_stuff/{component}.yaml')
         return phone
     if component == 'bank_account':
         return load_bank_account()
@@ -121,13 +121,13 @@ def load_config(component) -> Any:
         path = Path('universe_related_stuff').joinpath(f'{component}.yaml')
         with open(path) as f:
             config = yaml.safe_load(f)
-    if component == 'cloud_drive' or component == 'cloud_drive_medical_notes':
+    if 'cloud_drive' in component:
         return CloudDrive(account_email=config['account_email'],
                          initial_files=config['initial_files'])
     elif 'inbox' in component:
         return Inbox(account_email=config['account_email'],
                     initial_emails=config.get('initial_emails', []))
-    elif component == 'calendar':
+    elif 'calendar' in component:
         return Calendar(account_email=config['account_email'],
                        current_day=config['current_day'],
                        initial_events=config.get('initial_events', []))

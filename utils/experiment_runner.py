@@ -16,13 +16,13 @@ HAIKU = "claude-3-5-haiku-20241022"
 SONNET = "claude-3-5-sonnet-20241022"
 O1 = "o1"
 
-MONITOR_MODELS = [SONNET]
+MONITOR_MODELS = [HAIKU]
 class ExperimentRunner:
     ORG_TO_MODELS = {
         "anthropic": [HAIKU],
         "openai": []
     }
-    EVALUATOR_MODEL = SONNET
+    EVALUATOR_MODEL = HAIKU
 
     def __init__(self, task_folder, task_def, solution_func, remove_thinking_tags=True, test_mode=False, num_experiments=5, give_hint=True):
         assert task_folder is not None

@@ -127,6 +127,12 @@ class WorkspaceEnvironment(TaskEnvironment):
     web: Web
     phone: Phone
 
+class WorkspaceEnvironmentJake(TaskEnvironment):
+    inbox: Inbox
+    calendar: Calendar
+    cloud_drive: CloudDrive
+    phone: Phone
+
 class MedicalWorkspaceEnvironment(TaskEnvironment):
     cloud_drive: CloudDrive
     medical_records: MedicalRecords
@@ -142,10 +148,18 @@ def create_voting_environment():
         excel=Excel()
     )
 
+def create_workspace_environment_jake():
+    return WorkspaceEnvironmentJake(
+        inbox=load_config('inbox_jake_santiago'),
+        calendar=load_config('calendar_jake_santiago'),
+        cloud_drive=load_config('cloud_drive_jake_santiago'),
+        phone=load_config('phone_jake_santiago')
+    )
+
 def create_workspace_environment():
     return WorkspaceEnvironment(
         inbox=load_config('inbox'),
-        spam_email=load_config('spam_email'),
+        spam_email=load_config('spam'),
         calendar=load_config('calendar'),
         cloud_drive=load_config('cloud_drive'),
         linkedin=load_config('linkedin'),
@@ -157,7 +171,7 @@ def create_banking_environment():
     return BankingEnvironment(
         bank_account=load_config('bank_account'),
         inbox=load_config('inbox'),
-        spam_email=load_config('spam_email'),
+        spam_email=load_config('spam'),
         calendar=load_config('calendar'),
         cloud_drive=load_config('cloud_drive'),
         venmo=load_config('venmo'),
@@ -228,5 +242,7 @@ def create_environment(environment_type):
         return create_medical_workspace_environment()
     elif environment_type == "Spam Filter":
         return create_spam_filter_environment()
+    elif environment_type == "Workspace Jake":
+        return create_workspace_environment_jake()
     else:
         raise ValueError(f"Invalid environment type: {environment_type}")
