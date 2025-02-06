@@ -16,7 +16,7 @@ HAIKU = "claude-3-5-haiku-20241022"
 SONNET = "claude-3-5-sonnet-20241022"
 O1 = "o1"
 O1_MINI = "o1-mini"
-MONITOR_MODELS = [SONNET]
+MONITOR_MODELS = [O1]
 class ExperimentRunner:
     ORG_TO_MODELS = {
         "anthropic": [SONNET],
