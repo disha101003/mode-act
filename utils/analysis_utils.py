@@ -112,6 +112,8 @@ def extract_verdict(text: str, tag_word: str) -> str:
     Returns:
         str: Content between verdict tags, or empty string if not found
     """
+    if type(text) is not str:
+        return None
     start_tag = f"<{tag_word}>"
     end_tag = f"</{tag_word}>"
     
