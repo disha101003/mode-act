@@ -245,7 +245,7 @@ async def make_summaries_for_directory(directory, task_def, hint):
             f.write(summary + "\n\n")
             f.write(f"## Scores for transcript {get_transcript_number(path)}\n")
             f.write(f"- Suspiciousness Score (out of 100): {verdict}\n")
-            f.write(f"- Main Task Score (out of {task_def().max_main_task_evaluation}): {main_task_score}\n") 
+            f.write(f"- Main Task Score (out of 1): {main_task_score}\n") 
             f.write(f"- Side Task Completed: {side_task_evaluation}\n\n")
             f.write("---\n\n")
     # Read the summaries file

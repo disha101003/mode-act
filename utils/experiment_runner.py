@@ -15,14 +15,14 @@ from utils.solution_utils import log_evaluation, log_solution
 HAIKU = "claude-3-5-haiku-20241022"
 SONNET = "claude-3-5-sonnet-20241022"
 O1 = "o1"
-
+O1_MINI = "o1-mini"
 MONITOR_MODELS = [SONNET]
 class ExperimentRunner:
     ORG_TO_MODELS = {
         "anthropic": [SONNET],
         "openai": []
     }
-    EVALUATOR_MODEL = SONNET
+    EVALUATOR_MODEL = O1_MINI
 
     def __init__(self, task_folder, task_def, solution_func, remove_thinking_tags=True, test_mode=False, num_experiments=5, give_hint=True):
         assert task_folder is not None

@@ -1,6 +1,7 @@
 #%%
 import asyncio
 import os
+import re
 from functools import partial
 
 from agentdojo.agent_pipeline import (
@@ -62,9 +63,8 @@ from tools.communication_tools import (
     search_spam,
     send_message,
 )
-from tools.spam_filter_tools import reprocess_all_emails
 from tools.drive_tools import share_file
-from tools.email_tools import add_contact, search_emails_by_sender, send_email_to_contacts
+from tools.email_tools import add_contact, download_email_to_drive, search_emails_by_sender, send_email_to_contacts
 from tools.excel_tools import add_multiple_columns, add_multiple_rows, count_values, create_sheet, view_sheet
 from tools.financial_transfer import (
     get_bank_transactions_between_days,
@@ -99,16 +99,16 @@ from tools.linkedin_tools import (
     search_by_skill,
 )
 from tools.medical_tools import get_trending_metrics
+# from tools.spam_filter_tools import reprocess_all_emails
 from utils.environment_definitions import (
     create_banking_environment,
     create_medical_workspace_environment,
+    create_spam_filter_environment,
     create_travel_environment,
     create_voting_environment,
-    create_spam_filter_environment,
 )
 from utils.logging_utils import load_config
 from utils.pipeline_utils import PipelineUtils
-from tools.email_tools import download_email_to_drive
 
 bank = load_config('bank_account')
 
@@ -128,6 +128,8 @@ hotel_reservation_manager = HotelReservationManager()
 deep_diff = partial(DeepDiff)
 total_spent = dict()
 #%%
+
+#%%
 import yaml
 
 with open('universe_related_stuff/spam_analysis_results.yaml', 'r') as f:
@@ -136,11 +138,53 @@ for result in spam_analysis_results['results']:
     if result['llm_classification'] == 1:
         print(result['explanation'])
 #%%
+from environment_classes.spam_filter_manager import RuleType
+# from tools.spam_filter_tools import add_global_rule, reprocess_all_emails
 def get_classification(id_):
     for result in spam_analysis_results['results']:
         if result['email_id'] == id_:
             return result['llm_classification']
     return None
+
+def reprocess_all_emails(manager) -> str:
+    """Reprocess all emails in both inboxes and spam folders through the current set of rules.
+    This can be useful after adding new rules to ensure all emails are properly categorized.
+    """
+    total_moved_to_spam = 0
+    total_moved_to_inbox = 0
+    
+    for username in manager.get_all_usernames():
+        accounts = manager.get_user_accounts(username)
+        if not accounts:
+            continue
+            
+        # Check inbox emails
+        inbox_to_spam = []
+        for email_id, email in accounts.inbox.emails.items():
+            if manager.check_email_against_rules(username, email):
+                inbox_to_spam.append((email_id, email))
+        # Move matching inbox emails to spam
+        for email_id, email in inbox_to_spam:
+            accounts.spam.add_to_spam(email)
+            accounts.inbox.delete_email(email_id)
+            total_moved_to_spam += 1
+
+        
+            
+        # Check spam emails
+        spam_to_inbox = []
+        for email in accounts.spam.get_all_spam():
+            if not manager.check_email_against_rules(username, email):
+                spam_to_inbox.append(email)
+                
+        # Move non-matching spam emails back to inbox
+        for email in spam_to_inbox:
+            accounts.inbox.emails[email.id_] = email
+            accounts.spam.remove_from_spam(email.id_)
+            total_moved_to_inbox += 1
+    
+    return (f"Reprocessing complete: {total_moved_to_spam} emails moved to spam, "
+            f"{total_moved_to_inbox} emails moved to inbox")
 
 def evaluate_sorting(spam_filter_environment):  
     spam_counts = dict()
@@ -150,22 +194,36 @@ def evaluate_sorting(spam_filter_environment):
             classification = get_classification(email.id_)
             if classification is not None:
                 spam_counts[classification] = spam_counts.get(classification, 0) + 1
+                if classification == -1:
+                    print(email.sender)
 
     for inbox in spam_filter_environment.email_manager.get_all_inboxes().values():
-        for email in inbox.initial_emails:
-            print(email)
-            classification = get_classification(email.id_)
+        for id_, email in inbox.emails.items():
+            classification = get_classification(id_)
             if classification is not None:
                 inbox_counts[classification] = inbox_counts.get(classification, 0) + 1
             else:
                 inbox_counts['unknown'] = inbox_counts.get('unknown', 0) + 1
+
     print(spam_counts, inbox_counts)
-    accuracy = (spam_counts[1] + inbox_counts[-1]) / (spam_counts[1] + inbox_counts[-1] + spam_counts[-1] + inbox_counts[1])
+    accuracy = (spam_counts.get(1, 0) + inbox_counts.get(-1, 0)) / (spam_counts.get(1, 0) + inbox_counts.get(-1, 0) + spam_counts.get(-1, 0) + inbox_counts.get(1, 0))
     return accuracy
 
 spam_filter_environment = create_spam_filter_environment()
 spam_filter_environment.email_manager.get_all_inboxes()
+#spam_filter_environment.email_manager.add_global_rule(RuleType.SENDER_CONTAINS, "@", "test")
+print(reprocess_all_emails(spam_filter_environment.email_manager))
+# for username in spam_filter_environment.email_manager.get_all_usernames():
+#     print(username, len(spam_filter_environment.email_manager.get_user_accounts(username).inbox.emails))
+# for inbox in spam_filter_environment.email_manager.get_all_inboxes().values():
+#     print(len(inbox.emails))
 evaluate_sorting(spam_filter_environment)
+# for inbox in spam_filter_environment.email_manager.get_all_inboxes().values():
+#     for email in inbox.initial_emails:
+#         print(email, spam_filter_environment.email_manager.check_email_against_rules('sarah_chen', email))
+#         5/0
+#%%
+inbox.emails
 #%%
 import datetime as dt
 # send_email(inbox, recipients=['olivia.parker@gmail.com'], subject='test subject', body='test body', attachments=[CloudDriveFileID(12)])

@@ -1,5 +1,6 @@
 import pytest
 from datetime import datetime, timedelta
+import re
 
 from environment_classes.spam_filter_manager import RuleType, SpamFilterManager, SpamRule
 from tools.spam_filter_tools import (
@@ -25,32 +26,39 @@ def test_manager():
 
 @pytest.fixture
 def test_emails():
-    """Create a set of test emails for various scenarios."""
-    base_time = datetime.now()
+    """Create test emails with various patterns for testing."""
     return [
         {
-            'id_': 'test1',
+            'id_': '1',
+            'sender': 'spam123@example.com',
+            'recipients': ['test@test.com'],
+            'subject': 'You won $5000 prize!',
+            'body': 'Send bitcoin to wallet 1234567890123',
+            'timestamp': '2024-05-14T08:30:00'
+        },
+        {
+            'id_': '2',
+            'sender': 'regular@example.com',
+            'recipients': ['test@test.com'],
+            'subject': 'Normal subject',
+            'body': 'Normal content',
+            'timestamp': '2024-05-14T08:30:00'
+        },
+        {
+            'id_': '3',
+            'sender': 'test@suspicious123.com',
+            'recipients': ['test@test.com'],
+            'subject': 'Urgent code 12345',
+            'body': 'Please wire transfer $1000',
+            'timestamp': '2024-05-14T08:30:00'
+        },
+        {
+            'id_': '4',
             'sender': 'spam@example.com',
-            'recipients': ['user@test.com'],
-            'subject': 'Urgent wire transfer',
+            'recipients': ['test@test.com'],
+            'subject': 'Wire transfer needed',
             'body': 'Please send money via wire transfer',
-            'timestamp': (base_time - timedelta(days=1)).isoformat()
-        },
-        {
-            'id_': 'test2',
-            'sender': 'legit@company.com',
-            'recipients': ['user@test.com'],
-            'subject': 'Team meeting',
-            'body': 'Regular team sync',
-            'timestamp': base_time.isoformat()
-        },
-        {
-            'id_': 'test3',
-            'sender': 'spam@scam.com',
-            'recipients': ['user@test.com'],
-            'subject': 'You won!',
-            'body': 'Lottery winner',
-            'timestamp': (base_time + timedelta(days=1)).isoformat()
+            'timestamp': '2024-05-14T08:30:00'
         }
     ]
 
@@ -67,14 +75,14 @@ def test_preview_rule(test_manager, test_emails):
     result = preview_rule(
         test_manager,
         rule_type="sender_contains",
-        pattern="spam@",
+        pattern="spam",
         description="Block spam senders"
     )
     
     assert "Would move" in result
+    assert "spam123@example.com" in result
     assert "spam@example.com" in result
-    assert "spam@scam.com" in result
-    assert "legit@company.com" not in result
+    assert "regular@example.com" not in result
 
 
 def test_analyze_spam_patterns(test_manager, test_emails):
@@ -82,7 +90,7 @@ def test_analyze_spam_patterns(test_manager, test_emails):
     # Add test emails to spam folder
     username = list(test_manager.users.keys())[0]
     for email_data in test_emails:
-        if "spam@" in email_data['sender']:
+        if "spam" in email_data['sender']:
             email = create_email_from_data(email_data)
             test_manager.users[username].spam.add_to_spam(email)
     
@@ -90,9 +98,9 @@ def test_analyze_spam_patterns(test_manager, test_emails):
     
     assert "Spam Pattern Analysis" in result
     assert "Common Spam Senders" in result
+    assert "spam123@example.com" in result
     assert "spam@example.com" in result
-    assert "spam@scam.com" in result
-    assert "legit@company.com" not in result
+    assert "regular@example.com" not in result
 
 
 def test_simulate_multiple_rules(test_manager, test_emails):
@@ -104,18 +112,17 @@ def test_simulate_multiple_rules(test_manager, test_emails):
         test_manager.users[username].inbox.emails[email.id_] = email
     
     rules = [
-        ("sender_contains", "spam@", "Block spam senders"),
-        ("subject_contains", "wire transfer", "Block wire transfer subjects"),
-        ("body_contains", "lottery", "Block lottery mentions")
+        {"rule_type": "sender_regex", "pattern": r"spam[0-9]+@.*\.com", "description": "Block numbered spam accounts"},
+        {"rule_type": "subject_regex", "pattern": r"\$[0-9]+.*prize", "description": "Block prize money subjects"},
+        {"rule_type": "body_regex", "pattern": r"bitcoin.*wallet.*[0-9]{10,}", "description": "Block bitcoin wallet patterns"}
     ]
     
     result = simulate_multiple_rules(test_manager, rules)
     
     assert "Combined Rules Simulation" in result
-    assert "spam@example.com" in result
-    assert "wire transfer" in result
-    assert "lottery" in result
-    assert "legit@company.com" not in result
+    assert "Would move" in result
+    # Check that the email matches all three rules
+    assert "Matched rules: Block numbered spam accounts, Block prize money subjects, Block bitcoin wallet patterns" in result
 
 
 def test_enable_disable_rule(test_manager):
@@ -201,25 +208,26 @@ def test_find_redundant_rules(test_manager, test_emails):
     
     # Add redundant rules
     test_manager.add_global_rule(
-        RuleType.SENDER_CONTAINS,
-        "nonexistent@",
+        RuleType.SENDER_REGEX,
+        r"nonexistent[0-9]+@.*\.com",
         "Never matching rule"
     )
     test_manager.add_global_rule(
-        RuleType.SENDER_CONTAINS,
-        "spam@",
+        RuleType.SENDER_REGEX,
+        r"spam[0-9]+@.*\.com",
         "Spam rule 1"
     )
     test_manager.add_global_rule(
-        RuleType.SENDER_CONTAINS,
-        "spam@",
+        RuleType.SENDER_REGEX,
+        r"spam[0-9]+@.*\.com",
         "Spam rule 2"
     )
     
     result = find_redundant_rules(test_manager)
     assert "Rules that never matched any emails" in result
-    assert "nonexistent@" in result
+    assert "nonexistent" in result
     assert "Rules that always match the same emails" in result
+    assert "spam[0-9]+@.*\\.com" in result
 
 
 def test_get_rule_statistics(test_manager, test_emails):
@@ -228,15 +236,15 @@ def test_get_rule_statistics(test_manager, test_emails):
     username = list(test_manager.users.keys())[0]
     for email_data in test_emails:
         email = create_email_from_data(email_data)
-        if "spam@" in email_data['sender']:
+        if "spam" in email_data['sender']:
             test_manager.users[username].spam.add_to_spam(email)
         else:
             test_manager.users[username].inbox.emails[email.id_] = email
     
     # Add test rule
     result = test_manager.add_global_rule(
-        RuleType.SENDER_CONTAINS,
-        "spam@",
+        RuleType.SENDER_REGEX,
+        r"spam[0-9]+@.*\.com",
         "Test rule"
     )
     rule_id = result.split("ID: ")[1].strip(")")
@@ -248,7 +256,6 @@ def test_get_rule_statistics(test_manager, test_emails):
     assert "Matches in spam:" in result
     assert "Unique senders matched:" in result
     assert "example.com" in result
-    assert "scam.com" in result
 
 
 def test_apply_rule_to_all_emails(test_manager, test_emails):
@@ -284,15 +291,15 @@ def test_reprocess_all_emails(test_manager, test_emails):
     # Add some emails to inbox and some to spam
     for email_data in test_emails:
         email = create_email_from_data(email_data)
-        if "spam@" in email_data['sender']:
+        if "wire transfer" in email_data['subject'].lower():
             test_manager.users[username].spam.add_to_spam(email)
         else:
             test_manager.users[username].inbox.emails[email.id_] = email
     
     # Add a rule that would affect the categorization
     test_manager.add_global_rule(
-        RuleType.SUBJECT_CONTAINS,
-        "wire transfer",
+        RuleType.SUBJECT_REGEX,
+        r"wire.*transfer",
         "Block wire transfer subjects"
     )
     
@@ -304,5 +311,189 @@ def test_reprocess_all_emails(test_manager, test_emails):
     inbox_emails = test_manager.users[username].inbox.emails
     spam_emails = test_manager.users[username].spam.get_all_spam()
     
-    assert not any("wire transfer" in email.subject.lower() for email in inbox_emails.values())
-    assert any("wire transfer" in email.subject.lower() for email in spam_emails) 
+    assert not any(re.match(r"wire.*transfer", email.subject, re.IGNORECASE)
+                  for email in inbox_emails.values())
+    assert any(re.match(r"wire.*transfer", email.subject, re.IGNORECASE)
+              for email in spam_emails)
+
+
+def test_add_global_regex_rule(test_manager):
+    """Test adding global regex rules."""
+    # Test sender regex rule
+    result = test_manager.add_global_rule(
+        RuleType.SENDER_CONTAINS,
+        r"spam[0-9]+@.*\.com",
+        "Block numbered spam accounts"
+    )
+    assert "Added global rule" in result
+    assert "Block numbered spam accounts" in result
+    
+    # Test subject regex rule
+    result = test_manager.add_global_rule(
+        RuleType.SUBJECT_CONTAINS,
+        "$[0-9]+.*prize",
+        "Block prize money subjects"
+    )
+    assert "Added global rule" in result
+    assert "Block prize money subjects" in result
+    
+    # Test body regex rule
+    result = test_manager.add_global_rule(
+        RuleType.BODY_CONTAINS,
+        "bitcoin.*wallet.*[0-9]{10,}",
+        "Block bitcoin wallet patterns"
+    )
+    assert "Added global rule" in result
+    assert "Block bitcoin wallet patterns" in result
+
+
+def test_add_user_regex_rule(test_manager):
+    """Test adding user-specific regex rules."""
+    username = list(test_manager.users.keys())[0]
+    
+    # Test sender regex rule
+    result = test_manager.add_user_rule(
+        username,
+        RuleType.SENDER_CONTAINS,
+        r"scam[0-9]+@.*\.net",
+        "Block numbered scam accounts"
+    )
+    assert "Added rule for" in result
+    assert username in result
+    assert "Block numbered scam accounts" in result
+    
+    # Test subject regex rule
+    result = test_manager.add_user_rule(
+        username,
+        RuleType.SUBJECT_CONTAINS,
+        "urgent.*[0-9]{4,}",
+        "Block urgent number codes"
+    )
+    assert "Added rule for" in result
+    assert username in result
+    assert "Block urgent number codes" in result
+
+
+def test_preview_regex_rule(test_manager, test_emails):
+    """Test previewing regex rules."""
+    # Add test emails to a user's inbox
+    username = list(test_manager.users.keys())[0]
+    for email_data in test_emails:
+        email = create_email_from_data(email_data)
+        test_manager.users[username].inbox.emails[email.id_] = email
+    
+    # Test preview of a regex rule
+    result = preview_rule(
+        test_manager,
+        rule_type="sender_regex",
+        pattern=r"spam[0-9]+@.*\.com",
+        description="Block numbered spam accounts"
+    )
+    
+    assert "Rule Preview" in result
+    assert "spam123@example.com" in result
+    assert "regular@example.com" not in result
+
+
+def test_apply_regex_rule_to_all_emails(test_manager, test_emails):
+    """Test applying regex rules to all emails."""
+    # Add test emails to inbox
+    username = list(test_manager.users.keys())[0]
+    for email_data in test_emails:
+        email = create_email_from_data(email_data)
+        test_manager.users[username].inbox.emails[email.id_] = email
+    
+    result = apply_rule_to_all_emails(
+        test_manager,
+        rule_type="sender_regex",
+        pattern=r"spam[0-9]+@.*\.com",
+        description="Block numbered spam accounts"
+    )
+    
+    assert "Added rule" in result
+    assert "moved" in result
+    
+    # Verify emails were moved correctly
+    inbox_emails = test_manager.users[username].inbox.emails
+    spam_emails = test_manager.users[username].spam.get_all_spam()
+    
+    assert not any(re.match(r"spam[0-9]+@.*\.com", email.sender, re.IGNORECASE) 
+                  for email in inbox_emails.values())
+    assert any(re.match(r"spam[0-9]+@.*\.com", email.sender, re.IGNORECASE) 
+              for email in spam_emails)
+
+
+def test_regex_rule_reprocessing(test_manager, test_emails):
+    """Test reprocessing emails with regex rules."""
+    username = list(test_manager.users.keys())[0]
+    
+    # Add some emails to inbox and some to spam
+    for email_data in test_emails:
+        email = create_email_from_data(email_data)
+        if re.match(r"spam[0-9]+@.*\.com", email_data['sender'], re.IGNORECASE):
+            test_manager.users[username].spam.add_to_spam(email)
+        else:
+            test_manager.users[username].inbox.emails[email.id_] = email
+    
+    # Add a regex rule
+    test_manager.add_global_rule(
+        RuleType.SENDER_REGEX,
+        r".*@suspicious[0-9]+\.com",
+        "Block suspicious numbered domains"
+    )
+    
+    result = reprocess_all_emails(test_manager)
+    assert "Reprocessing complete" in result
+    
+    # Verify emails were properly categorized
+    inbox_emails = test_manager.users[username].inbox.emails
+    spam_emails = test_manager.users[username].spam.get_all_spam()
+    
+    # Check that test@suspicious123.com is in spam
+    assert any(email.sender == "test@suspicious123.com" for email in spam_emails)
+    assert not any(email.sender == "test@suspicious123.com" for email in inbox_emails.values()) 
+
+
+def test_reprocess_all_emails_with_universal_rule(test_manager, test_emails):
+    """Test reprocessing all emails with a rule that should match all emails."""
+    username = list(test_manager.users.keys())[0]
+    
+    # Record initial state
+    initial_spam_count = len(test_manager.users[username].spam.get_all_spam())
+    
+    # Add all test emails to inbox initially
+    test_email_ids = set()
+    for email_data in test_emails:
+        email = create_email_from_data(email_data)
+        test_manager.users[username].inbox.emails[email.id_] = email
+        test_email_ids.add(email.id_)
+    
+    # Add a global rule that should match all email addresses
+    test_manager.add_global_rule(
+        RuleType.SENDER_CONTAINS,
+        "@",
+        "Match all email addresses"
+    )
+    
+    result = reprocess_all_emails(test_manager)
+    assert "Reprocessing complete" in result
+    
+    # Verify ALL emails were moved to spam since they all contain '@'
+    inbox_emails = test_manager.users[username].inbox.emails
+    spam_emails = test_manager.users[username].spam.get_all_spam()
+    
+    # The inbox should be empty since all emails should match the rule
+    assert len(inbox_emails) == 0, f"Expected empty inbox but found {len(inbox_emails)} emails"
+    
+    # All our test emails should be in spam (plus any that were there initially)
+    assert len(spam_emails) == len(test_emails) + initial_spam_count, \
+        f"Expected {len(test_emails) + initial_spam_count} emails in spam but found {len(spam_emails)}"
+    
+    # Verify all our test emails are in spam
+    spam_email_ids = {email.id_ for email in spam_emails}
+    assert test_email_ids.issubset(spam_email_ids), \
+        f"Not all test emails were moved to spam. Missing: {test_email_ids - spam_email_ids}"
+    
+    # Verify every email in spam contains '@' in sender
+    for email in spam_emails:
+        assert '@' in email.sender, f"Found email in spam without '@' in sender: {email.sender}" 

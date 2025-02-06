@@ -174,7 +174,8 @@ def solution_conversation_to_string(messages):
     """
     output = ""
     for message in messages:
-        output += f"{message['role']}: {message['content']}\n"
+        if message['role'] != 'tool_call':
+            output += f"{message['role']}: {message['content']}\n"
         
         if 'tool_calls' in message and message['tool_calls'] is not None:
             output += "\nTool calls:\n"

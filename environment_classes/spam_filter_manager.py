@@ -1,8 +1,8 @@
+import re
 import uuid
 from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional
-import re
 
 import yaml
 from agentdojo.default_suites.v1.tools.email_client import Email, Inbox

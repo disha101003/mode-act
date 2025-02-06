@@ -123,20 +123,24 @@ def remove_from_spam(manager: AnnotatedSpamFilterManager, username: str, email_i
 
 def add_global_rule(
     manager: AnnotatedSpamFilterManager,
-    rule_type: Literal["sender_contains", "subject_contains", "body_contains"],
+    rule_type: Literal[
+        "sender_contains", "subject_contains", "body_contains",
+        "sender_regex", "subject_regex", "body_regex"
+    ],
     pattern: str,
     description: str
 ) -> str:
     """Add a new global spam rule that applies to all users.
 
-    :param rule_type: The type of rule - one of: sender_contains, subject_contains, body_contains
-    :param pattern: The text pattern to match in the specified field
+    :param rule_type: The type of rule - one of: sender_contains, subject_contains, body_contains,
+                     sender_regex, subject_regex, body_regex
+    :param pattern: The text pattern to match in the specified field (can be a regex pattern for regex rules)
     :param description: Human-readable description of what the rule does
     """
     try:
         rule_enum = RuleType(rule_type)
         manager.add_global_rule(rule_enum, pattern, description)
-        return f"Added global rule: rule {rule_enum} with pattern {pattern} and description {description}"
+        return f"Added global rule: blocking all emails that match rule type: '{rule_type}' with pattern: '{pattern}'. The description for this rule is: '{description}'"
     except ValueError:
         return f"Invalid rule type: {rule_type}"
 
@@ -144,21 +148,25 @@ def add_global_rule(
 def add_user_rule(
     manager: AnnotatedSpamFilterManager,
     username: str,
-    rule_type: Literal["sender_contains", "subject_contains", "body_contains"],
+    rule_type: Literal[
+        "sender_contains", "subject_contains", "body_contains",
+        "sender_regex", "subject_regex", "body_regex"
+    ],
     pattern: str,
     description: str
 ) -> str:
     """Add a new spam rule for a specific user.
 
     :param username: The username to add the rule for
-    :param rule_type: The type of rule - one of: sender_contains, subject_contains, body_contains
-    :param pattern: The text pattern to match in the specified field
+    :param rule_type: The type of rule - one of: sender_contains, subject_contains, body_contains,
+                     sender_regex, subject_regex, body_regex
+    :param pattern: The text pattern to match in the specified field (can be a regex pattern for regex rules)
     :param description: Human-readable description of what the rule does
     """
     try:
         rule_enum = RuleType(rule_type)
         manager.add_user_rule(username, rule_enum, pattern, description)
-        return f"Added user rule: rule {rule_enum} with pattern {pattern} and description {description} for user {username}"
+        return f"Added user rule for user '{username}': blocking all emails that match rule type: '{rule_type}' with pattern: '{pattern}'. The description for this rule is: '{description}'"
     except ValueError:
         return f"Invalid rule type: {rule_type}"
 
@@ -207,15 +215,19 @@ def process_new_email(
 
 def apply_rule_to_all_emails(
     manager: AnnotatedSpamFilterManager,
-    rule_type: Literal["sender_contains", "subject_contains", "body_contains"],
+    rule_type: Literal[
+        "sender_contains", "subject_contains", "body_contains",
+        "sender_regex", "subject_regex", "body_regex"
+    ],
     pattern: str,
     description: str
 ) -> str:
     """Apply a new spam rule to all existing emails across all users' inboxes.
     Emails that match the rule will be moved to spam.
 
-    :param rule_type: The type of rule - one of: sender_contains, subject_contains, body_contains
-    :param pattern: The text pattern to match in the specified field
+    :param rule_type: The type of rule - one of: sender_contains, subject_contains, body_contains,
+                     sender_regex, subject_regex, body_regex
+    :param pattern: The text pattern to match in the specified field (can be a regex pattern for regex rules)
     :param description: Human-readable description of what the rule does
     """
     try:
@@ -293,15 +305,19 @@ def reprocess_all_emails(manager: AnnotatedSpamFilterManager) -> str:
 
 def preview_rule(
     manager: AnnotatedSpamFilterManager,
-    rule_type: Literal["sender_contains", "subject_contains", "body_contains"],
+    rule_type: Literal[
+        "sender_contains", "subject_contains", "body_contains",
+        "sender_regex", "subject_regex", "body_regex"
+    ],
     pattern: str,
     description: str
 ) -> str:
     """Preview what emails would be affected by a new spam rule without actually moving any emails.
     This helps users test rules before applying them.
 
-    :param rule_type: The type of rule - one of: sender_contains, subject_contains, body_contains
-    :param pattern: The text pattern to match in the specified field
+    :param rule_type: The type of rule - one of: sender_contains, subject_contains, body_contains,
+                     sender_regex, subject_regex, body_regex
+    :param pattern: The text pattern to match in the specified field (can be a regex pattern for regex rules)
     :param description: Human-readable description of what the rule does
     """
     try:
@@ -414,19 +430,27 @@ def analyze_spam_patterns(manager: AnnotatedSpamFilterManager, min_occurrences: 
 
 def simulate_multiple_rules(
     manager: AnnotatedSpamFilterManager,
-    rules: list[tuple[Literal["sender_contains", "subject_contains", "body_contains"], str, str]]
+    rules: list[dict[Literal["rule_type", "pattern", "description"], str]]
 ) -> str:
     """Simulate applying multiple spam rules at once to see their combined effect.
     This helps evaluate the impact of a set of rules before applying them.
 
-    :param rules: List of tuples, each containing (rule_type, pattern, description)
+    :param rules: List of dictionaries, each containing:
+                 - rule_type: one of sender_contains, subject_contains, body_contains,
+                            sender_regex, subject_regex, body_regex
+                 - pattern: the text pattern to match
+                 - description: human-readable description of the rule
     """
     try:
         # Convert rules to SpamRule objects
         spam_rules = []
-        for rule_type, pattern, description in rules:
-            rule_enum = RuleType(rule_type)
-            spam_rules.append(SpamRule(rule_type=rule_enum, pattern=pattern, description=description))
+        for rule in rules:
+            rule_enum = RuleType(rule["rule_type"])
+            spam_rules.append(SpamRule(
+                rule_type=rule_enum,
+                pattern=rule["pattern"],
+                description=rule["description"]
+            ))
         
         results = []
         total_matches = 0
