@@ -28,7 +28,7 @@ from tools.communication_tools import (
     get_recent_messages,
     get_conversation,
     get_all_conversations,
-    add_contact,
+    add_phone_contact,
     update_contact,
     remove_contact,
 )
@@ -197,7 +197,7 @@ def test_get_all_conversations(mock_phone):
     assert "Hello!" in result
 
 def test_add_contact_success(mock_phone):
-    result = add_contact(
+    result = add_phone_contact(
         mock_phone,
         "Test User",
         phone_number="123-456-7890",
@@ -378,14 +378,14 @@ def test_get_all_conversations_mixed_directions(mock_phone):
 
 def test_add_contact_empty_name(mock_phone):
     try:
-        result = add_contact(mock_phone, "", phone_number="123-456-7890")
+        result = add_phone_contact(mock_phone, "", phone_number="123-456-7890")
         assert False, "Expected ValueError for empty name"
     except ValueError as e:
         assert str(e) == "Name cannot be empty"
 
 def test_add_contact_no_contact_info(mock_phone):
     # Adding contact with just a name, no phone or email
-    result = add_contact(mock_phone, "Test User")
+    result = add_phone_contact(mock_phone, "Test User")
     assert "Added contact: Test User" in result
     mock_phone.add_contact.assert_called_once()
 

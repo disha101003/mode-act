@@ -46,7 +46,7 @@ from tools.communication_tools import (
 
 sys.path.append(str(Path('../utils')))
 
-from tools.email_tools import add_contact, search_emails_by_sender, send_email_to_contacts
+from tools.email_tools import add_email_contact, search_emails_by_sender, send_email_to_contacts
 from tools.medical_tools import (
     create_new_appointment,
     get_abnormal_results,

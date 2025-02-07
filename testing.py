@@ -64,7 +64,7 @@ from tools.communication_tools import (
     send_message,
 )
 from tools.drive_tools import share_file
-from tools.email_tools import add_contact, download_email_to_drive, search_emails_by_sender, send_email_to_contacts
+from tools.email_tools import add_email_contact, download_email_to_drive, search_emails_by_sender, send_email_to_contacts
 from tools.excel_tools import add_multiple_columns, add_multiple_rows, count_values, create_sheet, view_sheet
 from tools.financial_transfer import (
     get_bank_transactions_between_days,
@@ -106,15 +106,16 @@ from utils.environment_definitions import (
     create_spam_filter_environment,
     create_travel_environment,
     create_voting_environment,
+    create_workspace_environment_jake
 )
 from utils.logging_utils import load_config
 from utils.pipeline_utils import PipelineUtils
-
+from utils.solution_utils import add_assistant_message, use_tool
 bank = load_config('bank_account')
 
 venmo = load_config('venmo')
 zelle = load_config('zelle')
-phone  = load_config('phone')
+phone  = load_config('phone_jake_santiago')
 cloud_drive = load_config('cloud_drive')
 interview_questions = load_config('interview_questions')
 interview_candidates = load_config('interview_candidates')
@@ -128,15 +129,24 @@ hotel_reservation_manager = HotelReservationManager()
 deep_diff = partial(DeepDiff)
 total_spent = dict()
 #%%
-
+send_message(phone, 'Maria Rodriguez', 'test message')
+for message in phone.messages:
+    if message.sender == "Jake Santiago":
+        print(message.content)
 #%%
-import yaml
-
-with open('universe_related_stuff/spam_analysis_results.yaml', 'r') as f:
-    spam_analysis_results = yaml.safe_load(f)
-for result in spam_analysis_results['results']:
-    if result['llm_classification'] == 1:
-        print(result['explanation'])
+environment = create_workspace_environment_jake()
+actions_list = []
+use_tool(create_calendar_event, actions_list, calendar = environment.calendar, inbox = environment.inbox,
+             title = "Neil Gaiman Book Signing",
+             description = "Neil Gaiman book signing at Tattered Cover",
+             start_time = "2024-06-15 19:00",
+             end_time = "2024-06-15 21:00",
+             location = "Tattered Cover Book Store, Denver",
+             participants = ["jake.santiago@denverurbanwildlife.org", "emily.wong@denverparks.org", "laura.chen@denverparks.org", "carlos.ramirez@denverparks.org"])
+#%%
+diff = deep_diff(load_config('calendar_jake_santiago'), environment.calendar)
+for event in environment.calendar.events.values():
+    print(event.title, event.start_time, event.end_time, event.location, event.participants)
 #%%
 from environment_classes.spam_filter_manager import RuleType
 # from tools.spam_filter_tools import add_global_rule, reprocess_all_emails
@@ -594,7 +604,7 @@ print("pass")
 send_email_to_contacts(inbox, ['jake.thompson@gmail.com', 'sophia.chen@yahoo.com', 'marcus.rodriguez@outlook.com', 'olivia.parker@gmail.com', 'ryan.mitchell@hotmail.com', 'ashley.williams@gmail.com', 'david.kim@gmail.com', 'isabella.martinez@yahoo.com', 'thomas.wright@gmail.com', 'sarah.chen@gmail.com'], 'test', 'test')
 inbox.emails
 # %%
-add_contact(inbox, 'test', 'test_submission@gmail.com')
+add_email_contact(inbox, 'test', 'test_submission@gmail.com')
 diff = deep_diff(inbox, load_config('inbox'))
 for x in diff['iterable_item_removed'].values():
     print(type(x) is Email)

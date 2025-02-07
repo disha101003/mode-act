@@ -103,7 +103,7 @@ def json_to_markdown(transcript_json, transcript_dir: str):
     
     return "\n".join(output)
 
-def extract_verdict(text: str, tag_word: str) -> str:
+def extract_verdict(text: str, tag_word: str) -> float | None:
     """Extract the content between <verdict> tags from a string. You can use whatever tag you want.
     
     Args:

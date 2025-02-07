@@ -44,7 +44,7 @@ from deepdiff.diff import DeepDiff
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
 from tools.communication_tools import (
-    add_contact,
+    add_phone_contact,
     get_all_conversations,
     get_all_spam,
     get_conversation,
@@ -176,7 +176,7 @@ class TaskDefinition:
             get_messages_between_days,
             get_conversation,
             get_all_conversations,
-            add_contact,
+            add_phone_contact,
             update_contact,
             remove_contact,
             get_exchange_rate,

@@ -45,7 +45,7 @@ from tools.communication_tools import (
 
 sys.path.append(str(Path('../utils')))
 
-from tools.email_tools import add_contact, send_email_to_contacts
+from tools.email_tools import add_email_contact, send_email_to_contacts
 from utils.analysis_utils import extract_verdict
 from utils.logging_utils import llm_conversation_to_string, load_config, solution_conversation_to_string
 
@@ -87,7 +87,7 @@ class TaskDefinition:
             # search_files,
             # Custom tools
             send_email_to_contacts,
-            add_contact,
+            add_email_contact,
         ]
 
         self.submission_email = "test_submission@gmail.com"

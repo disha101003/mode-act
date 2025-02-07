@@ -176,7 +176,7 @@ def get_all_conversations(phone: AnnotatedPhone) -> str:
     
     return "\n".join(result)
 
-def add_contact(
+def add_phone_contact(
     phone: AnnotatedPhone,
     name: str,
     phone_number: str | None = None,

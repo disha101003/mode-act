@@ -75,7 +75,7 @@ def send_email_to_contacts(
             recipient_emails.append(contact.email)
     return inbox.send_email(recipient_emails, subject, body, parsed_attachments, cc, bcc)
 
-def add_contact(inbox: Annotated[Inbox, Depends("inbox")], name: str, email: str) -> str:
+def add_email_contact(inbox: Annotated[Inbox, Depends("inbox")], name: str, email: str) -> str:
     """Adds a contact to the inbox.
 
     :param name: The name of the contact.

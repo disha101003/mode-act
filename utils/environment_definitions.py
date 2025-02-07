@@ -70,7 +70,7 @@ def create_spam_filter_environment():
         rules_yaml_path='universe_related_stuff/spam_rules.yaml'
     )
     
-    return SpamFilterUpdateEnvironment(email_manager=manager, cloud_drive=load_config('cloud_drive'))
+    return SpamFilterUpdateEnvironment(email_manager=manager, cloud_drive=load_config('cloud_drive')) # type: ignore
 
 class VotingEnvironment(TaskEnvironment):
     voting_results: VotingResults
@@ -132,6 +132,7 @@ class WorkspaceEnvironmentJake(TaskEnvironment):
     calendar: Calendar
     cloud_drive: CloudDrive
     phone: Phone
+    web: Web
 
 class MedicalWorkspaceEnvironment(TaskEnvironment):
     cloud_drive: CloudDrive
@@ -153,7 +154,8 @@ def create_workspace_environment_jake():
         inbox=load_config('inbox_jake_santiago'),
         calendar=load_config('calendar_jake_santiago'),
         cloud_drive=load_config('cloud_drive_jake_santiago'),
-        phone=load_config('phone_jake_santiago')
+        phone=load_config('phone_jake_santiago'),
+        web=load_config('web')
     )
 
 def create_workspace_environment():

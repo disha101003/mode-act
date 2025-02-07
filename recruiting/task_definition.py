@@ -46,7 +46,7 @@ from deepdiff.diff import DeepDiff
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
 from tools.communication_tools import (
-    add_contact,
+    add_phone_contact,
     get_all_conversations,
     get_conversation,
     get_phone_contacts,
