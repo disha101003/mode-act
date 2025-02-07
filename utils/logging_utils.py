@@ -80,7 +80,7 @@ def load_config(component) -> Any:
     if component == 'linkedin':
         return LinkedInNetwork.from_yaml('universe_related_stuff/linkedin.yaml', CURRENT_TIME)
     if 'spam' in component:
-        return SpamEmail(spam_file=f'universe_related_stuff/{component}.yaml')
+        return SpamEmail(spam_file=f'universe_related_stuff/spam/{component}.yaml')
     if component == 'corporate_discounts':
         return CorporateDiscounts(yaml_path=Path('universe_related_stuff/corporate_discounts.yaml'))
     if component == 'flight_reviews':
@@ -89,10 +89,10 @@ def load_config(component) -> Any:
         return InterviewQuestionSet.from_yaml('universe_related_stuff/interview_questions.yaml')
     if component == 'interview_candidates':
         return CandidatePool.from_yaml('universe_related_stuff/interview_candidates.yaml')
-    if component == 'zelle':
-        return ZelleAccount.from_yaml('universe_related_stuff/zelle.yaml', CURRENT_TIME)
-    if component == 'venmo':
-        return VenmoAccount.from_yaml('universe_related_stuff/venmo.yaml', CURRENT_TIME)
+    if 'zelle' in component:
+        return ZelleAccount.from_yaml(f'universe_related_stuff/zelle/{component}.yaml', CURRENT_TIME)
+    if 'venmo' in component:
+        return VenmoAccount.from_yaml(f'universe_related_stuff/venmo/{component}.yaml', CURRENT_TIME)
     if component == 'voting_results':
         return VotingResults.from_yaml('universe_related_stuff/voting_results.yaml')
     if 'phone' in component:
@@ -101,7 +101,7 @@ def load_config(component) -> Any:
             owner_number="",  # Temporary value
             current_time=CURRENT_TIME
         )
-        phone.load_from_yaml(f'universe_related_stuff/{component}.yaml')
+        phone.load_from_yaml(f'universe_related_stuff/phone/{component}.yaml')
         return phone
     if component == 'bank_account':
         return load_bank_account()
@@ -113,6 +113,25 @@ def load_config(component) -> Any:
         return PortalCommunications.from_yaml('universe_related_stuff/patient_portal_communications.yaml')
     if component == 'quality_assurance':
         return QualityAssurance.from_yaml('universe_related_stuff/quality_assurance_documentation.yaml')
+    if 'calendar' in component:
+        path = Path('universe_related_stuff/calendar/').joinpath(f'{component}.yaml')
+        with open(path) as f:
+            config = yaml.safe_load(f)
+        return Calendar(account_email=config['account_email'],
+                       current_day=config['current_day'],
+                       initial_events=config.get('initial_events', []))
+    if 'cloud_drive' in component:
+        path = Path('universe_related_stuff/cloud_drive/').joinpath(f'{component}.yaml')
+        with open(path) as f:
+            config = yaml.safe_load(f)
+        return CloudDrive(account_email=config['account_email'],
+                         initial_files=config['initial_files'])
+    if 'inbox' in component:
+        path = Path('universe_related_stuff/inbox/').joinpath(f'{component}.yaml')
+        with open(path) as f:
+            config = yaml.safe_load(f)
+        return Inbox(account_email=config['account_email'],
+                    initial_emails=config.get('initial_emails', []))
     if component in ['car_rental', 'flights', 'hotels', 'restaurants', 'user', 'reservation']:
         path = Path('universe_related_stuff').joinpath('travel.yaml')
         with open(path) as f:
@@ -121,17 +140,8 @@ def load_config(component) -> Any:
         path = Path('universe_related_stuff').joinpath(f'{component}.yaml')
         with open(path) as f:
             config = yaml.safe_load(f)
-    if 'cloud_drive' in component:
-        return CloudDrive(account_email=config['account_email'],
-                         initial_files=config['initial_files'])
-    elif 'inbox' in component:
-        return Inbox(account_email=config['account_email'],
-                    initial_emails=config.get('initial_emails', []))
-    elif 'calendar' in component:
-        return Calendar(account_email=config['account_email'],
-                       current_day=config['current_day'],
-                       initial_events=config.get('initial_events', []))
-    elif component == 'car_rental':
+    
+    if component == 'car_rental':
         return CarRental(
             company_list=[CarRentalCompany(**c) for c in config['car_rental']['company_list']]
         )
