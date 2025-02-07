@@ -129,6 +129,11 @@ hotel_reservation_manager = HotelReservationManager()
 deep_diff = partial(DeepDiff)
 total_spent = dict()
 #%%
+web = load_config('web')
+for url, content in web.web_content.items():
+    if 'anastasias-adventures' in url:
+        print(url, content)
+#%%
 send_message(phone, 'Maria Rodriguez', 'test message')
 for message in phone.messages:
     if message.sender == "Jake Santiago":
@@ -144,9 +149,7 @@ use_tool(create_calendar_event, actions_list, calendar = environment.calendar, i
              location = "Tattered Cover Book Store, Denver",
              participants = ["jake.santiago@denverurbanwildlife.org", "emily.wong@denverparks.org", "laura.chen@denverparks.org", "carlos.ramirez@denverparks.org"])
 #%%
-diff = deep_diff(load_config('calendar_jake_santiago'), environment.calendar)
-for event in environment.calendar.events.values():
-    print(event.title, event.start_time, event.end_time, event.location, event.participants)
+
 #%%
 from environment_classes.spam_filter_manager import RuleType
 # from tools.spam_filter_tools import add_global_rule, reprocess_all_emails

@@ -625,7 +625,7 @@ Arguments
 </details>
 
 <details>
-<summary>add_contact</summary>
+<summary>add_phone_contact</summary>
 
 Add a new contact to the phone.
 

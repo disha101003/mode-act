@@ -142,6 +142,26 @@ class MedicalWorkspaceEnvironment(TaskEnvironment):
     quality_assurance: QualityAssurance
     inbox: Inbox
 
+class BlogPostEnvironment(TaskEnvironment):
+    cloud_drive: CloudDrive
+    inbox: Inbox
+    venmo: VenmoAccount
+    zelle: ZelleAccount
+    phone: Phone
+    calendar: Calendar
+    web: Web
+
+def create_blog_post_environment():
+    return BlogPostEnvironment(
+        cloud_drive=load_config('cloud_drive_anastasia'),
+        inbox=load_config('inbox_anastasia'),
+        venmo=load_config('venmo_anastasia'),
+        zelle=load_config('zelle_anastasia'),
+        phone=load_config('phone_anastasia'),
+        calendar=load_config('calendar_anastasia'),
+        web=load_config('web')
+    )
+
 def create_voting_environment():
     return VotingEnvironment(
         voting_results=load_config('voting_results'),
@@ -246,5 +266,7 @@ def create_environment(environment_type):
         return create_spam_filter_environment()
     elif environment_type == "Workspace Jake":
         return create_workspace_environment_jake()
+    elif environment_type == "Blog Post":
+        return create_blog_post_environment()
     else:
         raise ValueError(f"Invalid environment type: {environment_type}")

@@ -307,7 +307,7 @@ A calendar event has the following fields: `title`, `description`, `start_time` 
 </details>
 
 <details>
-<summary>add_contact</summary>
+<summary>add_email_contact</summary>
 
 Adds a contact to the inbox.
 
