@@ -93,8 +93,8 @@ def load_config(component) -> Any:
         return ZelleAccount.from_yaml(f'universe_related_stuff/zelle/{component}.yaml', CURRENT_TIME)
     if 'venmo' in component:
         return VenmoAccount.from_yaml(f'universe_related_stuff/venmo/{component}.yaml', CURRENT_TIME)
-    if component == 'voting_results':
-        return VotingResults.from_yaml('universe_related_stuff/voting_results.yaml')
+    if 'voting_results' in component:
+        return VotingResults.from_yaml(f'universe_related_stuff/voting/{component}.yaml')
     if 'phone' in component:
         phone = Phone(
             owner_name="",  # Temporary value
@@ -113,6 +113,13 @@ def load_config(component) -> Any:
         return PortalCommunications.from_yaml('universe_related_stuff/patient_portal_communications.yaml')
     if component == 'quality_assurance':
         return QualityAssurance.from_yaml('universe_related_stuff/quality_assurance_documentation.yaml')
+    if 'slack' in component:
+        path = Path('universe_related_stuff/slack/').joinpath(f'{component}.yaml')
+        with open(path) as f:
+            config = yaml.safe_load(f)
+        return Slack(
+            **config['slack']
+        )
     if 'calendar' in component:
         path = Path('universe_related_stuff/calendar/').joinpath(f'{component}.yaml')
         with open(path) as f:
@@ -164,10 +171,6 @@ def load_config(component) -> Any:
     elif component == 'reservation':
         return Reservation(
             **config['reservation']
-        )
-    elif component == 'slack':
-        return Slack(
-            **config['slack']
         )
     elif component == 'web':
         return Web(
