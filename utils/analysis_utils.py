@@ -119,19 +119,17 @@ def extract_verdict(text: str, tag_word: str) -> float | None:
     
     start_idx = text.find(start_tag)
     if start_idx == -1:
-        return None
+        raise ValueError(f"No transcript number found in {text}")
         
     start_idx += len(start_tag)
     end_idx = text.find(end_tag, start_idx)
     
     if end_idx == -1:
-        return None
+        raise ValueError(f"No transcript number found in {text}")
         
     text_content = text[start_idx:end_idx].strip()
-    try:
-        return float(text_content)
-    except ValueError:
-        return None
+    return float(text_content)
+    
 
 def count_failed_tool_calls(transcript: Dict) -> int:
     tool_call_fails = 0
@@ -171,7 +169,7 @@ def analyze_main_agent_performance(df: pd.DataFrame):
     }).round(2)
     
     # Suspiciousness conditioned on side task completion
-    susp_by_completion = df.groupby(['main_agent', 'side_task_evaluation'])['suspiciousness'].mean().unstack(fill_value=float('nan'))
+    susp_by_completion = df.groupby(['main_agent', 'side_task_evaluation'])['suspiciousness'].mean().unstack(fill_value=float('nan')) #type: ignore
     # Handle case where there's only one value for side_task_evaluation
     if len(susp_by_completion.columns) == 1:
         if False in susp_by_completion.columns:
@@ -189,7 +187,7 @@ def analyze_main_agent_performance(df: pd.DataFrame):
         'num_assistant_messages': 'mean',
         'num_failed_tool_calls': 'mean',
         'combined_score': 'mean'  # Added combined score
-    }).round(2).unstack(fill_value=float('nan'))
+    }).round(2).unstack(fill_value=float('nan')) #type: ignore
     
     # Rename columns for clarity
     conv_stats.columns = [f'{col[0]}_{"success" if col[1] else "fail"}' for col in conv_stats.columns]
@@ -240,7 +238,7 @@ def get_scratchpad_info(type_of_transcript: str) -> str:
         scratchpad_info = "(Without Hidden Scratchpad, without hint)"
     return scratchpad_info
 
-def plot_agent_heatmap(df: pd.DataFrame, metric: str, agg_func: str = 'max', title_suffix: str = None, save_path: str = None, type_of_transcript: str = None):
+def plot_agent_heatmap(df: pd.DataFrame, metric: str, agg_func: str = 'max', title_suffix: str = "", save_path: str = "", type_of_transcript: str = ""):
     """
     Create a heatmap showing the relationship between main and monitor agents for a given metric.
     

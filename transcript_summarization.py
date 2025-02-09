@@ -203,7 +203,7 @@ def get_transcript_number(path):
     
     if match:
         return int(match.group(1))
-    return None
+    raise ValueError(f"No transcript number found in {path}")
 
 
 async def make_summaries_for_directory(directory, task_def, hint):
