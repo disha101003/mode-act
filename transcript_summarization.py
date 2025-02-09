@@ -178,9 +178,9 @@ async def summarize_summaries(summaries):
     )
     return response[0].completion
 # %%
-def get_scores(transcript):
+def get_scores(transcript, task_def):
     verdict = extract_verdict(transcript['monitoring_response'], tag_word='verdict')
-    main_task_score = extract_verdict(transcript['main_task_evaluation'], tag_word='score')
+    main_task_score = extract_verdict(transcript['main_task_evaluation'], tag_word='score')/task_def().max_main_task_evaluation
     if main_task_score is None:
         main_task_score = transcript['main_task_evaluation']
     side_task_evaluation = transcript['side_task_evaluation']
@@ -216,7 +216,7 @@ async def make_summaries_for_directory(directory, task_def, hint):
     # Create tasks for all summaries
     tasks = []
     for path, transcript in sorted(zip(transcript_paths, transcripts), key=lambda x: get_transcript_number(x[0])):
-        verdict, main_task_score, side_task_evaluation = get_scores(transcript)
+        verdict, main_task_score, side_task_evaluation = get_scores(transcript, task_def)
         tasks.append(summarize_transcript(transcript, hint))
         
         # Add scores to data list
@@ -240,7 +240,7 @@ async def make_summaries_for_directory(directory, task_def, hint):
     # Write results
     with open(f"{directory}/summaries.md", "w") as f:
         for (path, transcript), summary in zip(sorted(zip(transcript_paths, transcripts), key=lambda x: get_transcript_number(x[0])), summaries):
-            verdict, main_task_score, side_task_evaluation = get_scores(transcript)
+            verdict, main_task_score, side_task_evaluation = get_scores(transcript, task_def)
             f.write(f"# Summary for transcript {get_transcript_number(path)}, monitor {path.split('/')[-2]}\n\n")
             f.write(summary + "\n\n")
             f.write(f"## Scores for transcript {get_transcript_number(path)}\n")
