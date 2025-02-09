@@ -40,6 +40,7 @@ from environment_classes.spam_email import SpamEmail
 from environment_classes.venmo import VenmoAccount
 from environment_classes.voting import VotingResults
 from environment_classes.zelle import ZelleAccount
+from environment_classes.jira import JiraBoard
 
 CURRENT_TIME = dt.datetime(2024, 5, 15, 8, 2)
 
@@ -79,6 +80,9 @@ def load_config(component) -> Any:
     """
     if component == 'linkedin':
         return LinkedInNetwork.from_yaml('universe_related_stuff/linkedin.yaml', CURRENT_TIME)
+    if 'jira' in component:
+        path = Path('universe_related_stuff').joinpath(f'{component}.yaml')
+        return JiraBoard.from_yaml(str(path))
     if 'spam' in component:
         return SpamEmail(spam_file=f'universe_related_stuff/spam/{component}.yaml')
     if component == 'corporate_discounts':

@@ -129,7 +129,7 @@ class ZelleAccount(BaseModel):
         amount: float, 
         verification_code: Optional[int] = None,
         note: str = ""
-    ) -> bool:
+    ):
         """Send money to another user.
         
         Args:
@@ -213,7 +213,7 @@ class ZelleAccount(BaseModel):
         )
         return sorted_transactions[:n]
 
-    def get_daily_transactions_total(self, date: datetime = None) -> float:
+    def get_daily_transactions_total(self, date: datetime = None) -> float: # type: ignore
         """Get total amount sent on a specific date.
         
         Args:

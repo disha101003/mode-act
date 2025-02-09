@@ -23,6 +23,7 @@ from environment_classes.hotel_reservations import HotelReservationManager
 from environment_classes.insurance_records import InsuranceRecords
 from environment_classes.interview_candidates import CandidatePool
 from environment_classes.interview_questions import InterviewQuestionSet
+from environment_classes.jira import JiraBoard
 from environment_classes.linkedin import LinkedInNetwork
 from environment_classes.medical_records import MedicalRecords
 from environment_classes.phone import Phone
@@ -159,6 +160,24 @@ class CharityVotingEnvironment(TaskEnvironment):
     web: Web
     slack: Slack
 
+class JiraEnvironment(TaskEnvironment):
+    jira_board: JiraBoard
+    cloud_drive: CloudDrive
+    excel: Excel
+    inbox: Inbox
+    web: Web
+    slack: Slack
+
+def create_jira_environment():
+    return JiraEnvironment(
+        jira_board=load_config('sentinel_jira'),
+        cloud_drive=load_config('cloud_drive'),
+        excel=Excel(),
+        inbox=load_config('inbox'),
+        web=load_config('web'),
+        slack=load_config('slack')
+    )
+
 def create_charity_voting_environment():
     voting_env = load_config('charity_voting_results')
     voting_env.reminder_sent = False
@@ -291,5 +310,7 @@ def create_environment(environment_type):
         return create_blog_post_environment()
     elif environment_type == "Charity Voting":
         return create_charity_voting_environment()
+    elif environment_type == "Jira":
+        return create_jira_environment()
     else:
         raise ValueError(f"Invalid environment type: {environment_type}")

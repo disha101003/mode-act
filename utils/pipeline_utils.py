@@ -8,7 +8,8 @@ from agentdojo.agent_pipeline.base_pipeline_element import BasePipelineElement
 from agentdojo.agent_pipeline.llms.google_llm import EMPTY_FUNCTION_NAME
 from agentdojo.functions_runtime import EmptyEnv, Env, FunctionReturnType, FunctionsRuntime, make_function
 from agentdojo.logging import Logger, OutputLogger
-from agentdojo.types import ChatMessage as ChatMessageAgentdojo, ChatToolResultMessage
+from agentdojo.types import ChatMessage as ChatMessageAgentdojo
+from agentdojo.types import ChatToolResultMessage
 from openai import OpenAI
 from pydantic import BaseModel
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt

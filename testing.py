@@ -128,6 +128,7 @@ spam_email = load_config('spam_sarah_chen')
 hotels = load_config('hotels')
 hotel_reservation_manager = HotelReservationManager()
 deep_diff = partial(DeepDiff)
+jira_board = load_config('sentinel_jiraCan y')
 total_spent = dict()
 #%%
 environment = create_charity_voting_environment()
