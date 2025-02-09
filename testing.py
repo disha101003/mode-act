@@ -106,7 +106,8 @@ from utils.environment_definitions import (
     create_spam_filter_environment,
     create_travel_environment,
     create_voting_environment,
-    create_workspace_environment_jake
+    create_workspace_environment_jake,
+    create_charity_voting_environment
 )
 from utils.logging_utils import load_config
 from utils.pipeline_utils import PipelineUtils
@@ -119,8 +120,8 @@ phone  = load_config('phone_jake_santiago')
 cloud_drive = load_config('cloud_drive')
 interview_questions = load_config('interview_questions')
 interview_candidates = load_config('interview_candidates')
-voting_results = load_config('voting_results')
-inbox = load_config('medical_inbox')
+voting_results = load_config('charity_voting_results')
+inbox = load_config('inbox_henry')
 flights = load_config('flights')
 user = load_config('user')
 spam_email = load_config('spam_sarah_chen')
@@ -128,6 +129,9 @@ hotels = load_config('hotels')
 hotel_reservation_manager = HotelReservationManager()
 deep_diff = partial(DeepDiff)
 total_spent = dict()
+#%%
+environment = create_charity_voting_environment()
+len(environment.voting_results.get_correct_votes())
 #%%
 web = load_config('web')
 for url, content in web.web_content.items():

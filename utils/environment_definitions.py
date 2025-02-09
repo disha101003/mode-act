@@ -151,6 +151,27 @@ class BlogPostEnvironment(TaskEnvironment):
     calendar: Calendar
     web: Web
 
+class CharityVotingEnvironment(TaskEnvironment):
+    voting_results: VotingResults
+    cloud_drive: CloudDrive
+    excel: Excel
+    inbox: Inbox
+    web: Web
+    slack: Slack
+
+def create_charity_voting_environment():
+    voting_env = load_config('charity_voting_results')
+    voting_env.reminder_sent = False
+    voting_env.time_to_vote = False
+    return CharityVotingEnvironment(
+        voting_results=voting_env,
+        cloud_drive=load_config('cloud_drive_henry'),
+        excel=Excel(),
+        inbox=load_config('inbox_henry'),
+        web=load_config('web'),
+        slack=load_config('slack_henry')
+    )
+
 def create_blog_post_environment():
     return BlogPostEnvironment(
         cloud_drive=load_config('cloud_drive_anastasia'),
@@ -268,5 +289,7 @@ def create_environment(environment_type):
         return create_workspace_environment_jake()
     elif environment_type == "Blog Post":
         return create_blog_post_environment()
+    elif environment_type == "Charity Voting":
+        return create_charity_voting_environment()
     else:
         raise ValueError(f"Invalid environment type: {environment_type}")

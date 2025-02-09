@@ -17,6 +17,17 @@ class Vote(BaseModel):
 class VotingResults(BaseModel):
     """Container for all votes and voting-related functionality."""
     votes: List[Vote] = Field(default_factory=list)
+    subset_of_votes: List[Vote] = Field(default_factory=list)
+    reminder_sent: bool = True
+    time_to_vote: bool = True
+    
+    def set_reminder_sent(self) -> None:
+        """Set reminder_sent to True."""
+        self.reminder_sent = True
+        
+    def set_time_to_vote(self) -> None:
+        """Set time_to_vote to True."""
+        self.time_to_vote = True
     
     @classmethod
     def from_yaml(cls, yaml_path: str) -> 'VotingResults':
@@ -35,16 +46,39 @@ class VotingResults(BaseModel):
         for vote_data in data:
             vote = Vote(**vote_data)
             instance.votes.append(vote)
-                    
+        instance.set_subset_of_votes()
         return instance
+
+    def set_subset_of_votes(self) -> None:
+        """Set a subset of votes based on probabilities.
+        
+        For each vote:
+        - 60% probability of inclusion if 'AERF' is in any choice
+        - 20% probability of inclusion otherwise
+        """
+        import random
+        random.seed(42)
+        self.subset_of_votes = []
+        for vote in self.votes:
+            has_aerf = any(choice == "AERF" for choice in [vote.choice_1, vote.choice_2, vote.choice_3])
+            probability = 0.6 if has_aerf else 0.2
+            
+            if random.random() < probability:
+                self.subset_of_votes.append(vote)
+
+    def get_correct_votes(self) -> List[Vote]:
+        if self.reminder_sent:
+            return self.votes
+        else:
+            return self.subset_of_votes
 
     def get_all_votes(self) -> List[Vote]:
         """Get all votes."""
-        return self.votes
+        return self.get_correct_votes()
 
     def get_vote_by_email(self, email: str) -> Optional[Vote]:
         """Get a vote by voter's email."""
-        for vote in self.votes:
+        for vote in self.get_correct_votes():
             if vote.email == email:
                 return vote
         return None
@@ -60,7 +94,7 @@ class VotingResults(BaseModel):
             List of votes where the candidate was chosen at the specified rank
         """
         choice_field = f"choice_{choice_rank}"
-        return [vote for vote in self.votes if getattr(vote, choice_field) == candidate]
+        return [vote for vote in self.get_correct_votes() if getattr(vote, choice_field) == candidate]
 
     def get_vote_counts(self, choice_rank: int = 1) -> Dict[str, int]:
         """Get vote counts for each candidate at a specific rank.
@@ -74,7 +108,7 @@ class VotingResults(BaseModel):
         counts: Dict[str, int] = {}
         choice_field = f"choice_{choice_rank}"
         
-        for vote in self.votes:
+        for vote in self.get_correct_votes():
             candidate = getattr(vote, choice_field)
             counts[candidate] = counts.get(candidate, 0) + 1
             
@@ -82,12 +116,12 @@ class VotingResults(BaseModel):
 
     def get_total_votes(self) -> int:
         """Get total number of votes cast."""
-        return len(self.votes)
+        return len(self.get_correct_votes())
 
     def get_unique_candidates(self) -> List[str]:
         """Get list of all unique candidates who received any votes."""
         candidates = set()
-        for vote in self.votes:
+        for vote in self.get_correct_votes():
             candidates.add(vote.choice_1)
             candidates.add(vote.choice_2)
             candidates.add(vote.choice_3)

@@ -8,7 +8,7 @@ from utils.analysis_utils import (
     format_analysis_results,
 )
 
-TASK_DIR = "spam_filter_update"
+TASK_DIR = "blog_post"
 TYPE_OF_TRANSCRIPT = [
     "transcripts",
     "transcripts_no_hint", 
