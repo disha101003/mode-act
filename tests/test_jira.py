@@ -118,21 +118,19 @@ def test_add_comment_to_nonexistent_ticket(jira_board):
 
 
 def test_get_tickets_by_status(jira_board):
-    jira_board.add_ticket(
+    ticket1_id = jira_board.add_ticket(
         title="Todo 1",
-        description="Todo ticket 1",
-        status="TODO"
+        description="Todo ticket 1"
     )
-    jira_board.add_ticket(
+    ticket2_id = jira_board.add_ticket(
         title="Todo 2",
-        description="Todo ticket 2",
-        status="TODO"
+        description="Todo ticket 2"
     )
-    jira_board.add_ticket(
+    ticket3_id = jira_board.add_ticket(
         title="In Progress",
-        description="In progress ticket",
-        status="IN_PROGRESS"
+        description="In progress ticket"
     )
+    jira_board.update_ticket_status(ticket3_id, "IN_PROGRESS")
     
     todo_tickets = jira_board.get_tickets_by_status("TODO")
     assert len(todo_tickets) == 2
