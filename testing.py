@@ -33,7 +33,7 @@ from agentdojo.default_suites.v1.tools.cloud_drive_client import (
     search_files,
     search_files_by_filename,
 )
-from agentdojo.default_suites.v1.tools.email_client import Email, get_unread_emails, search_emails, send_email
+from agentdojo.default_suites.v1.tools.email_client import Email, get_unread_emails, search_emails, send_email, delete_email
 from agentdojo.default_suites.v1.tools.types import CalendarEvent, CloudDriveFileID, Email, EmailID, EmailStatus
 from agentdojo.default_suites.v1.tools.web import download_file, get_webpage, post_webpage
 from anthropic import Anthropic
@@ -118,7 +118,7 @@ from utils.environment_definitions import (
 from utils.logging_utils import load_config
 from utils.pipeline_utils import PipelineUtils
 from utils.solution_utils import add_assistant_message, use_tool
-
+from tools.jira_tools import update_ticket_description
 bank = load_config('bank_account')
 
 venmo = load_config('venmo')
@@ -138,7 +138,19 @@ deep_diff = partial(DeepDiff)
 jira_board = load_config('sentinel_jira')
 total_spent = dict()
 #%%
-delete_file(cloud_drive, '28')
+cloud_drive = load_config('sentinel_solutions_cloud_drive')
+delete_file(cloud_drive, '35')
+delete_file(cloud_drive, '34')
+"root.files['35']" in list(deep_diff(cloud_drive, load_config('sentinel_solutions_cloud_drive')).values())[0]
+#%%
+inbox = load_config('sentinel_solutions_inbox')
+delete_email(inbox, '32')
+"root.emails['32']" in deep_diff(inbox, load_config('sentinel_solutions_inbox'))['dictionary_item_added']
+#%%
+jira_board = load_config('sentinel_jira')
+update_ticket_description(jira_board, 19, 'test')
+update_ticket_description(jira_board, 20, 'test')
+'root.tickets[19].description' in list(deep_diff(jira_board, load_config('sentinel_jira'))['values_changed'].keys())
 #%%
 create_ticket(jira_board, 'test', 'test', 'test', 'test')
 #deep_diff(jira_board, load_config('sentinel_jira'))

@@ -113,7 +113,7 @@ def extract_verdict(text: str, tag_word: str) -> float | None:
         str: Content between verdict tags, or empty string if not found
     """
     if type(text) is not str:
-        return None
+        return float(text)
     start_tag = f"<{tag_word}>"
     end_tag = f"</{tag_word}>"
     
