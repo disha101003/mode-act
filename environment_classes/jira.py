@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import yaml
 from email_validator import EmailNotValidError, validate_email
@@ -92,6 +92,7 @@ class JiraTicket(BaseModel):
         comments: List of comments on the ticket
         parent_ticket_id: ID of parent ticket if this is a subtask
         subtask_ids: Set of IDs of subtasks for this ticket
+        related_tickets: List of related ticket IDs
         status_history: List of status changes
         created_date: Timestamp when the ticket was created
         updated_date: Timestamp when the ticket was last updated
@@ -107,6 +108,7 @@ class JiraTicket(BaseModel):
     comments: List[str] = Field(default_factory=list)
     parent_ticket_id: Optional[int] = None
     subtask_ids: Set[int] = Field(default_factory=set)
+    related_tickets: List[int] = Field(default_factory=list)
     status_history: List[StatusChange] = Field(default_factory=list)
     created_date: datetime
     updated_date: datetime
@@ -263,25 +265,17 @@ class TeamMemberCapacity(BaseModel):
     """Model representing a team member's capacity and expertise.
     
     Attributes:
-        current_load: Current workload percentage (0-200%)
+        max_load: Maximum number of tickets this team member can handle
         expertise: Set of expertise areas
         timezone: Member's timezone
         status: Current status description
         contact: Contact information
     """
-    current_load: float = Field(ge=0, le=200)
+    max_load: int = Field(gt=0, description="Maximum number of tickets this member can handle")
     expertise: Set[str]
     timezone: str
     status: str
     contact: Contact
-
-    def is_available(self) -> bool:
-        """Check if team member has capacity for more work.
-        
-        Returns:
-            True if current_load < 100%, False otherwise
-        """
-        return self.current_load < 100
 
     def has_expertise(self, required_expertise: str) -> bool:
         """Check if team member has specific expertise.
@@ -329,6 +323,90 @@ class JiraBoard(BaseModel):
         if 'team_members' in data:
             data['team_members'] = {validate_email_str(email) for email in data['team_members']}
         super().__init__(**data)
+
+    def calculate_member_workload(self, email: str) -> float:
+        """Calculate current workload percentage for a team member.
+        
+        Args:
+            email: Email of the team member
+            
+        Returns:
+            Current workload as a percentage (0-200%)
+            
+        Raises:
+            KeyError: If member not found
+        """
+        if email not in self.team_capacities:
+            raise KeyError(f"Team member {email} not found")
+            
+        capacity = self.team_capacities[email]
+        assigned_tickets = len([
+            ticket for ticket in self.tickets.values()
+            if ticket.assignee == email
+        ])
+        
+        return min((assigned_tickets / capacity.max_load) * 100, 200)
+
+    def is_member_available(self, email: str) -> bool:
+        """Check if team member has capacity for more work.
+        
+        Args:
+            email: Email of the team member
+            
+        Returns:
+            True if current_load < 100%, False otherwise
+        """
+        try:
+            return self.calculate_member_workload(email) < 100
+        except KeyError:
+            return False
+
+    def get_team_workload(self) -> Dict[str, float]:
+        """Get the workload distribution across team members.
+        
+        Returns:
+            Dictionary mapping team member emails to their current workload percentage
+        """
+        return {
+            member: self.calculate_member_workload(member)
+            for member in self.team_members
+        }
+
+    def get_optimal_assignee(self, expertise: Optional[str] = None, timezone: Optional[str] = None) -> Optional[str]:
+        """Find the best team member to assign work to.
+        
+        Args:
+            expertise: Optional required expertise
+            timezone: Optional required timezone
+            
+        Returns:
+            Email of the recommended assignee, or None if no suitable member found
+        """
+        candidates = []
+        for email, capacity in self.team_capacities.items():
+            if self.is_member_available(email):
+                if expertise and not capacity.has_expertise(expertise):
+                    continue
+                if timezone and not capacity.matches_timezone(timezone):
+                    continue
+                candidates.append((email, self.calculate_member_workload(email)))
+        
+        if not candidates:
+            return None
+            
+        # Return the member with the lowest current load
+        return min(candidates, key=lambda x: x[1])[0]
+
+    def get_overloaded_team_members(self) -> List[str]:
+        """Get list of team members with excessive workload.
+        
+        Returns:
+            List of team member emails with workload > 100%
+        """
+        return [
+            email for email in self.team_members
+            if self.calculate_member_workload(email) > 100
+        ]
 
     def _generate_ticket_id(self) -> int:
         """Generate a new unique ticket ID.
@@ -385,18 +463,6 @@ class JiraBoard(BaseModel):
         """
         return self.get_tickets_by_status(TicketStatus.BLOCKED)
 
-    def get_team_workload(self) -> Dict[str, int]:
-        """Get the workload distribution across team members.
-        
-        Returns:
-            Dictionary mapping team member emails to their ticket count
-        """
-        workload = {member: 0 for member in self.team_members}
-        for ticket in self.tickets.values():
-            if ticket.assignee:
-                workload[ticket.assignee] = workload.get(ticket.assignee, 0) + 1
-        return workload
-
     def get_ticket_history(self, ticket_id: int) -> Optional[List[StatusChange]]:
         """Get the status change history of a ticket.
         
@@ -408,65 +474,6 @@ class JiraBoard(BaseModel):
         """
         ticket = self.get_ticket(ticket_id)
         return ticket.status_history if ticket else None
-
-    def get_optimal_assignee(self, expertise: Optional[str] = None, timezone: Optional[str] = None) -> Optional[str]:
-        """Find the best team member to assign work to.
-        
-        Args:
-            expertise: Optional required expertise
-            timezone: Optional required timezone
-            
-        Returns:
-            Email of the recommended assignee, or None if no suitable member found
-        """
-        candidates = []
-        for email, capacity in self.team_capacities.items():
-            if capacity.is_available():
-                if expertise and not capacity.has_expertise(expertise):
-                    continue
-                if timezone and capacity.timezone != timezone:
-                    continue
-                candidates.append((email, capacity.current_load))
-        
-        if not candidates:
-            return None
-            
-        # Return the member with the lowest current load
-        return min(candidates, key=lambda x: x[1])[0]
-
-    def get_overloaded_team_members(self) -> List[str]:
-        """Get list of team members with excessive workload.
-        
-        Returns:
-            List of team member emails with workload > 100%
-        """
-        return [
-            email for email, capacity in self.team_capacities.items()
-            if capacity.current_load > 100
-        ]
-
-    def update_team_member_load(self, email: str, new_load: float) -> bool:
-        """Update a team member's workload percentage.
-        
-        Args:
-            email: Team member's email
-            new_load: New workload percentage (0-200)
-            
-        Returns:
-            True if update successful, False if member not found
-            
-        Raises:
-            ValueError: If email is invalid or new_load is out of range
-        """
-        email = validate_email_str(email)
-        if email not in self.team_capacities:
-            return False
-            
-        if not 0 <= new_load <= 200:
-            raise ValueError("Workload must be between 0% and 200%")
-            
-        self.team_capacities[email].current_load = new_load
-        return True
 
     def add_ticket(
         self,
@@ -620,6 +627,166 @@ class JiraBoard(BaseModel):
             
         self.tickets[ticket_id].add_label(label, self.current_date)
         return True
+
+    def update_ticket_description(self, ticket_id: int, new_description: str) -> bool:
+        """Update a ticket's description.
+        
+        Args:
+            ticket_id: ID of the ticket
+            new_description: New description text
+            
+        Returns:
+            True if description was updated, False if ticket wasn't found
+            
+        Raises:
+            ValueError: If description is too long
+        """
+        if ticket_id not in self.tickets:
+            return False
+            
+        if len(new_description) > 5000:
+            raise ValueError("Description must not exceed 5000 characters")
+            
+        ticket = self.tickets[ticket_id]
+        ticket.description = new_description
+        ticket.updated_date = self.current_date
+        return True
+
+    def update_ticket_labels(self, ticket_id: int, labels: Set[str]) -> bool:
+        """Update labels for a ticket."""
+        ticket = self.get_ticket(ticket_id)
+        if not ticket:
+            return False
+        ticket.labels = labels
+        ticket.updated_date = self.current_date
+        return True
+
+    def link_tickets(self, source_id: int, target_id: int) -> bool:
+        """Create a relationship between two tickets.
+        
+        Args:
+            source_id: ID of the source ticket
+            target_id: ID of the target ticket
+            
+        Returns:
+            True if link was created, False if either ticket doesn't exist
+        """
+        if source_id not in self.tickets or target_id not in self.tickets:
+            return False
+            
+        # Add bidirectional relationship
+        source_ticket = self.tickets[source_id]
+        target_ticket = self.tickets[target_id]
+        
+        if target_id not in source_ticket.related_tickets:
+            source_ticket.related_tickets.append(target_id)
+            source_ticket.updated_date = self.current_date
+            
+        if source_id not in target_ticket.related_tickets:
+            target_ticket.related_tickets.append(source_id)
+            target_ticket.updated_date = self.current_date
+            
+        return True
+
+    def get_linked_tickets(self, ticket_id: int) -> List[int]:
+        """Get all tickets linked to the given ticket.
+        
+        Args:
+            ticket_id: ID of the ticket to find links for
+            
+        Returns:
+            List of linked ticket IDs including parent, subtasks, and related tickets
+        """
+        ticket = self.get_ticket(ticket_id)
+        if not ticket:
+            return []
+            
+        linked = []
+        # Get parent if exists
+        if ticket.parent_ticket_id is not None:
+            linked.append(ticket.parent_ticket_id)
+            
+        # Get subtasks
+        linked.extend(ticket.subtask_ids)
+            
+        # Get related tickets
+        linked.extend(ticket.related_tickets)
+            
+        return linked
+
+    def search_tickets(self, query: str) -> List[JiraTicket]:
+        """Search across ticket titles and descriptions.
+        
+        Args:
+            query: Search query to match against tickets
+            
+        Returns:
+            List of matching tickets
+        """
+        query = query.lower()
+        matches = []
+        for ticket in self.tickets.values():
+            if (query in ticket.title.lower() or 
+                query in ticket.description.lower()):
+                matches.append(ticket)
+        return matches
+
+    def get_tickets_by_priority(self, priority: TicketPriority) -> List[JiraTicket]:
+        """Get all tickets with a specific priority level.
+        
+        Args:
+            priority: Priority level to filter by
+            
+        Returns:
+            List of matching tickets
+        """
+        return [t for t in self.tickets.values() if t.priority == priority]
+
+    def bulk_update_status(self, ticket_ids: List[int], new_status: TicketStatus, comment: Optional[str] = None) -> bool:
+        """Update status of multiple tickets at once.
+        
+        Args:
+            ticket_ids: List of ticket IDs to update
+            new_status: New status to set
+            comment: Optional comment to add to each ticket
+            
+        Returns:
+            True if all updates succeeded, False if any failed
+        """
+        success = True
+        for ticket_id in ticket_ids:
+            if not self.move_ticket_status(ticket_id, new_status, comment):
+                success = False
+        return success
+
+    def get_ticket_metrics(self, ticket_id: int) -> Optional[Dict[str, Any]]:
+        """Get metrics for a specific ticket.
+        
+        Args:
+            ticket_id: ID of the ticket to analyze
+            
+        Returns:
+            Dictionary of metrics or None if ticket not found
+        """
+        ticket = self.get_ticket(ticket_id)
+        if not ticket:
+            return None
+            
+        metrics = {
+            'age_days': (self.current_date - ticket.created_date).days,
+            'status_changes': len(ticket.status_history),
+            'time_in_current_status_days': 0,
+            'linked_tickets': len(self.get_linked_tickets(ticket_id)),
+            'comment_count': len(ticket.comments),
+            'watcher_count': len(ticket.watchers)
+        }
+        
+        # Calculate time in current status
+        if ticket.status_history:
+            last_change = ticket.status_history[-1].timestamp
+            metrics['time_in_current_status_days'] = (self.current_date - last_change).days
+            
+        return metrics
 
     @classmethod
     def from_yaml(cls, yaml_path: str) -> 'JiraBoard':

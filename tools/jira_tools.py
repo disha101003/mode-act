@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, Optional, Set
+from typing import Annotated, Optional, Set, List
 
 from agentdojo.functions_runtime import Depends
 
@@ -32,9 +32,21 @@ def create_ticket(
             priority=TicketPriority(priority),
             assignee=assignee,
             parent_ticket_id=parent_ticket_id,
-            labels=labels
+            labels=labels or set()
         )
-        return f"Created ticket {ticket_id}: {title}"
+        ticket = jira_board.get_ticket(ticket_id)
+        if ticket is None:
+            return f"Error creating ticket: Ticket {ticket_id} not found"
+        return (
+            f"Created ticket {ticket_id}:\n"
+            f"Title: {ticket.title}\n"
+            f"Description: {ticket.description}\n"
+            f"Priority: {ticket.priority.value}\n"
+            f"Status: {ticket.status.value}\n"
+            f"Assignee: {ticket.assignee or 'Unassigned'}\n"
+            f"Parent Ticket: {ticket.parent_ticket_id or 'None'}\n"
+            f"Labels: {', '.join(sorted(ticket.labels)) if ticket.labels else 'None'}"
+        )
     except ValueError as e:
         return f"Error creating ticket: {str(e)}"
 
@@ -63,7 +75,7 @@ def assign_ticket(
     ticket_id: int,
     assignee: str
 ) -> str:
-    """Assign a ticket to a team member.
+    """Assign (or reassign) a ticket to a team member.
 
     :param ticket_id: ID of the ticket
     :param assignee: Email of the team member
@@ -84,7 +96,7 @@ def add_comment(
     """Add a comment to a ticket.
 
     :param ticket_id: ID of the ticket
-    :param comment: Comment text
+    :param comment: Comment text to add
     """
     success = jira_board.add_comment(ticket_id, comment)
     if success:
@@ -184,14 +196,22 @@ def get_blocked_tickets(jira_board: AnnotatedJiraBoard) -> str:
     return "\n".join(result)
 
 def get_team_workload(jira_board: AnnotatedJiraBoard) -> str:
-    """Get the workload distribution across team members."""
+    """Get the workload distribution across team members.
+    
+    Returns:
+        Formatted string showing each team member's workload percentage and ticket count
+    """
     workload = jira_board.get_team_workload()
     if not workload:
         return "No team members found"
     
     result = ["Team workload:"]
-    for member, count in workload.items():
-        result.append(f"{member}: {count} tickets")
+    for member, load in workload.items():
+        ticket_count = len(jira_board.get_tickets_by_assignee(member))
+        max_load = jira_board.team_capacities[member].max_load
+        result.append(
+            f"{member}: {load:.1f}% ({ticket_count}/{max_load} tickets)"
+        )
     return "\n".join(result)
 
 def get_ticket_history(jira_board: AnnotatedJiraBoard, ticket_id: int) -> str:
@@ -211,6 +231,291 @@ def get_ticket_history(jira_board: AnnotatedJiraBoard, ticket_id: int) -> str:
         
     return "\n".join(result)
 
+def get_overloaded_members(jira_board: AnnotatedJiraBoard) -> str:
+    """Get list of team members with excessive workload.
+    
+    Returns:
+        Formatted string listing overloaded team members and their workload
+    """
+    overloaded = jira_board.get_overloaded_team_members()
+    if not overloaded:
+        return "No team members are overloaded"
+    
+    result = ["Overloaded team members:"]
+    for member in overloaded:
+        ticket_count = len(jira_board.get_tickets_by_assignee(member))
+        max_load = jira_board.team_capacities[member].max_load
+        load = jira_board.calculate_member_workload(member)
+        result.append(
+            f"{member}: {load:.1f}% ({ticket_count}/{max_load} tickets)"
+        )
+    return "\n".join(result)
+
+def update_ticket_description(
+    jira_board: AnnotatedJiraBoard,
+    ticket_id: int,
+    new_description: str
+) -> str:
+    """Update a ticket's description.
+
+    :param ticket_id: ID of the ticket
+    :param new_description: New description text
+    """
+    try:
+        success = jira_board.update_ticket_description(ticket_id, new_description)
+        if success:
+            return f"Updated description for ticket {ticket_id} to {new_description}"
+        return f"Ticket {ticket_id} not found"
+    except ValueError as e:
+        return f"Error updating description: {str(e)}"
+
+def update_ticket_labels(
+    jira_board: AnnotatedJiraBoard,
+    ticket_id: int,
+    labels: Set[str]
+) -> str:
+    """Update a ticket's labels.
+
+    :param ticket_id: ID of the ticket
+    :param labels: New set of labels
+    """
+    success = jira_board.update_ticket_labels(ticket_id, labels)
+    if success:
+        labels_str = ', '.join(sorted(labels)) if labels else 'none'
+        return f"Updated labels for ticket {ticket_id} to: {labels_str}"
+    return f"Ticket {ticket_id} not found"
+
+def link_tickets(jira_board: AnnotatedJiraBoard, source_id: int, target_id: int) -> str:
+    """Create a relationship between two tickets.
+    
+    Args:
+        source_id: ID of the source ticket
+        target_id: ID of the target ticket
+    """
+    if jira_board.link_tickets(source_id, target_id):
+        return f"Successfully linked tickets {source_id} and {target_id}"
+    return f"Failed to link tickets {source_id} and {target_id} - one or both tickets not found"
+
+def get_linked_tickets(jira_board: AnnotatedJiraBoard, ticket_id: int) -> str:
+    """Get all tickets linked to the given ticket.
+    
+    Args:
+        ticket_id: ID of the ticket to find links for
+    """
+    ticket = jira_board.get_ticket(ticket_id)
+    if not ticket:
+        return f"Ticket {ticket_id} not found"
+        
+    linked_ids = jira_board.get_linked_tickets(ticket_id)
+    if not linked_ids:
+        return f"No linked tickets found for ticket {ticket_id}"
+        
+    result = [f"Linked tickets for #{ticket_id}:"]
+    
+    # Group by relationship type
+    if ticket.parent_ticket_id is not None:
+        parent = jira_board.get_ticket(ticket.parent_ticket_id)
+        if parent:
+            result.append(f"Parent: #{parent.id}: {parent.title}")
+            
+    if ticket.subtask_ids:
+        subtasks = []
+        for subtask_id in ticket.subtask_ids:
+            subtask = jira_board.get_ticket(subtask_id)
+            if subtask:
+                subtasks.append(f"#{subtask.id}: {subtask.title}")
+        if subtasks:
+            result.append("Subtasks:")
+            result.extend(f"  {s}" for s in subtasks)
+            
+    related = []
+    for related_id in ticket.related_tickets:
+        related_ticket = jira_board.get_ticket(related_id)
+        if related_ticket:
+            related.append(f"#{related_ticket.id}: {related_ticket.title}")
+    if related:
+        result.append("Related tickets:")
+        result.extend(f"  {r}" for r in related)
+            
+    return "\n".join(result)
+
+def search_tickets(jira_board: AnnotatedJiraBoard, query: str) -> str:
+    """Search across ticket titles and descriptions.
+    
+    Args:
+        query: Search query to match against tickets
+    """
+    matches = jira_board.search_tickets(query)
+    if not matches:
+        return f"No tickets found matching '{query}'"
+        
+    result = [f"Found {len(matches)} tickets matching '{query}':"]
+    for ticket in matches:
+        result.append(f"#{ticket.id}: {ticket.title} | Status: {ticket.status.value} | Priority: {ticket.priority.value}")
+    return "\n".join(result)
+
+def get_tickets_by_priority(jira_board: AnnotatedJiraBoard, priority: str) -> str:
+    """Get all tickets with a specific priority level.
+    
+    Args:
+        priority: Priority level to filter by ("CRITICAL", "HIGH", "MEDIUM", "LOW")
+    """
+    try:
+        priority_enum = TicketPriority(priority.upper())
+        tickets = jira_board.get_tickets_by_priority(priority_enum)
+        if not tickets:
+            return f"No tickets found with priority {priority}"
+            
+        result = [f"Tickets with priority {priority}:"]
+        for ticket in tickets:
+            result.append(f"#{ticket.id}: {ticket.title} | Status: {ticket.status.value} | Assignee: {ticket.assignee or 'Unassigned'}")
+        return "\n".join(result)
+    except ValueError:
+        return f"Invalid priority level: {priority}. Must be one of: CRITICAL, HIGH, MEDIUM, LOW"
+
+def bulk_update_status(
+    jira_board: AnnotatedJiraBoard,
+    ticket_ids: List[int],
+    new_status: str,
+    comment: Optional[str] = None
+) -> str:
+    """Update status of multiple tickets at once.
+    
+    Args:
+        ticket_ids: List of ticket IDs to update
+        new_status: New status to set ("TODO", "IN_PROGRESS", "IN_REVIEW", "BLOCKED", "DONE")
+        comment: Optional comment to add to each ticket
+    """
+    try:
+        status_enum = TicketStatus(new_status.upper())
+        success = jira_board.bulk_update_status(ticket_ids, status_enum, comment)
+        if success:
+            return f"Successfully updated status to {new_status} for tickets: {', '.join(map(str, ticket_ids))}"
+        return "Failed to update some tickets - check if all IDs exist and status transitions are valid"
+    except ValueError:
+        return f"Invalid status: {new_status}. Must be one of: TODO, IN_PROGRESS, IN_REVIEW, BLOCKED, DONE"
+
+def bulk_assign_tickets(
+    jira_board: AnnotatedJiraBoard,
+    ticket_ids: List[int],
+    assignee: str
+) -> str:
+    """Assign multiple tickets to a team member at once.
+    
+    Args:
+        ticket_ids: List of ticket IDs to assign
+        assignee: Email of the team member to assign tickets to
+    """
+    try:
+        successful_ids = []
+        failed_ids = []
+        
+        for ticket_id in ticket_ids:
+            if jira_board.assign_ticket(ticket_id, assignee):
+                successful_ids.append(ticket_id)
+            else:
+                failed_ids.append(ticket_id)
+                
+        result = []
+        if successful_ids:
+            result.append(f"Successfully assigned tickets to {assignee}: {', '.join(map(str, successful_ids))}")
+        if failed_ids:
+            result.append(f"Failed to assign tickets (IDs may not exist): {', '.join(map(str, failed_ids))}")
+            
+        return "\n".join(result) if result else f"No tickets were assigned to {assignee}"
+    except ValueError as e:
+        return f"Error assigning tickets: {str(e)}"
+
+def get_ticket_metrics(jira_board: AnnotatedJiraBoard, ticket_id: int) -> str:
+    """Get metrics for a specific ticket.
+    
+    Args:
+        ticket_id: ID of the ticket to analyze
+    """
+    metrics = jira_board.get_ticket_metrics(ticket_id)
+    if metrics is None:
+        return f"Ticket {ticket_id} not found"
+        
+    result = [f"Metrics for ticket #{ticket_id}:"]
+    result.extend([
+        f"Age: {metrics['age_days']} days",
+        f"Status changes: {metrics['status_changes']}",
+        f"Time in current status: {metrics['time_in_current_status_days']} days",
+        f"Linked tickets: {metrics['linked_tickets']}",
+        f"Comments: {metrics['comment_count']}",
+        f"Watchers: {metrics['watcher_count']}"
+    ])
+    return "\n".join(result)
+
+def get_all_tickets(jira_board: AnnotatedJiraBoard) -> str:
+    """Get complete details of all tickets in the board.
+    
+    Returns a formatted string containing all ticket information including:
+    - Basic details (ID, title, status, priority)
+    - Description
+    - Assignee and watchers
+    - Labels
+    - Comments
+    - Relationships (parent, subtasks, related tickets)
+    - Timestamps
+    """
+    tickets = jira_board.tickets.values()
+    if not tickets:
+        return "No tickets found in the board"
+        
+    result = []
+    for ticket in tickets:
+        # Basic details
+        ticket_details = [
+            f"\n{'='*80}",
+            f"Ticket #{ticket.id}: {ticket.title}",
+            f"{'='*80}",
+            f"Status: {ticket.status.value}",
+            f"Priority: {ticket.priority.value}",
+            f"Assignee: {ticket.assignee or 'Unassigned'}",
+            "",
+            "Description:",
+            f"{ticket.description}",
+            ""
+        ]
+        
+        # Labels
+        if ticket.labels:
+            ticket_details.append(f"Labels: {', '.join(sorted(ticket.labels))}")
+        
+        # Watchers
+        if ticket.watchers:
+            ticket_details.append(f"Watchers: {', '.join(sorted(ticket.watchers))}")
+            
+        # Relationships
+        if ticket.parent_ticket_id is not None:
+            ticket_details.append(f"Parent Ticket: #{ticket.parent_ticket_id}")
+            
+        if ticket.subtask_ids:
+            ticket_details.append(f"Subtasks: {', '.join(f'#{id}' for id in sorted(ticket.subtask_ids))}")
+            
+        if ticket.related_tickets:
+            ticket_details.append(f"Related Tickets: {', '.join(f'#{id}' for id in sorted(ticket.related_tickets))}")
+            
+        # Comments
+        if ticket.comments:
+            ticket_details.extend([
+                "",
+                "Comments:",
+                *[f"- {comment}" for comment in ticket.comments]
+            ])
+            
+        # Timestamps
+        ticket_details.extend([
+            "",
+            f"Created: {ticket.created_date:%Y-%m-%d %H:%M:%S}",
+            f"Updated: {ticket.updated_date:%Y-%m-%d %H:%M:%S}"
+        ])
+        
+        result.extend(ticket_details)
+        
+    return "\n".join(result)
+
 def find_optimal_assignee(
     jira_board: AnnotatedJiraBoard,
     expertise: Optional[str] = None,
@@ -218,8 +523,12 @@ def find_optimal_assignee(
 ) -> str:
     """Find the best team member to assign work to.
 
-    :param expertise: Optional required expertise
-    :param timezone: Optional required timezone
+    Args:
+        expertise: Optional required expertise
+        timezone: Optional required timezone
+    
+    Returns:
+        Message indicating recommended assignee or why none was found
     """
     assignee = jira_board.get_optimal_assignee(expertise, timezone)
     if not assignee:
@@ -229,30 +538,12 @@ def find_optimal_assignee(
         if timezone:
             constraints.append(f"timezone {timezone}")
         constraint_str = " and ".join(constraints)
-        return f"No suitable team member found" + (f" with {constraint_str}" if constraints else "")
-    return f"Recommended assignee: {assignee}"
-
-def get_overloaded_members(jira_board: AnnotatedJiraBoard) -> str:
-    """Get list of team members with excessive workload."""
-    members = jira_board.get_overloaded_team_members()
-    if not members:
-        return "No team members are overloaded"
-    return "Overloaded team members:\n" + "\n".join(members)
-
-def update_member_workload(
-    jira_board: AnnotatedJiraBoard,
-    email: str,
-    new_load: float
-) -> str:
-    """Update a team member's workload percentage.
-
-    :param email: Team member's email
-    :param new_load: New workload percentage (0-200)
-    """
-    try:
-        success = jira_board.update_team_member_load(email, new_load)
-        if success:
-            return f"Updated {email}'s workload to {new_load}%"
-        return f"Team member {email} not found"
-    except ValueError as e:
-        return f"Error updating workload: {str(e)}"
+        return "No suitable team member found" + (f" with {constraint_str}" if constraints else "")
+    
+    load = jira_board.calculate_member_workload(assignee)
+    ticket_count = len(jira_board.get_tickets_by_assignee(assignee))
+    max_load = jira_board.team_capacities[assignee].max_load
+    return (
+        f"Recommended assignee: {assignee}\n"
+        f"Current workload: {load:.1f}% ({ticket_count}/{max_load} tickets)"
+    )

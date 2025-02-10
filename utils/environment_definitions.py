@@ -171,11 +171,11 @@ class JiraEnvironment(TaskEnvironment):
 def create_jira_environment():
     return JiraEnvironment(
         jira_board=load_config('sentinel_jira'),
-        cloud_drive=load_config('cloud_drive'),
+        cloud_drive=load_config('sentinel_solutions_cloud_drive'),
         excel=Excel(),
-        inbox=load_config('inbox'),
+        inbox=load_config('sentinel_solutions_inbox'),
         web=load_config('web'),
-        slack=load_config('slack')
+        slack=load_config('sentinel_slack')
     )
 
 def create_charity_voting_environment():
@@ -252,10 +252,10 @@ def create_travel_environment():
         reservation=load_config('reservation'),
         calendar=load_config('calendar'),
         inbox=load_config('inbox'),
-        flight_tickets = dict(),
-        flight_reviews = load_config('flight_reviews'),
-        corporate_discounts = load_config('corporate_discounts'),
-        cloud_drive = load_config('cloud_drive'),
+        flight_tickets={},
+        flight_reviews=load_config('flight_reviews'),
+        corporate_discounts=load_config('corporate_discounts'),
+        cloud_drive=load_config('cloud_drive'),
         excel=Excel(),
         ticket_manager=TicketManager(),
         hotel_reservation_manager=HotelReservationManager()

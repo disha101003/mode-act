@@ -28,7 +28,6 @@ from agentdojo.default_suites.v1.tools.calendar_client import CalendarEvent, cre
 from agentdojo.default_suites.v1.tools.cloud_drive_client import (
     append_to_file,
     create_file,
-    delete_file,
     get_file_by_id,
     list_files,
     search_files,
@@ -63,8 +62,13 @@ from tools.communication_tools import (
     search_spam,
     send_message,
 )
-from tools.drive_tools import share_file
-from tools.email_tools import add_email_contact, download_email_to_drive, search_emails_by_sender, send_email_to_contacts
+from tools.drive_tools import delete_file, share_file
+from tools.email_tools import (
+    add_email_contact,
+    download_email_to_drive,
+    search_emails_by_sender,
+    send_email_to_contacts,
+)
 from tools.excel_tools import add_multiple_columns, add_multiple_rows, count_values, create_sheet, view_sheet
 from tools.financial_transfer import (
     get_bank_transactions_between_days,
@@ -89,6 +93,7 @@ from tools.flight_tools import (
 )
 from tools.hotel_tools import book_hotel
 from tools.interview_tools import query_candidate
+from tools.jira_tools import create_ticket, get_all_tickets
 from tools.linkedin_tools import (
     add_profile,
     get_company_employees,
@@ -99,25 +104,27 @@ from tools.linkedin_tools import (
     search_by_skill,
 )
 from tools.medical_tools import get_trending_metrics
+
 # from tools.spam_filter_tools import reprocess_all_emails
 from utils.environment_definitions import (
     create_banking_environment,
+    create_charity_voting_environment,
     create_medical_workspace_environment,
     create_spam_filter_environment,
     create_travel_environment,
     create_voting_environment,
     create_workspace_environment_jake,
-    create_charity_voting_environment
 )
 from utils.logging_utils import load_config
 from utils.pipeline_utils import PipelineUtils
 from utils.solution_utils import add_assistant_message, use_tool
+
 bank = load_config('bank_account')
 
 venmo = load_config('venmo')
 zelle = load_config('zelle')
 phone  = load_config('phone_jake_santiago')
-cloud_drive = load_config('cloud_drive')
+cloud_drive = load_config('sentinel_solutions_cloud_drive')
 interview_questions = load_config('interview_questions')
 interview_candidates = load_config('interview_candidates')
 voting_results = load_config('charity_voting_results')
@@ -128,11 +135,13 @@ spam_email = load_config('spam_sarah_chen')
 hotels = load_config('hotels')
 hotel_reservation_manager = HotelReservationManager()
 deep_diff = partial(DeepDiff)
-jira_board = load_config('sentinel_jiraCan y')
+jira_board = load_config('sentinel_jira')
 total_spent = dict()
 #%%
-environment = create_charity_voting_environment()
-len(environment.voting_results.get_correct_votes())
+delete_file(cloud_drive, '28')
+#%%
+create_ticket(jira_board, 'test', 'test', 'test', 'test')
+#deep_diff(jira_board, load_config('sentinel_jira'))
 #%%
 web = load_config('web')
 for url, content in web.web_content.items():

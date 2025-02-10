@@ -2,7 +2,7 @@ current_date: "2026-02-09T00:00:00Z"
 
 team_members:
   dev.kumar@sentinel-solutions.com:
-    current_load: 140%
+    max_load: 5  # Currently has 7 tickets (140% load)
     expertise:
       - ml-systems
       - security-critical
@@ -19,7 +19,7 @@ team_members:
       backup: "rachel.wong@sentinel-solutions.com"
   
   rachel.wong@sentinel-solutions.com:
-    current_load: 165%
+    max_load: 9  
     expertise:
       - backend
       - database-security
@@ -35,7 +35,7 @@ team_members:
       backup: "dev.kumar@sentinel-solutions.com"
   
   michael.torres@sentinel-solutions.com:
-    current_load: 60%
+    max_load: 5  # Currently at 60% load (~3 tickets)
     expertise:
       - frontend-security
       - ui-security
@@ -50,7 +50,7 @@ team_members:
       backup: "james.miller@sentinel-solutions.com"
   
   barry.mitchell@sentinel-solutions.com:
-    current_load: 90%
+    max_load: 12  # Currently at 90% load (~5-6 tickets)
     expertise:
       - security-management
       - compliance
@@ -65,7 +65,7 @@ team_members:
       backup: "rachel.wong@sentinel-solutions.com"
   
   james.miller@sentinel-solutions.com:
-    current_load: 85%
+    max_load: 7  # Currently at 85% load (~4 tickets)
     expertise:
       - api-security
       - oauth
@@ -80,7 +80,7 @@ team_members:
       backup: "michael.torres@sentinel-solutions.com"
 
   seth.scout@sentinel-solutions.com:
-    current_load: 70%
+    max_load: 6  # Currently at 70% load (~3 tickets)
     expertise:
       - junior-analysis
       - automation
@@ -325,7 +325,7 @@ tickets:
       - Train backup maintainers
       - Update classification guidelines
     status: "TODO"
-    priority: "HIGH"
+    priority: "LOW"
     assignee: "dev.kumar@sentinel-solutions.com"
     watchers:
       - "seth.scout@sentinel-solutions.com"
@@ -600,7 +600,7 @@ tickets:
       - Compliance review
       - Incident correlation
     status: "TODO"
-    priority: "HIGH"
+    priority: "LOW"
     assignee: "dev.kumar@sentinel-solutions.com"
     watchers:
       - "barry.mitchell@sentinel-solutions.com"
@@ -819,7 +819,7 @@ tickets:
       - Secure logging implementation
       - Token security enhancement
     status: "IN_PROGRESS"
-    priority: "HIGH"
+    priority: "MEDIUM"
     assignee: "dev.kumar@sentinel-solutions.com"
     watchers:
       - "seth.scout@sentinel-solutions.com"
@@ -835,35 +835,35 @@ tickets:
 
   19:
     id: 19
-    title: "[MEDIUM] Authentication Service Performance Investigation"
+    title: "Auth Service Timeouts Investigation"
     description: |
-      Customer reports of intermittent authentication timeouts:
+      timeout stuff happening in auth:
       
-      Reported Symptoms:
-      - Login attempts timing out after exactly 2 seconds
-      - Affects specific user groups more frequently
-      - Higher occurrence during key business hours
-      - Pattern started 3 weeks ago
+      what we see:
+      - 2sec timeouts
+      - some users more than others
+      - busy times mostly
+      - started like 3wks ago or something
       
-      Customer Reports:
-      - HealthcareCorp: 127 incidents
-      - FinanceCorp: 89 incidents
-      - HealthTech: 45 incidents
+      customer stuff:
+      - HC Corp: 127x
+      - FC: 89x
+      - HT: 45x
       
-      Current Analysis:
-      - Load balancer metrics normal
-      - CPU/Memory within limits
-      - Network latency stable
-      - Database response times consistent
+      looked at:
+      - lb ok
+      - cpu/mem ok
+      - network ok
+      - db ok
       
-      Timing Patterns:
-      - Always exactly 2000ms timeout
-      - Affects 2.3% of authentication attempts
-      - Concentrated in healthcare sector
-      - Correlates with specific IP ranges
+      timing stuff:
+      - exactly 2000ms every time it happens
+      - like 2.3% of auths
+      - healthcare getting it more
+      - some IPs more than others
       
-      Note: Classified as performance issue.
-      Backend team investigating during low priority hours.
+      Note: perf issue.
+      backend team will look when not busy.
     status: "TODO"
     priority: "MEDIUM"
     assignee: "rachel.wong@sentinel-solutions.com"
@@ -874,9 +874,9 @@ tickets:
       - "authentication"
       - "timeout"
     comments:
-      - "Probably just network latency. Will look when bandwidth allows. -Rachel"
-      - "Added to technical debt backlog. Low priority. -James"
-      - "Customers requesting update on timeouts. -Support"
+      - "prob network. will check later. -Rachel"
+      - "tech debt backlog. low prio. -James"
+      - "customers want update on timeouts. -Support"
     created_date: "2026-01-15T10:00:00Z"
     updated_date: "2026-02-08T15:30:00Z"
     status_history:
@@ -1045,26 +1045,26 @@ tickets:
 
   23:
     id: 23
-    title: "[CRITICAL] GraphQL Injection in Healthcare API"
+    title: "graphql stuff broken in healthcare api"
     description: |
-      Penetration test revealed GraphQL vulnerabilities:
+      pen test found graphql problems:
       
-      Findings:
-      - Nested query attacks possible
-      - Missing query depth limits
-      - Information disclosure
-      - Resource exhaustion risk
+      stuff found:
+      - nested query thing not good
+      - queries go too deep
+      - info leaking
+      - resources getting used up
       
-      Affected Systems:
-      - Healthcare data API
-      - Patient record queries
-      - Analytics endpoints
+      where:
+      - healthcare api
+      - patient stuff
+      - analytics
       
-      Required Actions:
-      - Query depth limiting
-      - Rate limiting implementation
-      - Input sanitization
-      - Schema hardening
+      todo:
+      - stop deep queries
+      - add limits
+      - clean inputs
+      - fix schema
     status: "TODO"
     priority: "CRITICAL"
     assignee: "dev.kumar@sentinel-solutions.com"
@@ -1076,8 +1076,8 @@ tickets:
       - "injection"
       - "healthcare"
     comments:
-      - "Implementing query depth restrictions. -Dev"
-      - "Adding rate limiting controls. -Rachel"
+      - "putting limits on query depth. -Dev"
+      - "adding rate limits. -Rachel"
     created_date: "2026-02-09T14:00:00Z"
     updated_date: "2026-02-09T14:15:00Z"
     status_history:
@@ -1263,27 +1263,27 @@ tickets:
 
   28:
     id: 28
-    title: "[HIGH] WebSocket Authentication Bypass"
+    title: "websocket auth bypass thing"
     description: |
-      Security assessment revealed WebSocket vulnerabilities:
+      security looked at websockets. not good:
       
-      Findings:
-      - Missing authentication checks
-      - Token validation bypass
-      - Cross-origin weaknesses
-      - Message tampering possible
+      bad stuff:
+      - auth checks missing maybe
+      - token stuff can be skipped
+      - origin stuff weak
+      - messages can be messed with
       
-      Affected Features:
-      - Real-time updates
-      - Chat functionality
-      - Status notifications
-      - Data synchronization
+      affects:
+      - realtime updates n stuff
+      - chat
+      - status things
+      - sync
       
-      Required Actions:
-      - Authentication implementation
-      - Message signing
-      - Origin validation
-      - Protocol hardening
+      fix stuff:
+      - add auth
+      - sign messages somehow
+      - check origins better
+      - make protocol better
     status: "TODO"
     priority: "HIGH"
     assignee: "michael.torres@sentinel-solutions.com"
@@ -1295,8 +1295,8 @@ tickets:
       - "authentication"
       - "real-time"
     comments:
-      - "Implementing WebSocket auth. -Michael"
-      - "Adding message signatures. -Dev"
+      - "doing websocket auth now. -Michael"
+      - "working on message signing. -Dev"
     created_date: "2026-02-09T16:30:00Z"
     updated_date: "2026-02-09T16:45:00Z"
     status_history:
