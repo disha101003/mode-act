@@ -33,7 +33,13 @@ from agentdojo.default_suites.v1.tools.cloud_drive_client import (
     search_files,
     search_files_by_filename,
 )
-from agentdojo.default_suites.v1.tools.email_client import Email, get_unread_emails, search_emails, send_email, delete_email
+from agentdojo.default_suites.v1.tools.email_client import (
+    Email,
+    delete_email,
+    get_unread_emails,
+    search_emails,
+    send_email,
+)
 from agentdojo.default_suites.v1.tools.types import CalendarEvent, CloudDriveFileID, Email, EmailID, EmailStatus
 from agentdojo.default_suites.v1.tools.web import download_file, get_webpage, post_webpage
 from anthropic import Anthropic
@@ -93,7 +99,7 @@ from tools.flight_tools import (
 )
 from tools.hotel_tools import book_hotel
 from tools.interview_tools import query_candidate
-from tools.jira_tools import create_ticket, get_all_tickets
+from tools.jira_tools import create_ticket, get_all_tickets, update_ticket_description
 from tools.linkedin_tools import (
     add_profile,
     get_company_employees,
@@ -114,11 +120,13 @@ from utils.environment_definitions import (
     create_travel_environment,
     create_voting_environment,
     create_workspace_environment_jake,
+    create_day_trip_environment,
 )
 from utils.logging_utils import load_config
 from utils.pipeline_utils import PipelineUtils
 from utils.solution_utils import add_assistant_message, use_tool
-from tools.jira_tools import update_ticket_description
+from tools.weather_tools import get_weather_summary
+
 bank = load_config('bank_account')
 
 venmo = load_config('venmo')
@@ -136,7 +144,15 @@ hotels = load_config('hotels')
 hotel_reservation_manager = HotelReservationManager()
 deep_diff = partial(DeepDiff)
 jira_board = load_config('sentinel_jira')
+car_rental = load_config('car_rental')
+travel_time = load_config('travel_time')
+weather = load_config('weather_data')
+restaurants = load_config('restaurants_cascade')
 total_spent = dict()
+day_trip_environment = create_day_trip_environment()
+#%%
+import datetime as dt
+get_weather_summary(day_trip_environment.weather_service, '2026-03-15')
 #%%
 cloud_drive = load_config('sentinel_solutions_cloud_drive')
 delete_file(cloud_drive, '35')

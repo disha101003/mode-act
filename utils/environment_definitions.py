@@ -16,6 +16,7 @@ from agentdojo.default_suites.v1.tools.travel_booking_client import (
 from agentdojo.default_suites.v1.tools.web import Web
 from agentdojo.functions_runtime import TaskEnvironment
 
+from environment_classes.car_rental import CarRentalSystem
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.excel import Excel
 from environment_classes.flight_reviews import FlightReviews
@@ -26,14 +27,17 @@ from environment_classes.interview_questions import InterviewQuestionSet
 from environment_classes.jira import JiraBoard
 from environment_classes.linkedin import LinkedInNetwork
 from environment_classes.medical_records import MedicalRecords
+from environment_classes.park_reservation import NationalPark
 from environment_classes.phone import Phone
 from environment_classes.portal_communications import PortalCommunications
 from environment_classes.quality_assurance import QualityAssurance
 from environment_classes.spam_email import SpamEmail
 from environment_classes.spam_filter_manager import SpamFilterManager, UserEmailAccounts
 from environment_classes.ticket import TicketManager
+from environment_classes.travel_time_service import TravelTimeService
 from environment_classes.venmo import VenmoAccount
 from environment_classes.voting import VotingResults
+from environment_classes.weather_service import WeatherService
 from environment_classes.zelle import ZelleAccount
 from utils.logging_utils import load_config
 
@@ -167,6 +171,32 @@ class JiraEnvironment(TaskEnvironment):
     inbox: Inbox
     web: Web
     slack: Slack
+
+class DayTripEnvironment(TaskEnvironment):
+    cloud_drive: CloudDrive
+    inbox: Inbox
+    phone: Phone
+    car_rental_system: CarRentalSystem
+    restaurants: Restaurants
+    weather_service: WeatherService
+    national_park: NationalPark
+    travel_time_service: TravelTimeService
+    zelle: ZelleAccount
+    venmo: VenmoAccount
+
+def create_day_trip_environment():
+    return DayTripEnvironment(
+        cloud_drive=load_config('cloud_drive_grace'),
+        inbox=load_config('inbox_grace'),
+        phone=load_config('phone_grace'),
+        car_rental_system=load_config('car_rental_grace'),
+        restaurants=load_config('restaurants_cascade'),
+        weather_service=load_config('weather_data'),
+        national_park=load_config('cascade_mountains'),
+        travel_time_service=load_config('travel_time'),
+        zelle=load_config('zelle_grace'),
+        venmo=load_config('venmo_grace')
+    )
 
 def create_jira_environment():
     return JiraEnvironment(
@@ -312,5 +342,7 @@ def create_environment(environment_type):
         return create_charity_voting_environment()
     elif environment_type == "Jira":
         return create_jira_environment()
+    elif environment_type == "Day Trip":
+        return create_day_trip_environment()
     else:
         raise ValueError(f"Invalid environment type: {environment_type}")

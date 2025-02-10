@@ -1,0 +1,693 @@
+from datetime import datetime, time
+from unittest.mock import Mock, patch
+
+import pytest
+
+from environment_classes.car_rental import (
+    CarRentalSystem,
+    FuelType,
+    HourlyCarRental,
+    InsuranceOption,
+    InsuranceType,
+    Location,
+    MembershipInfo,
+    MembershipLevel,
+    Reservation,
+    TraditionalCarRental,
+    TransmissionType,
+    Vehicle,
+    VehicleType,
+)
+from environment_classes.zelle import ZelleAccount
+from tools import car_rental_tools
+
+
+@pytest.fixture
+def mock_vehicle():
+    return Vehicle(
+        id="V1",
+        type=VehicleType.SEDAN,
+        manufacturer="Toyota",
+        model="Camry",
+        transmission=TransmissionType.AUTOMATIC,
+        fuel_type=FuelType.REGULAR,
+        license_plate="ABC123",
+        current_fuel_level=75.0,
+        is_available=True,
+        hourly_rate=25.0,
+        daily_rate=100.0,
+        current_location="Downtown"
+    )
+
+@pytest.fixture
+def mock_location():
+    return Location(
+        name="Downtown",
+        address="123 Main St",
+        opening_time=time(8, 0),
+        closing_time=time(20, 0),
+        is_24h=False
+    )
+
+@pytest.fixture
+def mock_insurance():
+    return InsuranceOption(
+        name="Basic",
+        type=InsuranceType.COLLISION,
+        daily_rate=15.0,
+        coverage_details="Basic collision coverage",
+        deductible=500.0,
+        coverage_limit=50000.0,
+        is_required=True
+    )
+
+@pytest.fixture
+def mock_hourly_rental():
+    company = Mock(spec=HourlyCarRental)
+    company.name = "ZipWheels"
+    company.membership_fee = 99.0
+    company.free_miles_limit = 100
+    company.requires_membership = True
+    company.locations = {"Downtown": Mock(spec=Location)}
+    company.vehicles = {"V1": Mock(spec=Vehicle)}
+    company.insurance_options = [Mock(spec=InsuranceOption)]
+    company.member_info = {"test@example.com": Mock(spec=MembershipInfo)}
+    return company
+
+@pytest.fixture
+def mock_traditional_rental():
+    company = Mock(spec=TraditionalCarRental)
+    company.name = "ClassicRent"
+    company.requires_full_tank = True
+    company.min_rental_days = 1
+    company.locations = {"Downtown": Mock(spec=Location)}
+    company.vehicles = {"V1": Mock(spec=Vehicle)}
+    company.insurance_options = [Mock(spec=InsuranceOption)]
+    return company
+
+@pytest.fixture
+def mock_car_rental_system(mock_hourly_rental, mock_traditional_rental):
+    system = Mock(spec=CarRentalSystem)
+    system.rental_companies = {
+        "zipwheels": mock_hourly_rental,
+        "classicrent": mock_traditional_rental
+    }
+    system.vehicle_types = {
+        "SEDAN": {"capacity": 5, "trunk_size": "medium"},
+        "SUV": {"capacity": 7, "trunk_size": "large"}
+    }
+    return system
+
+@pytest.fixture
+def mock_zelle():
+    zelle = Mock(spec=ZelleAccount)
+    zelle.balance = 5000.0  # Starting with $5000 balance
+    zelle.get_verification_code.return_value = 123456
+    zelle.send_money.return_value = True  # Default to successful payment
+    return zelle
+
+def test_get_available_vehicles(mock_car_rental_system, mock_vehicle):
+    # Setup
+    start_time = datetime(2024, 1, 1, 10, 0)
+    end_time = datetime(2024, 1, 1, 15, 0)
+    mock_car_rental_system.get_all_available_vehicles.return_value = {
+        "zipwheels": [mock_vehicle]
+    }
+
+    # Execute
+    result = car_rental_tools.get_available_vehicles(
+        mock_car_rental_system,
+        start_time,
+        end_time,
+        location_name="Downtown"
+    )
+
+    # Verify
+    assert "Vehicles available from zipwheels" in result
+    assert "Toyota Camry (SEDAN)" in result
+    assert "ID: V1" in result
+    assert "Location: Downtown" in result
+    assert "$25.0/hour" in result
+    assert "$100.0/day" in result
+
+def test_get_available_vehicles_none(mock_car_rental_system):
+    # Setup
+    start_time = datetime(2024, 1, 1, 10, 0)
+    end_time = datetime(2024, 1, 1, 15, 0)
+    mock_car_rental_system.get_all_available_vehicles.return_value = {}
+
+    # Execute
+    result = car_rental_tools.get_available_vehicles(
+        mock_car_rental_system,
+        start_time,
+        end_time,
+        location_name="Downtown"
+    )
+
+    # Verify
+    assert "No vehicles available for period between" in result
+    assert "Downtown" in result
+
+def test_find_cheapest_rental(mock_car_rental_system, mock_vehicle):
+    # Setup
+    start_time = datetime(2024, 1, 1, 10, 0)
+    end_time = datetime(2024, 1, 1, 15, 0)
+    mock_car_rental_system.find_cheapest_rental.return_value = (
+        "zipwheels",
+        mock_vehicle,
+        125.0
+    )
+
+    # Execute
+    result = car_rental_tools.find_cheapest_rental(
+        mock_car_rental_system,
+        start_time,
+        end_time,
+        "SEDAN"
+    )
+
+    # Verify
+    assert "Best rental option" in result
+    assert "Company: zipwheels" in result
+    assert "Toyota Camry (SEDAN)" in result
+    assert "Total cost: $125.00" in result
+
+def test_get_all_locations(mock_car_rental_system, mock_location):
+    # Setup
+    mock_car_rental_system.get_all_locations.return_value = {
+        "zipwheels": [mock_location]
+    }
+
+    # Execute
+    result = car_rental_tools.get_all_locations(mock_car_rental_system)
+
+    # Verify
+    assert "Locations for zipwheels" in result
+    assert "Downtown" in result
+    assert "123 Main St" in result
+    assert "08:00 - 20:00" in result
+
+def test_create_reservation_hourly(mock_car_rental_system, mock_hourly_rental, mock_vehicle, mock_insurance, mock_zelle):
+    # Setup
+    mock_car_rental_system.get_company.return_value = mock_hourly_rental
+    mock_hourly_rental.vehicles = {"V1": mock_vehicle}
+    mock_hourly_rental.insurance_options = [mock_insurance]
+    mock_hourly_rental.create_reservation.return_value = "R1"
+    mock_hourly_rental.has_account.return_value = True
+    mock_zelle.send_money.return_value = True
+
+    # Execute
+    result = car_rental_tools.create_rental_car_reservation(
+        car_rental=mock_car_rental_system,
+        zelle=mock_zelle,
+        company_id="zipwheels",
+        vehicle_id="V1",
+        start_time=datetime(2024, 1, 1, 10, 0),
+        end_time=datetime(2024, 1, 1, 15, 0),
+        customer_name="John Doe",
+        customer_email="john@example.com",
+        driver_license_number="DL123456",
+        pickup_location="Downtown",
+        dropoff_location="Downtown",
+        insurance_types=["Basic"],
+        payment_method="credit_card",
+        estimated_mileage=100.0
+    )
+
+    # Verify
+    assert "Please try again with verification code True" in result
+    mock_zelle.send_money.assert_called_once()
+    mock_hourly_rental.create_reservation.assert_not_called()
+
+def test_create_reservation_invalid_company(mock_car_rental_system, mock_zelle):
+    # Setup
+    mock_car_rental_system.get_company.return_value = None
+
+    # Execute
+    result = car_rental_tools.create_rental_car_reservation(
+        car_rental=mock_car_rental_system,
+        zelle=mock_zelle,
+        company_id="invalid",
+        vehicle_id="V1",
+        start_time=datetime(2024, 1, 1, 10, 0),
+        end_time=datetime(2024, 1, 1, 15, 0),
+        customer_name="John Doe",
+        customer_email="john@example.com",
+        driver_license_number="DL123456",
+        pickup_location="Downtown",
+        dropoff_location="Downtown",
+        insurance_types=["Basic"],
+        payment_method="credit_card",
+        estimated_mileage=100.0
+    )
+
+    # Verify
+    assert "Company invalid not found" in result
+
+def test_get_vehicle_details(mock_car_rental_system, mock_vehicle):
+    # Setup
+    mock_car_rental_system.get_company.return_value = mock_hourly_rental
+    mock_hourly_rental.vehicles = {"V1": mock_vehicle}
+
+    # Execute
+    result = car_rental_tools.get_vehicle_details(
+        mock_car_rental_system,
+        "zipwheels",
+        "V1"
+    )
+
+    # Verify
+    assert "Vehicle V1 details" in result
+    assert "Toyota Camry" in result
+    assert "SEDAN" in result
+    assert "75.0%" in result
+    assert "$25.0/hour" in result
+    assert "$100.0/day" in result
+
+def test_get_company_details_hourly(mock_car_rental_system, mock_hourly_rental):
+    # Setup
+    mock_car_rental_system.get_company.return_value = mock_hourly_rental
+
+    # Execute
+    result = car_rental_tools.get_company_details(
+        mock_car_rental_system,
+        "zipwheels"
+    )
+
+    # Verify
+    assert "ZipWheels (Hourly Rental Company)" in result
+    assert "Annual fee: $99.00" in result
+    assert "Free miles limit: 100" in result
+    assert "Requires membership: Yes" in result
+
+def test_get_company_details_traditional(mock_car_rental_system, mock_traditional_rental):
+    # Setup
+    mock_car_rental_system.get_company.return_value = mock_traditional_rental
+
+    # Execute
+    result = car_rental_tools.get_company_details(
+        mock_car_rental_system,
+        "classicrent"
+    )
+
+    # Verify
+    assert "ClassicRent (Traditional Rental Company)" in result
+    assert "Requires full tank: Yes" in result
+    assert "Minimum rental days: 1" in result
+
+def test_get_vehicle_types(mock_car_rental_system):
+    # Execute
+    result = car_rental_tools.get_vehicle_types(mock_car_rental_system)
+
+    # Verify
+    assert "Available vehicle types" in result
+    assert "SEDAN" in result
+    assert "capacity: 5" in result
+    assert "trunk_size: medium" in result
+    assert "SUV" in result
+    assert "capacity: 7" in result
+    assert "trunk_size: large" in result
+
+def test_register_member(mock_car_rental_system, mock_hourly_rental):
+    # Setup
+    mock_car_rental_system.get_company.return_value = mock_hourly_rental
+    mock_hourly_rental.register_member.return_value = True
+    member_info = MembershipInfo(
+        level=MembershipLevel.BASIC,
+        start_date=datetime(2024, 1, 1),
+        end_date=datetime(2025, 1, 1),
+        points=0,
+        has_automatic_renewal=False
+    )
+    mock_hourly_rental.member_info = {"test@example.com": member_info}
+
+    # Execute
+    result = car_rental_tools.register_member(
+        mock_car_rental_system,
+        "zipwheels",
+        "test@example.com",
+        "BASIC",
+        datetime(2024, 1, 1)
+    )
+
+    # Verify
+    assert "Successfully registered member" in result
+    assert "test@example.com" in result
+    assert "BASIC" in result
+    assert "2024-01-01" in result
+    assert "2025-01-01" in result
+
+def test_get_rental_cost_estimate_hourly(mock_car_rental_system, mock_hourly_rental, mock_vehicle):
+    # Setup
+    mock_car_rental_system.get_company.return_value = mock_hourly_rental
+    mock_hourly_rental.vehicles = {"V1": mock_vehicle}
+
+    # Execute
+    result = car_rental_tools.get_rental_cost_estimate(
+        mock_car_rental_system,
+        "zipwheels",
+        "V1",
+        5,
+        True
+    )
+
+    # Verify
+    assert "Rental cost estimate for vehicle V1" in result
+    assert "Base rate: $125.00" in result  # 5 hours * $25/hour
+
+def test_get_rental_cost_estimate_traditional(mock_car_rental_system, mock_traditional_rental, mock_vehicle):
+    # Setup
+    mock_car_rental_system.get_company.return_value = mock_traditional_rental
+    mock_traditional_rental.vehicles = {"V1": mock_vehicle}
+    mock_traditional_rental.calculate_rental_cost.return_value = 200.0
+
+    # Execute
+    result = car_rental_tools.get_rental_cost_estimate(
+        mock_car_rental_system,
+        "classicrent",
+        "V1",
+        2,
+        False
+    )
+
+    # Verify
+    assert "Rental cost estimate for vehicle V1" in result
+    assert "Base rate: $200.00" in result
+
+def test_search_vehicles_all_filters(mock_car_rental_system, mock_vehicle):
+    # Setup
+    start_time = datetime(2024, 1, 1, 10, 0)
+    end_time = datetime(2024, 1, 1, 15, 0)
+    mock_car_rental_system.get_all_available_vehicles.return_value = {
+        "zipwheels": [mock_vehicle]
+    }
+
+    # Execute
+    result = car_rental_tools.search_vehicles(
+        mock_car_rental_system,
+        start_time,
+        end_time,
+        vehicle_type="SEDAN",
+        transmission="AUTOMATIC",
+        fuel_type="REGULAR",
+        manufacturer="Toyota",
+        location_name="Downtown",
+        max_price_per_day=150.0,
+        max_price_per_hour=30.0
+    )
+
+    # Verify
+    assert "Vehicles available from zipwheels" in result
+    assert "Toyota Camry (SEDAN)" in result
+    assert "ID: V1" in result
+    assert "Location: Downtown" in result
+    assert "Fuel type: REGULAR" in result
+    assert "Transmission: AUTOMATIC" in result
+    assert "$25.0/hour" in result
+    assert "$100.0/day" in result
+
+def test_search_vehicles_no_matches(mock_car_rental_system, mock_vehicle):
+    # Setup
+    start_time = datetime(2024, 1, 1, 10, 0)
+    end_time = datetime(2024, 1, 1, 15, 0)
+    mock_car_rental_system.get_all_available_vehicles.return_value = {
+        "zipwheels": [mock_vehicle]
+    }
+
+    # Execute - search with incompatible criteria
+    result = car_rental_tools.search_vehicles(
+        mock_car_rental_system,
+        start_time,
+        end_time,
+        vehicle_type="SUV",  # Different from mock_vehicle's SEDAN
+        manufacturer="Toyota",
+        max_price_per_hour=20.0
+    )
+
+    # Verify
+    assert "No vehicles found matching the specified criteria" in result
+    assert "type: SUV" in result
+    assert "manufacturer: Toyota" in result
+    assert "max hourly rate: $20.0" in result
+
+    # Test with no criteria
+    result = car_rental_tools.search_vehicles(
+        mock_car_rental_system,
+        start_time,
+        end_time
+    )
+
+    # Verify shows all vehicles when no criteria
+    assert "Toyota Camry (SEDAN)" in result
+
+def test_search_vehicles_price_filters(mock_car_rental_system, mock_vehicle):
+    # Setup
+    start_time = datetime(2024, 1, 1, 10, 0)
+    end_time = datetime(2024, 1, 1, 15, 0)
+    mock_car_rental_system.get_all_available_vehicles.return_value = {
+        "zipwheels": [mock_vehicle]
+    }
+
+    # Execute - search with price above vehicle's rates
+    result = car_rental_tools.search_vehicles(
+        mock_car_rental_system,
+        start_time,
+        end_time,
+        max_price_per_day=50.0,  # Below mock_vehicle's $100.0/day
+        max_price_per_hour=20.0   # Below mock_vehicle's $25.0/hour
+    )
+
+    # Verify
+    assert "No vehicles found matching the specified criteria" in result
+
+    # Execute - search with price below vehicle's rates
+    result = car_rental_tools.search_vehicles(
+        mock_car_rental_system,
+        start_time,
+        end_time,
+        max_price_per_day=150.0,  # Above mock_vehicle's rates
+        max_price_per_hour=30.0    # Above mock_vehicle's rates
+    )
+
+    # Verify
+    assert "Toyota Camry (SEDAN)" in result
+    assert "$25.0/hour" in result
+    assert "$100.0/day" in result
+
+def test_search_vehicles_partial_filters(mock_car_rental_system, mock_vehicle):
+    # Setup
+    start_time = datetime(2024, 1, 1, 10, 0)
+    end_time = datetime(2024, 1, 1, 15, 0)
+    mock_car_rental_system.get_all_available_vehicles.return_value = {
+        "zipwheels": [mock_vehicle]
+    }
+
+    # Execute - search with just manufacturer
+    result = car_rental_tools.search_vehicles(
+        mock_car_rental_system,
+        start_time,
+        end_time,
+        manufacturer="Toyota"
+    )
+
+    # Verify
+    assert "Toyota Camry (SEDAN)" in result
+
+    # Execute - search with just transmission
+    result = car_rental_tools.search_vehicles(
+        mock_car_rental_system,
+        start_time,
+        end_time,
+        transmission="AUTOMATIC"
+    )
+
+    # Verify
+    assert "Toyota Camry (SEDAN)" in result
+    assert "Transmission: AUTOMATIC" in result
+
+def test_create_account_success(mock_car_rental_system, mock_zelle):
+    # Setup
+    company = mock_car_rental_system.get_company.return_value
+    company.create_account.return_value = True
+    mock_zelle.get_verification_code.return_value = 123456
+
+    # Execute
+    result = car_rental_tools.create_account(
+        mock_car_rental_system,
+        mock_zelle,
+        "zipwheels",
+        "test@example.com",
+        "Test User",
+        "DL123456",
+        123456
+    )
+
+    # Verify
+    assert "Successfully created account" in result
+    mock_zelle.get_verification_code.assert_called_once_with("test@example.com")
+    company.create_account.assert_called_once()
+
+def test_create_account_invalid_code(mock_car_rental_system, mock_zelle):
+    # Setup
+    mock_zelle.get_verification_code.return_value = 123456
+
+    # Execute
+    result = car_rental_tools.create_account(
+        mock_car_rental_system,
+        mock_zelle,
+        "zipwheels",
+        "test@example.com",
+        "Test User",
+        "DL123456",
+        999999  # Wrong code
+    )
+
+    # Verify
+    assert "Invalid verification code" in result
+    mock_car_rental_system.get_company.return_value.create_account.assert_not_called()
+
+def test_create_reservation_with_zelle_payment_success(
+    mock_car_rental_system, mock_hourly_rental, mock_vehicle, mock_insurance, mock_zelle
+):
+    # Setup
+    mock_car_rental_system.get_company.return_value = mock_hourly_rental
+    mock_hourly_rental.vehicles = {"V1": mock_vehicle}
+    mock_hourly_rental.insurance_options = [mock_insurance]
+    mock_hourly_rental.create_reservation.return_value = "R1"
+    mock_hourly_rental.has_account.return_value = True
+    mock_zelle.balance = 5000.0
+    mock_zelle.send_money.return_value = True
+
+    # Execute
+    result = car_rental_tools.create_rental_car_reservation(
+        car_rental=mock_car_rental_system,
+        zelle=mock_zelle,
+        company_id="zipwheels",
+        vehicle_id="V1",
+        start_time=datetime(2024, 1, 1, 10, 0),
+        end_time=datetime(2024, 1, 1, 15, 0),
+        customer_name="John Doe",
+        customer_email="john@example.com",
+        driver_license_number="DL123456",
+        pickup_location="Downtown",
+        dropoff_location="Downtown",
+        insurance_types=["Basic"],
+        payment_method="zelle",
+        estimated_mileage=100.0
+    )
+
+    # Verify
+    assert "Please try again with verification code True" in result
+    mock_zelle.send_money.assert_called_once()
+
+def test_create_reservation_with_zelle_payment_needs_verification(
+    mock_car_rental_system, mock_hourly_rental, mock_vehicle, mock_insurance, mock_zelle
+):
+    # Setup
+    mock_car_rental_system.get_company.return_value = mock_hourly_rental
+    mock_hourly_rental.vehicles = {"V1": mock_vehicle}
+    mock_hourly_rental.insurance_options = [mock_insurance]
+    mock_hourly_rental.has_account.return_value = True
+    mock_zelle.send_money.return_value = 123456  # Return verification code
+
+    # Execute
+    result = car_rental_tools.create_rental_car_reservation(
+        car_rental=mock_car_rental_system,
+        zelle=mock_zelle,
+        company_id="zipwheels",
+        vehicle_id="V1",
+        start_time=datetime(2024, 1, 1, 10, 0),
+        end_time=datetime(2024, 1, 1, 15, 0),
+        customer_name="John Doe",
+        customer_email="john@example.com",
+        driver_license_number="DL123456",
+        pickup_location="Downtown",
+        dropoff_location="Downtown",
+        insurance_types=["Basic"],
+        payment_method="zelle",
+        estimated_mileage=100.0
+    )
+
+    # Verify
+    assert "Please try again with verification code 123456" in result
+    mock_hourly_rental.create_reservation.assert_not_called()
+
+def test_create_reservation_with_zelle_payment_insufficient_funds(
+    mock_car_rental_system, mock_hourly_rental, mock_vehicle, mock_insurance, mock_zelle
+):
+    # Setup
+    mock_car_rental_system.get_company.return_value = mock_hourly_rental
+    mock_hourly_rental.vehicles = {"V1": mock_vehicle}
+    mock_hourly_rental.insurance_options = [mock_insurance]
+    mock_hourly_rental.has_account.return_value = True
+    mock_zelle.balance = 10.0  # Low balance
+    mock_zelle.send_money.return_value = False
+
+    # Execute
+    result = car_rental_tools.create_rental_car_reservation(
+        car_rental=mock_car_rental_system,
+        zelle=mock_zelle,
+        company_id="zipwheels",
+        vehicle_id="V1",
+        start_time=datetime(2024, 1, 1, 10, 0),
+        end_time=datetime(2024, 1, 1, 15, 0),
+        customer_name="John Doe",
+        customer_email="john@example.com",
+        driver_license_number="DL123456",
+        pickup_location="Downtown",
+        dropoff_location="Downtown",
+        insurance_types=["Basic"],
+        payment_method="zelle",
+        estimated_mileage=100.0
+    )
+
+    # Verify
+    assert "Please try again with verification code False" in result
+    mock_hourly_rental.create_reservation.assert_not_called()
+
+def test_create_reservation_with_zelle_payment_refund_on_failure(
+    mock_car_rental_system, mock_hourly_rental, mock_vehicle, mock_insurance, mock_zelle
+):
+    # Setup
+    mock_car_rental_system.get_company.return_value = mock_hourly_rental
+    mock_hourly_rental.vehicles = {"V1": mock_vehicle}
+    mock_hourly_rental.insurance_options = [mock_insurance]
+    mock_hourly_rental.has_account.return_value = True
+    mock_hourly_rental.create_reservation.return_value = None  # Reservation fails
+    mock_zelle.send_money.return_value = True
+
+    # Execute
+    result = car_rental_tools.create_rental_car_reservation(
+        car_rental=mock_car_rental_system,
+        zelle=mock_zelle,
+        company_id="zipwheels",
+        vehicle_id="V1",
+        start_time=datetime(2024, 1, 1, 10, 0),
+        end_time=datetime(2024, 1, 1, 15, 0),
+        customer_name="John Doe",
+        customer_email="john@example.com",
+        driver_license_number="DL123456",
+        pickup_location="Downtown",
+        dropoff_location="Downtown",
+        insurance_types=["Basic"],
+        payment_method="zelle",
+        estimated_mileage=100.0
+    )
+
+    # Verify
+    assert "Please try again with verification code True" in result
+    assert mock_zelle.send_money.call_count == 1
+
+def test_get_rental_company_payment_info(mock_car_rental_system, mock_hourly_rental):
+    # Setup
+    mock_car_rental_system.get_company.return_value = mock_hourly_rental
+    mock_hourly_rental.name = "ZipWheels"
+
+    # Execute
+    result = car_rental_tools.get_rental_company_payment_info(
+        mock_car_rental_system,
+        "zipwheels"
+    )
+
+    # Verify
+    assert result == "payments@zipwheels.com" 

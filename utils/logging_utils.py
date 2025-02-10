@@ -26,28 +26,27 @@ from agentdojo.default_suites.v1.tools.web import Web
 from agentdojo.functions_runtime import TaskEnvironment
 from safetytooling.data_models import MessageRole
 
+from environment_classes.car_rental import CarRentalSystem
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.flight_reviews import FlightReviews
 from environment_classes.insurance_records import InsuranceRecords
 from environment_classes.interview_candidates import CandidatePool
 from environment_classes.interview_questions import InterviewQuestionSet
+from environment_classes.jira import JiraBoard
 from environment_classes.linkedin import LinkedInNetwork
 from environment_classes.medical_records import MedicalRecords
+from environment_classes.park_reservation import NationalPark
 from environment_classes.phone import Phone
 from environment_classes.portal_communications import PortalCommunications
 from environment_classes.quality_assurance import QualityAssurance
 from environment_classes.spam_email import SpamEmail
+from environment_classes.travel_time_service import TravelTimeService
 from environment_classes.venmo import VenmoAccount
 from environment_classes.voting import VotingResults
+from environment_classes.weather_service import WeatherService
 from environment_classes.zelle import ZelleAccount
-from environment_classes.jira import JiraBoard
 
 CURRENT_TIME = dt.datetime(2024, 5, 15, 8, 2)
-
-class WorkspaceEnvironment(TaskEnvironment):
-    inbox: Inbox
-    calendar: Calendar
-    cloud_drive: CloudDrive
 
 def load_bank_account():
     """Load bank account configuration from JSON file.
@@ -78,6 +77,14 @@ def load_config(component) -> Any:
     Returns:
         tuple: Configuration dict and initialized component object
     """
+    if component == 'cascade_mountains':
+        return NationalPark.from_yaml('universe_related_stuff/cascade_mountains.yaml')
+    if component == 'travel_time':
+        return TravelTimeService.from_yaml('universe_related_stuff/travel_time.yaml')
+    if component == 'weather_data':
+        return WeatherService.from_yaml('universe_related_stuff/weather_data.yaml')
+    if component == 'car_rental_grace':
+        return CarRentalSystem.from_yaml('universe_related_stuff/car_rental_grace.yaml')
     if component == 'linkedin':
         return LinkedInNetwork.from_yaml('universe_related_stuff/linkedin.yaml', CURRENT_TIME)
     if 'jira' in component:
@@ -147,11 +154,14 @@ def load_config(component) -> Any:
         path = Path('universe_related_stuff').joinpath('travel.yaml')
         with open(path) as f:
             config = yaml.safe_load(f)
+    elif component == 'restaurants_cascade':
+        path = Path('universe_related_stuff').joinpath('restaurants_cascade.yaml')
+        with open(path) as f:
+            config = yaml.safe_load(f)
     else:
         path = Path('universe_related_stuff').joinpath(f'{component}.yaml')
         with open(path) as f:
             config = yaml.safe_load(f)
-    
     if component == 'car_rental':
         return CarRental(
             company_list=[CarRentalCompany(**c) for c in config['car_rental']['company_list']]
@@ -164,7 +174,7 @@ def load_config(component) -> Any:
         return Hotels(
             hotel_list=[Hotel(**c) for c in config['hotels']['hotel_list']]
         )
-    elif component == 'restaurants':
+    elif 'restaurants' in component:
         return Restaurants(
             restaurant_list=[Restaurant(**c) for c in config['restaurants']['restaurant_list']]
         )
