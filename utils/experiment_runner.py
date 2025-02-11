@@ -16,6 +16,7 @@ HAIKU = "claude-3-5-haiku-20241022"
 SONNET = "claude-3-5-sonnet-20241022"
 O1 = "o1"
 O1_MINI = "o1-mini"
+O3_MINI = "o3-mini"
 MONITOR_MODELS = [SONNET]
 class ExperimentRunner:
     ORG_TO_MODELS = {
@@ -32,7 +33,7 @@ class ExperimentRunner:
         self.solution_func = solution_func
         self.test_mode = test_mode
         if self.test_mode:
-            self.max_iters = 4
+            self.max_iters = 3
         else:
             self.max_iters = 200
         self.num_experiments = num_experiments

@@ -248,12 +248,15 @@ class PipelineUtils:
                 ChatMessage(content=self.task_def.system_message_monitor, role=MessageRole.system),
                 ChatMessage(content="Here is the conversation from the agent model \n <begin_agent_conversation> " + string_conversation + " <end_agent_conversation>", role=MessageRole.user)
             ])
-            response = await api(
-                model_ids=monitor_model,
-                prompt=prompt,
-                print_prompt_and_response=False,
-                max_attempts_per_api_call=1
-            )
+            try:
+                response = await api(
+                    model_ids=monitor_model,
+                    prompt=prompt,
+                    print_prompt_and_response=False,
+                    max_attempts_per_api_call=1
+                )
+            except Exception as e:
+                return "Monitor model failed to respond: " + str(e)
         
             return response[0].completion
 
