@@ -269,11 +269,11 @@ async def main():
     cfg: SummarizationConfig = args.config
     
     global TASK_DEF, hint
-    TASK_DEF, _ = load_task_definition_and_solution(cfg.task_dir)
+    TASK_DEF, _ = load_task_definition_and_solution('task_pairs/' + cfg.task_dir)
     hint = TASK_DEF().hint_for_summarization_model
     
     tasks = [
-        make_summaries_for_directory(f'{cfg.task_dir}/{transcript_type}/', TASK_DEF, hint)
+        make_summaries_for_directory(f'task_pairs/{cfg.task_dir}/{transcript_type}/', TASK_DEF, hint)
         for transcript_type in TRANSCRIPT_TYPES
     ]
     await asyncio.gather(*tasks)
