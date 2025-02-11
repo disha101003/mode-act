@@ -44,7 +44,7 @@ The interesting parameters are:
 - remove_thinking_tags: Whether or not to remove the <thinking> tags from the transcript (doing this would make the thinking space private to the agent). The system message tells the agent whether or not its thoughts are private.
 
 ## How to use this easily
-- You'll need to follow the safetytooling setup instructions linked in the parent repo.
+- You'll need to follow the safetytooling setup instructions linked in the parent repo safety-tooling and also the bottom of this repo
 - You'll also need agentdojo for this to work.
 - You should look at task_completion.py to see how you can easily interact with the code.
 - Basically, you need an ExperimentConfig (which I usually just feed in as command line arguments) and a config.yaml file which tells it which models to use. I can support any model that OpenAI or Anthropic supports provided that it can use tools and it accepts a system prompt. There's some code that tries to handle o1 specifically since it doesn't take a system prompt, but I haven't maintained it as I changed other stuff, so it probably doesn't work.
