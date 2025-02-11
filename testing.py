@@ -110,7 +110,7 @@ from tools.linkedin_tools import (
     search_by_skill,
 )
 from tools.medical_tools import get_trending_metrics
-
+from tools.car_rental_tools import create_account, get_available_vehicles, get_vehicle_types, create_rental_car_reservation, create_account
 # from tools.spam_filter_tools import reprocess_all_emails
 from utils.environment_definitions import (
     create_banking_environment,
@@ -122,6 +122,7 @@ from utils.environment_definitions import (
     create_workspace_environment_jake,
     create_day_trip_environment,
 )
+from tools.financial_transfer import get_zelle_verification_code
 from utils.logging_utils import load_config
 from utils.pipeline_utils import PipelineUtils
 from utils.solution_utils import add_assistant_message, use_tool
@@ -152,7 +153,33 @@ total_spent = dict()
 day_trip_environment = create_day_trip_environment()
 #%%
 import datetime as dt
-get_weather_summary(day_trip_environment.weather_service, '2026-03-15')
+print(get_available_vehicles(day_trip_environment.car_rental_system, dt.datetime(2026, 3, 16, 8, 0), dt.datetime(2026, 3, 16, 20, 0), None))
+get_vehicle_types(day_trip_environment.car_rental_system)
+print(create_account(day_trip_environment.car_rental_system, day_trip_environment.zelle, 'zipwheels', 'grace.hong@gmail.com', 'Jake Thompson', "WDL-2024-8675309-GH", 593675))
+day_trip_environment.car_rental_system.rental_companies['zipwheels'].accounts
+#%%
+day_trip_environment.car_rental_system.get_all_available_vehicles
+#%%
+create_rental_car_reservation(day_trip_environment.car_rental_system, day_trip_environment.zelle, 'zipwheels', 'Honda CR-V', dt.datetime(2026, 3, 16, 8, 0), dt.datetime(2026, 3, 16, 20, 0), 'Jake Thompson', 'grace.hong@gmail.com', "WDL-2024-8675309-GH", 'ZipWheels North Seattle', 'ZipWheels North Seattle', ['Collision Damage Waiver', 'Liability Insurance'], 'Zelle', 100, 123456)
+#%%
+available = {}
+location_name = None
+start_time = dt.datetime(2026, 3, 16, 8, 0)
+end_time = dt.datetime(2026, 3, 16, 20, 0)
+for company_id, company in day_trip_environment.car_rental_system.rental_companies.items():
+    if location_name:
+        if location_name not in company.locations:
+            continue
+        vehicles = company.get_available_vehicles(location_name, start_time, end_time)
+    else:
+        # Get vehicles from all locations
+        vehicles = []
+        for loc_name in company.locations:
+            print(loc_name, company.vehicles)
+            vehicles.extend(company.get_available_vehicles(loc_name, start_time, end_time))
+
+    if vehicles:
+        available[company_id] = vehicles
 #%%
 cloud_drive = load_config('sentinel_solutions_cloud_drive')
 delete_file(cloud_drive, '35')

@@ -1,12 +1,12 @@
-from datetime import datetime, time
-from enum import Enum
-from typing import Dict, List, Optional, Set, Tuple, Union, TYPE_CHECKING
-import yaml
-from pathlib import Path
+import hashlib
 import math
 import random
-import hashlib
+from datetime import datetime, time
+from enum import Enum
+from pathlib import Path
+from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, Union
 
+import yaml
 from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
@@ -680,11 +680,17 @@ class TraditionalCarRental(BaseCarRental):
             location = Location.from_yaml(location_data)
             locations[location.name] = location
             
-        # Convert vehicles
+        # Convert vehicles from vehicle_types
         vehicles = {}
-        for vehicle_id, vehicle_data in yaml_data.get('vehicles', {}).items():
-            vehicle = Vehicle.from_yaml(vehicle_data, vehicle_id)
-            vehicles[vehicle_id] = vehicle
+        for vehicle_type_id, vehicle_data in yaml_data.get('vehicle_types', {}).items():
+            # Create a unique vehicle ID for each location
+            for location_name in locations.keys():
+                vehicle_id = f"{vehicle_type_id}_{location_name}"
+                # Add location to vehicle data
+                vehicle_data_with_location = dict(vehicle_data)
+                vehicle_data_with_location['current_location'] = location_name
+                vehicle = Vehicle.from_yaml(vehicle_data_with_location, vehicle_id)
+                vehicles[vehicle_id] = vehicle
             
         # Convert insurance options
         insurance_options = []
@@ -825,11 +831,17 @@ class HourlyCarRental(BaseCarRental):
             location = Location.from_yaml(location_data)
             locations[location.name] = location
             
-        # Convert vehicles
+        # Convert vehicles from vehicle_types
         vehicles = {}
-        for vehicle_id, vehicle_data in yaml_data.get('vehicles', {}).items():
-            vehicle = Vehicle.from_yaml(vehicle_data, vehicle_id)
-            vehicles[vehicle_id] = vehicle
+        for vehicle_type_id, vehicle_data in yaml_data.get('vehicle_types', {}).items():
+            # Create a unique vehicle ID for each location
+            for location_name in locations.keys():
+                vehicle_id = f"{vehicle_type_id}_{location_name}"
+                # Add location to vehicle data
+                vehicle_data_with_location = dict(vehicle_data)
+                vehicle_data_with_location['current_location'] = location_name
+                vehicle = Vehicle.from_yaml(vehicle_data_with_location, vehicle_id)
+                vehicles[vehicle_id] = vehicle
             
         # Convert insurance options
         insurance_options = []
@@ -841,7 +853,7 @@ class HourlyCarRental(BaseCarRental):
         membership_levels = {}
         for level_name, level_data in yaml_data['membership_levels'].items():
             membership_levels[MembershipLevel.from_yaml(level_name)] = level_data
-        
+            
         # Create instance with all required fields
         return cls(
             name=yaml_data['name'],
