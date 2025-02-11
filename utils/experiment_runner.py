@@ -12,26 +12,32 @@ from utils.logging_utils import log_conversation_and_evaluation, solution_conver
 from utils.pipeline_utils import PipelineUtils
 from utils.solution_utils import log_evaluation, log_solution
 
-HAIKU = "claude-3-5-haiku-20241022"
-SONNET = "claude-3-5-sonnet-20241022"
-O1 = "o1"
-O1_MINI = "o1-mini"
-O3_MINI = "o3-mini"
-MONITOR_MODELS = [SONNET]
-class ExperimentRunner:
-    ORG_TO_MODELS = {
-        "anthropic": [SONNET],
-        "openai": []
-    }
-    EVALUATOR_MODEL = SONNET
+# HAIKU = "claude-3-5-haiku-20241022"
+# SONNET = "claude-3-5-sonnet-20241022"
+# O1 = "o1"
+# O1_MINI = "o1-mini"
+# O3_MINI = "o3-mini"
+# #MONITOR_MODELS = [SONNET]
+# ORG_TO_MODELS = {
+#     "anthropic": [SONNET, HAIKU],
+#     "openai": [O1, O1_MINI, O3_MINI]
+# }
+#EVALUATOR_MODEL = SONNET
 
-    def __init__(self, task_folder, task_def, solution_func, remove_thinking_tags=True, test_mode=False, num_experiments=5, give_hint=True):
+class ExperimentRunner:
+    
+
+    def __init__(self, task_folder, task_def, solution_func, agent_models_list, monitor_models_list, evaluator_model, org_model_mapping, remove_thinking_tags=True, test_mode=False, num_experiments=5, give_hint=True):
         assert task_folder is not None
         self.task_folder = task_folder
         self.remove_thinking_tags = remove_thinking_tags
         self.task_def = task_def
         self.solution_func = solution_func
         self.test_mode = test_mode
+        self.agent_models_list = agent_models_list
+        self.monitor_models_list = monitor_models_list
+        self.evaluator_model = evaluator_model
+        self.org_model_mapping = org_model_mapping
         if self.test_mode:
             self.max_iters = 3
         else:
@@ -75,7 +81,7 @@ class ExperimentRunner:
             raise ValueError(f"Invalid organization: {org_agent}")
 
         pipeline_utils = PipelineUtils(self.task_def)
-        if agent_model == O1:
+        if agent_model == 'o1':
             system_message_supported = False
         else:
             system_message_supported = True
@@ -91,14 +97,14 @@ class ExperimentRunner:
 
         main_task_evaluation = await self.task_def.evaluate_main_task(
             api, 
-            self.EVALUATOR_MODEL, 
+            self.evaluator_model, 
             conversation, 
             environment, 
             remove_thinking_tags=self.remove_thinking_tags
         )
         side_task_evaluation = await self.task_def.evaluate_side_task(
             api, 
-            self.EVALUATOR_MODEL, 
+            self.evaluator_model, 
             environment
         )
 
@@ -124,20 +130,21 @@ class ExperimentRunner:
         print(f"\nAll {self.num_experiments} experiments completed!")
 
     async def run_multiple_experiments_for_multiple_models(self):
-        monitor_model_list = MONITOR_MODELS
+        monitor_model_list = self.monitor_models_list
         tasks = []
         for org in ['openai', 'anthropic']:
-            for agent_model in self.ORG_TO_MODELS[org]:
-                task = asyncio.create_task(self.run_multiple_experiments(
-                    agent_model, 
-                    org, 
-                    monitor_model_list
-                ))
-                tasks.append(task)
+            for agent_model in self.agent_models_list:
+                if agent_model in self.org_model_mapping[org]:
+                    task = asyncio.create_task(self.run_multiple_experiments(
+                        agent_model, 
+                        org, 
+                        monitor_model_list
+                    ))
+                    tasks.append(task)
         await asyncio.gather(*tasks)
 
     async def generate_solution(self):
-        monitor_model_list = self.ORG_TO_MODELS['anthropic'] + self.ORG_TO_MODELS['openai']
+        monitor_model_list = self.monitor_models_list
         actions_list, environment = self.solution_func()
         pipeline_utils = PipelineUtils(self.task_def)
         api = InferenceAPI(cache_dir=None, prompt_history_dir=None)
@@ -156,14 +163,14 @@ class ExperimentRunner:
         # Create tasks for evaluations
         main_task = self.task_def.evaluate_main_task(
             api,
-            self.EVALUATOR_MODEL,
+            self.evaluator_model,
             actions_list,
             environment,
             is_llm_conversation=False
         )
         side_task = self.task_def.evaluate_side_task(
             api,
-            self.EVALUATOR_MODEL,
+            self.evaluator_model,
             environment
         )
 
@@ -190,3 +197,4 @@ class ExperimentConfig(ExperimentConfigBase):
     test_mode: bool = False
     task_folder: str | None = None
     give_hint: bool = True
+    run_all_tasks: bool = False

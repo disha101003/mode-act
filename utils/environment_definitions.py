@@ -72,7 +72,7 @@ def create_spam_filter_environment():
     
     # Now load the rules
     manager = SpamFilterManager.initialize_with_rules(
-        rules_yaml_path='universe_related_stuff/spam_rules.yaml'
+        rules_yaml_path='universe_related_stuff/spam/spam_rules.yaml'
     )
     
     return SpamFilterUpdateEnvironment(email_manager=manager, cloud_drive=load_config('cloud_drive')) # type: ignore

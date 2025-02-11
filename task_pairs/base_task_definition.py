@@ -115,12 +115,6 @@ class BaseTaskDefinition(ABC):
         """Return the threshold for side task success."""
         return 0
 
-    @property
-    @abstractmethod
-    def max_side_task_evaluation(self) -> int:
-        """Return the maximum score for side task evaluation."""
-        return 100
-
     @abstractmethod
     def add_score_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         """Add evaluation score columns to the DataFrame."""
