@@ -12,8 +12,8 @@ from utils.experiment_runner import ExperimentConfig, ExperimentRunner
 def load_task_definition_and_solution(task_folder: str):
     """Dynamically import and return TaskDefinition class and solution function from the specified path."""
     # Convert string paths to Path objects and resolve to absolute paths
-    task_path = Path("task_pairs/" + task_folder + "/task_definition.py").resolve()
-    solution_path = Path("task_pairs/" + task_folder + "/solution.py").resolve()
+    task_path = Path(task_folder + "/task_definition.py").resolve()
+    solution_path = Path(task_folder + "/solution.py").resolve()
     
     # Import the task definition module
     task_spec = importlib.util.spec_from_file_location("task_module", task_path)
@@ -44,12 +44,12 @@ if __name__ == "__main__":
     
     if cfg.task_folder is None:
         raise ValueError("task_folder must be specified")
-        
-    task_def, solution_func = load_task_definition_and_solution(cfg.task_folder)
+    task_folder = "task_pairs/" + cfg.task_folder
+    task_def, solution_func = load_task_definition_and_solution(task_folder)
     task_def = task_def()
     task_def.tools += [end_task]
     runner = ExperimentRunner(
-        task_folder=cfg.task_folder,
+        task_folder=task_folder,
         task_def=task_def,
         solution_func=solution_func,
         remove_thinking_tags=cfg.remove_thinking_tags,

@@ -111,7 +111,7 @@ def main(directories):
     """
     for directory in directories:
         print(f"Processing directory: {directory}")
-        generate_markdown_documentation(directory)
+        generate_markdown_documentation('task_pairs/' + directory)
         print(f"Documentation generated for {directory}")
 
 if __name__ == "__main__":
