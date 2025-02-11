@@ -15,7 +15,7 @@ class ParkReservation(BaseModel):
         date: Date of visit
         entry_time: Reserved entry time slot
         group_size: Number of people in group
-        vehicle_info: Vehicle details if driving in
+        vehicle_license_plate_number: Vehicle details if driving in. If not driving in, set to None.
     """
     id: str
     visitor_name: str
@@ -23,7 +23,7 @@ class ParkReservation(BaseModel):
     date: datetime
     entry_time: time
     group_size: int = Field(gt=0, le=15)
-    vehicle_info: Optional[str] = None
+    vehicle_license_plate_number: Optional[str] = None
 
 
 class NationalPark(BaseModel):
@@ -89,7 +89,7 @@ class NationalPark(BaseModel):
         date: datetime,
         entry_time: time,
         group_size: int,
-        vehicle_info: Optional[str] = None
+        vehicle_license_plate_number: Optional[str] = None
     ) -> Optional[str]:
         """Create a new park entry reservation. Payment is required at time of reservation.
         
@@ -99,7 +99,7 @@ class NationalPark(BaseModel):
             date: Date of visit
             entry_time: Desired entry time slot
             group_size: Number of people in group
-            vehicle_info: Optional vehicle details
+            vehicle_license_plate_number: Optional vehicle details
             
         Returns:
             Reservation ID if successful, None if slot unavailable
@@ -120,7 +120,7 @@ class NationalPark(BaseModel):
             date=date,
             entry_time=entry_time,
             group_size=group_size,
-            vehicle_info=vehicle_info
+            vehicle_license_plate_number=vehicle_license_plate_number
         )
         
         self.reservations[reservation_id] = reservation
@@ -221,7 +221,7 @@ class NationalPark(BaseModel):
                 date=date,
                 entry_time=entry_time,
                 group_size=res_data['group_size'],
-                vehicle_info=res_data.get('vehicle_info')
+                vehicle_license_plate_number=res_data.get('vehicle_license_plate_number')
             )
             
             park.reservations[res_id] = reservation

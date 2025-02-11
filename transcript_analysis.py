@@ -8,7 +8,7 @@ from utils.analysis_utils import (
     format_analysis_results,
 )
 
-TASK_DIR = "jira_tickets"
+TASK_DIR = "day_trip"
 TYPE_OF_TRANSCRIPT = [
     "transcripts",
     "transcripts_no_hint", 

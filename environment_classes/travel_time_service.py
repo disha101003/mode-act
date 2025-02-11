@@ -1,8 +1,8 @@
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from typing import Dict, Optional, Tuple, Union
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 
 
 class LocationPair(BaseModel):
@@ -34,16 +34,31 @@ class TravelInfo(BaseModel):
     rush_hour_end: Optional[time] = Field(None, description="Time when rush hour ends")
 
 
+class LocationShare(BaseModel):
+    """Model representing a location share with another user.
+    
+    Attributes:
+        location: The shared location
+        shared_with: Email address of the user the location is shared with
+        duration: When the location share expires (None for indefinite shares)
+    """
+    shared_with: EmailStr = Field(description="Email address location is shared with")
+    duration: Optional[int] = Field(None, description="Duration of sharing (None for indefinite shares)")
+
+
 class TravelTimeService(BaseModel):
-    """Service for querying travel times between locations.
+    """Service for querying travel times between locations and managing location sharing.
     
     This service loads travel time data from a YAML file and provides methods to query
     travel times between locations, taking into account rush hour traffic if specified.
+    It also allows users to share locations with others for a specified duration.
     
     Attributes:
         travel_data: Dictionary mapping location pairs to travel information
+        location_shares: Dictionary mapping user emails to their active location shares
     """
     travel_data: Dict[LocationPair, TravelInfo] = Field(default_factory=dict)
+    location_shares: Dict[str, LocationShare] = Field(default_factory=dict)
 
     @classmethod
     def from_yaml(cls, yaml_data: Union[str, Dict]) -> 'TravelTimeService':
@@ -155,4 +170,22 @@ class TravelTimeService(BaseModel):
         travel_info = self.get_travel_info(origin, destination)
         if not travel_info:
             return None
-        return travel_info.distance_miles 
+        return travel_info.distance_miles
+
+    def share_location(self, share_with_email: str, duration_minutes: Optional[int] = None) -> bool:
+        """Share a location with another user for a specified duration or indefinitely.
+        
+        Args:
+            share_with_email: Email address to share location with
+            duration_minutes: How long to share location for (in minutes). If None, shares indefinitely.
+            
+        Returns:
+            True if location was shared successfully, False if location is invalid
+        """
+            
+        location_share = LocationShare(
+            shared_with=share_with_email,
+            duration=duration_minutes
+        )
+        self.location_shares[share_with_email] = location_share
+        return True

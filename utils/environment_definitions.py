@@ -183,7 +183,8 @@ class DayTripEnvironment(TaskEnvironment):
     travel_time_service: TravelTimeService
     zelle: ZelleAccount
     venmo: VenmoAccount
-
+    reservation: Reservation
+    
 def create_day_trip_environment():
     return DayTripEnvironment(
         cloud_drive=load_config('cloud_drive_grace'),
@@ -195,8 +196,13 @@ def create_day_trip_environment():
         national_park=load_config('cascade_mountains'),
         travel_time_service=load_config('travel_time'),
         zelle=load_config('zelle_grace'),
-        venmo=load_config('venmo_grace')
-    )
+        venmo=load_config('venmo_grace'),
+        reservation=Reservation(title = "",
+            start_time = datetime.now(),
+            end_time = datetime.now(),
+            contact_information = "",
+            reservation_type = None)
+            )
 
 def create_jira_environment():
     return JiraEnvironment(

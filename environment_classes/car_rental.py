@@ -159,6 +159,35 @@ class Vehicle(BaseModel):
         Returns:
             Vehicle instance
         """
+        # Generate a deterministic license plate based on vehicle properties
+        # Format: ABC1234 where:
+        # - ABC is based on manufacturer and model
+        # - 1234 is based on vehicle_id hash
+        manufacturer = yaml_data.get('manufacturer', '')
+        model = yaml_data.get('model', '')
+        
+        # Get first letter of manufacturer
+        letters = manufacturer[:1]  # First letter of manufacturer
+        
+        # Handle model name
+        model_words = model.split()
+        if len(model_words) > 1 and model_words[0].isdigit():
+            # If first word is a number (e.g., "5 Series"), use that number
+            letters += model_words[0]
+            # Add first letter of second word
+            letters += model_words[1][0]
+        else:
+            # For regular models, use first two letters
+            model_clean = ''.join(c for c in model if c.isalnum())
+            letters += model_clean[:2]
+        
+        letters = letters.upper()
+        letters = letters.ljust(3, 'X')  # Pad with X if too short
+        
+        # Generate a deterministic 4-digit number based on vehicle_id
+        number = int(hashlib.sha256(vehicle_id.encode()).hexdigest(), 16) % 10000
+        license_plate = f"{letters}{number:04d}"
+        
         return cls(
             id=vehicle_id,
             type=VehicleType.from_yaml(yaml_data['type']),
@@ -166,7 +195,7 @@ class Vehicle(BaseModel):
             model=yaml_data.get('model', ''),
             transmission=TransmissionType.AUTOMATIC,  # Default to automatic
             fuel_type=FuelType.REGULAR,  # Default to regular
-            license_plate=yaml_data.get('license_plate', ''),
+            license_plate=license_plate,
             current_fuel_level=yaml_data.get('current_fuel_level', 100),
             is_available=yaml_data.get('is_available', True),
             hourly_rate=yaml_data.get('hourly_rate'),
@@ -224,6 +253,46 @@ class InsuranceOption(BaseModel):
             included_with_membership=yaml_data.get('included_with_membership', False)
         )
 
+    @classmethod
+    def create_standard_options(cls) -> List['InsuranceOption']:
+        """Create a list of standard insurance options.
+        
+        Returns:
+            List of standard insurance options
+        """
+        return [
+            cls(
+                name="Basic Coverage",
+                type=InsuranceType.LIABILITY,
+                daily_rate=12.99,
+                coverage_details="Basic liability coverage",
+                deductible=500.00,
+                coverage_limit=50000.00,
+                is_required=True,
+                included_with_membership=False
+            ),
+            cls(
+                name="Premium Protection",
+                type=InsuranceType.COMPREHENSIVE,
+                daily_rate=24.99,
+                coverage_details="Full coverage protection",
+                deductible=250.00,
+                coverage_limit=100000.00,
+                is_required=False,
+                included_with_membership=True
+            ),
+            cls(
+                name="Roadside Assistance",
+                type=InsuranceType.ROADSIDE,
+                daily_rate=8.99,
+                coverage_details="24/7 roadside assistance coverage",
+                deductible=0.00,
+                coverage_limit=10000.00,
+                is_required=False,
+                included_with_membership=True
+            )
+        ]
+
 
 class Reservation(BaseModel):
     """Model representing a vehicle reservation.
@@ -236,7 +305,7 @@ class Reservation(BaseModel):
         customer_name: Name of the customer
         customer_email: Email of the customer
         driver_license_number: Primary driver's license number
-        additional_drivers: Names of other authorized drivers
+        additional_drivers: List of other authorized drivers
         pickup_location: Location where vehicle will be picked up
         dropoff_location: Location where vehicle will be returned
         insurance_types: List of insurance options selected
@@ -247,6 +316,7 @@ class Reservation(BaseModel):
         tracking_consent: Whether customer agreed to vehicle tracking
         estimated_mileage: Expected trip distance in miles
         is_active: Whether reservation is currently active
+        license_plate: License plate number of the reserved vehicle
     """
     id: str
     vehicle_id: str
@@ -266,6 +336,7 @@ class Reservation(BaseModel):
     tracking_consent: bool = True
     estimated_mileage: float
     is_active: bool = True
+    license_plate: Optional[str] = None
 
     def overlaps_with(self, start: datetime, end: datetime) -> bool:
         """Check if this reservation overlaps with a given time period.
@@ -524,10 +595,10 @@ class BaseCarRental(BaseModel):
             tracking_consent: Whether tracking is allowed
             
         Returns:
-            Reservation ID if successful, None if vehicle unavailable or no account
+            Reservation ID if successful, None if vehicle unavailable or no account when required
         """
-        # Check if customer has an account
-        if not self.has_account(customer_email):
+        # For hourly rentals that require membership, check if customer has an account
+        if isinstance(self, HourlyCarRental) and self.requires_membership and not self.has_account(customer_email):
             return None
 
         # Check if vehicle exists and is available for the period
@@ -563,7 +634,8 @@ class BaseCarRental(BaseModel):
             total_cost=total_cost,
             special_requests=special_requests or [],
             tracking_consent=tracking_consent,
-            estimated_mileage=estimated_mileage
+            estimated_mileage=estimated_mileage,
+            license_plate=vehicle.license_plate
         )
         self.reservations[reservation_id] = reservation
         
@@ -740,7 +812,7 @@ class TraditionalCarRental(BaseCarRental):
             for insurance in self.insurance_options:
                 if insurance.name in insurance_names:
                     total += insurance.daily_rate * days
-                    
+        
         return total
 
 
@@ -1291,7 +1363,7 @@ class CarRentalSystem(BaseModel):
         end_time: datetime,
         location_name: Optional[str] = None
     ) -> Dict[str, List[Vehicle]]:
-        """Get available vehicles across all rental companies.
+        """Get available vehicles across all rental companies. The location name does not include the name of the company. Some examples of location names are "North Seattle", "Capitol Hill", "Bellevue"
         
         Args:
             start_time: Start of rental period

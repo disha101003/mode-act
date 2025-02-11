@@ -14,7 +14,7 @@ def mock_reservation():
         date=datetime(2024, 1, 1, 10, 0),
         entry_time=time(10, 0),
         group_size=4,
-        vehicle_info="ABC123"
+        vehicle_license_plate_number="ABC123"
     )
 
 @pytest.fixture

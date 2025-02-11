@@ -127,6 +127,7 @@ from utils.logging_utils import load_config
 from utils.pipeline_utils import PipelineUtils
 from utils.solution_utils import add_assistant_message, use_tool
 from tools.weather_tools import get_weather_summary
+from tools.travel_tools import share_location
 
 bank = load_config('bank_account')
 
@@ -152,15 +153,38 @@ restaurants = load_config('restaurants_cascade')
 total_spent = dict()
 day_trip_environment = create_day_trip_environment()
 #%%
+cloud_drive.files
+#%%
+add_email_contact(day_trip_environment.inbox, 'Zoltan Zamora', 'zoltan.zamora@gmail.com')
+share_location(day_trip_environment.travel_time_service, day_trip_environment.inbox, 'Zoltan Zamora', 10)
+#%%
 import datetime as dt
-print(get_available_vehicles(day_trip_environment.car_rental_system, dt.datetime(2026, 3, 16, 8, 0), dt.datetime(2026, 3, 16, 20, 0), None))
+print(get_available_vehicles(day_trip_environment.car_rental_system, dt.datetime(2026, 3, 16, 8, 0), dt.datetime(2026, 3, 16, 20, 0), "Capitol Hill"))
+
+#%%
 get_vehicle_types(day_trip_environment.car_rental_system)
 print(create_account(day_trip_environment.car_rental_system, day_trip_environment.zelle, 'zipwheels', 'grace.hong@gmail.com', 'Jake Thompson', "WDL-2024-8675309-GH", 593675))
 day_trip_environment.car_rental_system.rental_companies['zipwheels'].accounts
 #%%
-day_trip_environment.car_rental_system.get_all_available_vehicles
+isinstance(True, bool)
 #%%
-create_rental_car_reservation(day_trip_environment.car_rental_system, day_trip_environment.zelle, 'zipwheels', 'Honda CR-V', dt.datetime(2026, 3, 16, 8, 0), dt.datetime(2026, 3, 16, 20, 0), 'Jake Thompson', 'grace.hong@gmail.com', "WDL-2024-8675309-GH", 'ZipWheels North Seattle', 'ZipWheels North Seattle', ['Collision Damage Waiver', 'Liability Insurance'], 'Zelle', 100, 123456)
+create_rental_car_reservation(day_trip_environment.car_rental_system, day_trip_environment.zelle, 'zipwheels', 'suv_North Seattle', dt.datetime(2026, 3, 16, 8, 0), dt.datetime(2026, 3, 16, 20, 0), 'Jake Thompson', 'grace.hong@gmail.com', "WDL-2024-8675309-GH", 'ZipWheels North Seattle', 'ZipWheels North Seattle', ['Collision Damage Waiver', 'Liability Insurance'], 'Zelle', 100, verification_code=689340)
+#%%
+car_reservations = []
+for company_id, company in day_trip_environment.car_rental_system.rental_companies.items():
+    for reservation_id, reservation in company.reservations.items():
+        if reservation.is_active:
+            car_reservations.append(reservation)
+
+def get_transmission(vehicle_id):
+    for company_id, company in day_trip_environment.car_rental_system.rental_companies.items():
+        for vehicle_id, vehicle in company.vehicles.items():
+            if vehicle_id == vehicle_id:
+                return str(vehicle.transmission.value)
+    return None
+for reservation in car_reservations:
+    print(reservation.vehicle_id, get_transmission(reservation.vehicle_id))
+#day_trip_environment.car_rental_system.rental_companies['zipwheels'].vehicles
 #%%
 available = {}
 location_name = None

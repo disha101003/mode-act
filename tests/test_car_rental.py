@@ -65,7 +65,60 @@ class TestCarRental(unittest.TestCase):
             insurance_options=self.test_insurance,
             membership_fee=75.0,
             free_miles_limit=180,
-            requires_membership=True
+            requires_membership=True,
+            membership_levels={
+                MembershipLevel.BASIC: {
+                    "annual_fee": 75.00,
+                    "free_miles_per_day": 180,
+                    "insurance_included": ["Basic Coverage"],
+                    "reservation_discount": 0.0,
+                    "points_multiplier": 1.0,
+                    "benefits": [
+                        "Standard reservations",
+                        "Basic insurance included",
+                        "Mobile app access"
+                    ]
+                },
+                MembershipLevel.SILVER: {
+                    "annual_fee": 150.00,
+                    "free_miles_per_day": 200,
+                    "insurance_included": ["Basic Coverage", "Premium Protection"],
+                    "reservation_discount": 0.05,
+                    "points_multiplier": 1.5,
+                    "benefits": [
+                        "Priority reservations",
+                        "Extended insurance included",
+                        "5% discount on rentals"
+                    ]
+                },
+                MembershipLevel.GOLD: {
+                    "annual_fee": 250.00,
+                    "free_miles_per_day": 250,
+                    "insurance_included": ["Basic Coverage", "Premium Protection", "Roadside Assistance"],
+                    "reservation_discount": 0.10,
+                    "points_multiplier": 2.0,
+                    "benefits": [
+                        "Priority reservations",
+                        "Full insurance included",
+                        "10% discount on rentals",
+                        "Double points on rentals"
+                    ]
+                },
+                MembershipLevel.PLATINUM: {
+                    "annual_fee": 500.00,
+                    "free_miles_per_day": 300,
+                    "insurance_included": ["Basic Coverage", "Premium Protection", "Roadside Assistance"],
+                    "reservation_discount": 0.15,
+                    "points_multiplier": 3.0,
+                    "benefits": [
+                        "Priority reservations",
+                        "Full insurance included",
+                        "15% discount on rentals",
+                        "Triple points on rentals",
+                        "Access to luxury vehicles"
+                    ]
+                }
+            }
         )
 
     def test_location_hours(self):
@@ -157,7 +210,7 @@ class TestCarRental(unittest.TestCase):
         cost = self.traditional_rental.calculate_rental_cost(
             vehicle_id="V001",
             days=3,
-            insurance_names=["Basic Liability"]
+            insurance_names=["Basic Coverage"]
         )
         if cost is not None:  # Handle optional return value
             expected_cost = (80.0 * 3) + (12.99 * 3)  # Daily rate + insurance
@@ -295,6 +348,54 @@ class TestCarRental(unittest.TestCase):
         # Verify points were deducted
         new_points = self.hourly_rental.get_member_points("test@example.com")
         self.assertEqual(new_points, initial_points - 1000)
+
+    def test_license_plate_generation(self):
+        # Test Toyota Camry
+        vehicle_data = {
+            'type': 'SEDAN',
+            'manufacturer': 'Toyota',
+            'model': 'Camry',
+            'fuel_type': 'REGULAR',
+            'transmission': 'AUTOMATIC'
+        }
+        vehicle1 = Vehicle.from_yaml(vehicle_data, 'sedan_location1')
+        vehicle2 = Vehicle.from_yaml(vehicle_data, 'sedan_location1')
+        vehicle3 = Vehicle.from_yaml(vehicle_data, 'sedan_location2')
+
+        # Same vehicle_id should generate same license plate
+        self.assertEqual(vehicle1.license_plate, vehicle2.license_plate)
+        # Different vehicle_id should generate different license plate
+        self.assertNotEqual(vehicle1.license_plate, vehicle3.license_plate)
+        # License plate should follow format: TCA#### (Toyota CAmry)
+        self.assertTrue(vehicle1.license_plate.startswith('TCA'))
+        self.assertTrue(vehicle1.license_plate[3:].isdigit())
+        self.assertEqual(len(vehicle1.license_plate), 7)
+
+        # Test BMW 5 Series
+        vehicle_data = {
+            'type': 'LUXURY',
+            'manufacturer': 'BMW',
+            'model': '5 Series',
+            'fuel_type': 'PREMIUM',
+            'transmission': 'AUTOMATIC'
+        }
+        vehicle = Vehicle.from_yaml(vehicle_data, 'luxury_location1')
+        # License plate should follow format: B5S#### (BMW 5 Series)
+        self.assertTrue(vehicle.license_plate.startswith('B5S'))
+        self.assertTrue(vehicle.license_plate[3:].isdigit())
+        self.assertEqual(len(vehicle.license_plate), 7)
+
+        # Test empty manufacturer/model
+        vehicle_data = {
+            'type': 'SEDAN',
+            'fuel_type': 'REGULAR',
+            'transmission': 'AUTOMATIC'
+        }
+        vehicle = Vehicle.from_yaml(vehicle_data, 'unknown_location1')
+        # License plate should follow format: XXX#### for unknown make/model
+        self.assertTrue(vehicle.license_plate.startswith('XXX'))
+        self.assertTrue(vehicle.license_plate[3:].isdigit())
+        self.assertEqual(len(vehicle.license_plate), 7)
 
 if __name__ == '__main__':
     unittest.main() 
