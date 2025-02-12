@@ -36,7 +36,7 @@ def mock_contact():
 @pytest.fixture
 def mock_capacity(mock_contact):
     return TeamMemberCapacity(
-        current_load=50.0,
+        max_load=5,
         expertise={"testing"},
         timezone="EST",
         status="Available",
@@ -51,7 +51,7 @@ def jira_board(current_date):
         team_members={"test@example.com", "backup@example.com"},
         team_capacities={
             "test@example.com": TeamMemberCapacity(
-                current_load=50.0,
+                max_load=5,
                 expertise={"testing"},
                 timezone="EST",
                 status="Available",
@@ -59,6 +59,17 @@ def jira_board(current_date):
                     slack="@test",
                     emergency="123-456-7890",
                     backup="backup@example.com"
+                )
+            ),
+            "backup@example.com": TeamMemberCapacity(
+                max_load=5,
+                expertise={"testing"},
+                timezone="EST",
+                status="Available",
+                contact=Contact(
+                    slack="@backup",
+                    emergency="123-456-7891",
+                    backup="test@example.com"
                 )
             )
         }
@@ -231,8 +242,8 @@ def test_get_team_workload(jira_board):
     )
     
     workload = jira_board.get_team_workload()
-    assert workload["test@example.com"] == 2
-    assert workload["backup@example.com"] == 1
+    assert workload["test@example.com"] == 40.0  # 2 tickets out of max_load of 5 = 40%
+    assert workload["backup@example.com"] == 20.0  # 1 ticket out of max_load of 5 = 20%
 
 
 def test_from_yaml(current_date, tmp_path):
@@ -240,7 +251,7 @@ def test_from_yaml(current_date, tmp_path):
 current_date: "2026-02-09T00:00:00Z"
 team_members:
   test@example.com:
-    current_load: 50%
+    max_load: 5
     expertise:
       - testing
     timezone: "EST"

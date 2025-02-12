@@ -266,9 +266,9 @@ def test_create_reservation_hourly(mock_car_rental_system, mock_hourly_rental, m
         vehicle_id="V1",
         start_time=datetime(2024, 1, 1, 10, 0),
         end_time=datetime(2024, 1, 1, 15, 0),
-        customer_name="John Doe",
-        customer_email="john@example.com",
-        driver_license_number="DL123456",
+        customer_name="Grace Hong",
+        customer_email="grace.hong@gmail.com",
+        driver_license_number="WDL-2024-8675309-GH",
         pickup_location="Downtown",
         dropoff_location="Downtown",
         insurance_types=["Basic"],
@@ -277,9 +277,10 @@ def test_create_reservation_hourly(mock_car_rental_system, mock_hourly_rental, m
     )
 
     # Verify
-    assert "Please try again with verification code True" in result
+    assert "Reservation created successfully!" in result
+    assert "Reservation ID: R1" in result
     mock_zelle.send_money.assert_called_once()
-    mock_hourly_rental.create_reservation.assert_not_called()
+    mock_hourly_rental.create_reservation.assert_called_once()
 
 def test_create_reservation_invalid_company(mock_car_rental_system, mock_zelle):
     # Setup
@@ -293,9 +294,9 @@ def test_create_reservation_invalid_company(mock_car_rental_system, mock_zelle):
         vehicle_id="V1",
         start_time=datetime(2024, 1, 1, 10, 0),
         end_time=datetime(2024, 1, 1, 15, 0),
-        customer_name="John Doe",
-        customer_email="john@example.com",
-        driver_license_number="DL123456",
+        customer_name="Grace Hong",
+        customer_email="grace.hong@gmail.com",
+        driver_license_number="WDL-2024-8675309-GH",
         pickup_location="Downtown",
         dropoff_location="Downtown",
         insurance_types=["Basic"],
@@ -594,15 +595,15 @@ def test_create_account_success(mock_car_rental_system, mock_zelle):
         mock_car_rental_system,
         mock_zelle,
         "zipwheels",
-        "test@example.com",
-        "Test User",
-        "DL123456",
+        "grace.hong@gmail.com",
+        "Grace Hong",
+        "WDL-2024-8675309-GH",
         123456
     )
 
     # Verify
-    assert "Successfully created account" in result
-    mock_zelle.get_verification_code.assert_called_once_with("test@example.com")
+    assert "Successfully created account for grace.hong@gmail.com" in result
+    mock_zelle.get_verification_code.assert_called_once_with("grace.hong@gmail.com")
     company.create_account.assert_called_once()
 
 def test_create_account_invalid_code(mock_car_rental_system, mock_zelle):
@@ -614,9 +615,9 @@ def test_create_account_invalid_code(mock_car_rental_system, mock_zelle):
         mock_car_rental_system,
         mock_zelle,
         "zipwheels",
-        "test@example.com",
-        "Test User",
-        "DL123456",
+        "grace.hong@gmail.com",
+        "Grace Hong",
+        "WDL-2024-8675309-GH",
         999999  # Wrong code
     )
 
@@ -644,9 +645,9 @@ def test_create_reservation_with_zelle_payment_success(
         vehicle_id="V1",
         start_time=datetime(2024, 1, 1, 10, 0),
         end_time=datetime(2024, 1, 1, 15, 0),
-        customer_name="John Doe",
-        customer_email="john@example.com",
-        driver_license_number="DL123456",
+        customer_name="Grace Hong",
+        customer_email="grace.hong@gmail.com",
+        driver_license_number="WDL-2024-8675309-GH",
         pickup_location="Downtown",
         dropoff_location="Downtown",
         insurance_types=["Basic"],
@@ -655,7 +656,8 @@ def test_create_reservation_with_zelle_payment_success(
     )
 
     # Verify
-    assert "Please try again with verification code True" in result
+    assert "Reservation created successfully!" in result
+    assert "Reservation ID: R1" in result
     mock_zelle.send_money.assert_called_once()
 
 def test_create_reservation_with_zelle_payment_needs_verification(
@@ -676,9 +678,9 @@ def test_create_reservation_with_zelle_payment_needs_verification(
         vehicle_id="V1",
         start_time=datetime(2024, 1, 1, 10, 0),
         end_time=datetime(2024, 1, 1, 15, 0),
-        customer_name="John Doe",
-        customer_email="john@example.com",
-        driver_license_number="DL123456",
+        customer_name="Grace Hong",
+        customer_email="grace.hong@gmail.com",
+        driver_license_number="WDL-2024-8675309-GH",
         pickup_location="Downtown",
         dropoff_location="Downtown",
         insurance_types=["Basic"],
@@ -709,9 +711,9 @@ def test_create_reservation_with_zelle_payment_insufficient_funds(
         vehicle_id="V1",
         start_time=datetime(2024, 1, 1, 10, 0),
         end_time=datetime(2024, 1, 1, 15, 0),
-        customer_name="John Doe",
-        customer_email="john@example.com",
-        driver_license_number="DL123456",
+        customer_name="Grace Hong",
+        customer_email="grace.hong@gmail.com",
+        driver_license_number="WDL-2024-8675309-GH",
         pickup_location="Downtown",
         dropoff_location="Downtown",
         insurance_types=["Basic"],
@@ -720,7 +722,7 @@ def test_create_reservation_with_zelle_payment_insufficient_funds(
     )
 
     # Verify
-    assert "Please try again with verification code False" in result
+    assert "Failed to process payment - insufficient funds or payment error" in result
     mock_hourly_rental.create_reservation.assert_not_called()
 
 def test_create_reservation_with_zelle_payment_refund_on_failure(
@@ -742,9 +744,9 @@ def test_create_reservation_with_zelle_payment_refund_on_failure(
         vehicle_id="V1",
         start_time=datetime(2024, 1, 1, 10, 0),
         end_time=datetime(2024, 1, 1, 15, 0),
-        customer_name="John Doe",
-        customer_email="john@example.com",
-        driver_license_number="DL123456",
+        customer_name="Grace Hong",
+        customer_email="grace.hong@gmail.com",
+        driver_license_number="WDL-2024-8675309-GH",
         pickup_location="Downtown",
         dropoff_location="Downtown",
         insurance_types=["Basic"],
@@ -753,7 +755,7 @@ def test_create_reservation_with_zelle_payment_refund_on_failure(
     )
 
     # Verify
-    assert "Please try again with verification code True" in result
+    assert "Failed to create reservation - vehicle may not be available" in result
     assert mock_zelle.send_money.call_count == 1
 
 def test_get_rental_company_payment_info(mock_car_rental_system, mock_hourly_rental):

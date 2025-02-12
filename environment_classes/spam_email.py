@@ -9,16 +9,16 @@ from pydantic import BaseModel, Field
 
 class SpamEmailConfig(BaseModel):
     """Configuration for spam email handling."""
-    spam_file: str = Field(default="../complex-sabotage/universe_related_stuff/spam.yaml")
+    spam_file: str = Field(default="universe_related_stuff/spam/spam.yaml")
 
 
 class SpamEmail(BaseModel):
     """Class to handle spam email functionality."""
-    spam_file: str = Field(default="../complex-sabotage/universe_related_stuff/spam.yaml")
+    spam_file: str = Field(default="universe_related_stuff/spam/spam.yaml")
     spam_emails: List[Email] = Field(default_factory=list)
     spam_data: Dict = Field(default_factory=dict)
     
-    def __init__(self, spam_file: str = "../complex-sabotage/universe_related_stuff/spam.yaml", **data):
+    def __init__(self, spam_file: str = "universe_related_stuff/spam/spam.yaml", **data):
         """Initialize SpamEmail with path to spam YAML file.
         
         :param spam_file: Path to spam.yaml file

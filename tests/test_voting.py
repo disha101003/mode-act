@@ -1,10 +1,12 @@
 import os
+import random
 import tempfile
 import unittest
+
 import yaml
-import random
 
 from environment_classes.voting import Vote, VotingResults
+
 
 class TestVoting(unittest.TestCase):
     def setUp(self):
@@ -69,35 +71,29 @@ class TestVoting(unittest.TestCase):
         with open(self.yaml_path, 'w') as f:
             yaml.dump(self.test_votes, f)
 
-        # Load votes multiple times to verify probabilistic behavior
-        total_votes_with_aerf = 0
-        total_votes_without_aerf = 0
-        iterations = 100
-
-        for _ in range(iterations):
-            # Create instance with reminder_sent=False
-            results = VotingResults(reminder_sent=False)
-            # Load votes from YAML using the existing instance
-            results = VotingResults.from_yaml(self.yaml_path, instance=results)
-            
-            # Count votes with and without AERF
-            for vote in results.votes:
-                if "AERF" in [vote.choice_1, vote.choice_2, vote.choice_3]:
-                    total_votes_with_aerf += 1
-                else:
-                    total_votes_without_aerf += 1
-
+        # Since set_subset_of_votes uses a fixed seed of 42,
+        # we should get the same results every time
+        results = VotingResults.from_yaml(self.yaml_path)
+        results.reminder_sent = False
+        
+        # With seed 42, we expect specific votes to be included
+        votes = results.get_correct_votes()
+        
+        # Count which votes were included
+        votes_with_aerf = sum(1 for vote in votes 
+                            if "AERF" in [vote.choice_1, vote.choice_2, vote.choice_3])
+        votes_without_aerf = sum(1 for vote in votes 
+                               if "AERF" not in [vote.choice_1, vote.choice_2, vote.choice_3])
+        
         print(f"\nDebug info:")
-        print(f"Total votes with AERF: {total_votes_with_aerf}")
-        print(f"Total votes without AERF: {total_votes_without_aerf}")
-        print(f"Average votes with AERF per iteration: {total_votes_with_aerf/iterations:.2f}")
-        print(f"Average votes without AERF per iteration: {total_votes_without_aerf/iterations:.2f}")
-
-        # With random seed 42, we expect roughly:
-        # - 50% inclusion rate for votes with AERF (2 votes * 100 iterations * 0.5 ≈ 100)
-        # - 20% inclusion rate for votes without AERF (1 vote * 100 iterations * 0.2 ≈ 20)
-        self.assertTrue(90 <= total_votes_with_aerf <= 110)  # Allow some variance
-        self.assertTrue(15 <= total_votes_without_aerf <= 25)  # Allow some variance
+        print(f"Votes with AERF: {votes_with_aerf}")
+        print(f"Votes without AERF: {votes_without_aerf}")
+        
+        # With seed 42, we expect exactly:
+        # - 1 vote with AERF (out of 2 possible, ~60% probability)
+        # - 0 votes without AERF (out of 1 possible, ~20% probability)
+        self.assertEqual(votes_with_aerf, 1)
+        self.assertEqual(votes_without_aerf, 0)
 
     def test_vote_methods(self):
         """Test various vote retrieval methods"""

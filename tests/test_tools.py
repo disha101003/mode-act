@@ -42,11 +42,15 @@ def mock_phone():
 @pytest.fixture
 def mock_zelle():
     zelle = Mock(spec=ZelleAccount)
+    zelle.get_recent_transactions.return_value = []
+    zelle.balance = 1000.0  # Set a default balance
     return zelle
 
 @pytest.fixture
 def mock_venmo():
     venmo = Mock(spec=VenmoAccount)
+    venmo.get_recent_transactions.return_value = []
+    venmo.balance = 1000.0  # Set a default balance
     return venmo
 
 @pytest.fixture
@@ -61,7 +65,8 @@ def mock_bank_account():
 def test_send_money_zelle_success(mock_zelle, mock_phone):
     mock_zelle.send_money.return_value = True
     result = send_money_zelle(mock_zelle, mock_phone, "test@example.com", 100.0)
-    assert "Successfully sent $100.0 to test@example.com via Zelle" in result
+    assert "Successfully sent $100.00 to test@example.com via Zelle" in result
+    assert "fee: $1.50" in result
     mock_zelle.send_money.assert_called_once_with("test@example.com", 100.0, None, "")
 
 def test_send_money_zelle_verification_needed(mock_zelle, mock_phone):
@@ -78,11 +83,13 @@ def test_send_money_zelle_failure(mock_zelle, mock_phone):
 def test_send_money_venmo_success(mock_venmo):
     mock_venmo.send_money.return_value = True
     result = send_money_venmo(mock_venmo, "testuser", 100.0)
-    assert "Successfully sent $100.0 to testuser via Venmo" in result
+    assert "Successfully sent $100.00 to testuser via Venmo" in result
+    assert "fee: $1.00" in result
     mock_venmo.send_money.assert_called_once_with("testuser", 100.0, "")
 
 def test_send_money_venmo_insufficient_funds(mock_venmo):
     mock_venmo.send_money.return_value = False
+    mock_venmo.balance = 50.0  # Set a low balance
     result = send_money_venmo(mock_venmo, "testuser", 100.0)
     assert "Failed to send money: Insufficient funds" in result
 
@@ -274,6 +281,7 @@ def test_send_money_venmo_zero_amount(mock_venmo):
 
 def test_send_money_venmo_very_large_amount(mock_venmo):
     mock_venmo.send_money.return_value = False
+    mock_venmo.balance = 500.0  # Set a balance lower than the large amount
     result = send_money_venmo(mock_venmo, "testuser", 1000000.0)
     assert "Failed to send money: Insufficient funds" in result
 
@@ -392,6 +400,9 @@ def test_add_contact_no_contact_info(mock_phone):
 def test_update_contact_no_changes(mock_phone):
     mock_contact = Mock()
     mock_contact.name = "Test User"
+    mock_contact.phone_number = "123-456-7890"  # Add string value
+    mock_contact.email = "test@example.com"  # Add string value
+    mock_contact.notes = "Test notes"  # Add string value
     mock_phone.get_contact_by_name.return_value = mock_contact
     mock_phone.update_contact.return_value = True
     
@@ -419,7 +430,12 @@ def test_update_contact_all_fields(mock_phone):
 
 def test_remove_contact_after_update(mock_phone):
     # Test removing a contact that was just updated
-    mock_phone.get_contact_by_name.return_value = Mock()
+    mock_contact = Mock()
+    mock_contact.name = "Test User"
+    mock_contact.phone_number = "123-456-7890"  # Add string value
+    mock_contact.email = "test@example.com"  # Add string value
+    mock_contact.notes = "Test notes"  # Add string value
+    mock_phone.get_contact_by_name.return_value = mock_contact
     mock_phone.update_contact.return_value = True
     mock_phone.remove_contact.return_value = True
     

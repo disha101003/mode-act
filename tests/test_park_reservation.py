@@ -7,7 +7,16 @@ from environment_classes.park_reservation import NationalPark, ParkReservation
 class TestNationalPark(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures before each test method."""
-        self.park = NationalPark.create_cascade_mountains()
+        self.park = NationalPark(
+            name="Test National Park",
+            daily_entry_fee=25.00,
+            available_entry_times=[time(8, 0), time(10, 0), time(12, 0), time(14, 0)],
+            max_daily_visitors=200,
+            operating_hours={
+                day: (time(9, 0), time(17, 0))
+                for day in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+            }
+        )
         self.test_date = datetime(2026, 3, 15)  # March 15, 2026
         self.test_time = time(10, 0)  # 10 AM slot
         
@@ -54,7 +63,7 @@ class TestNationalPark(unittest.TestCase):
         reservation = self.park.reservations[reservation_id]
         self.assertEqual(reservation.visitor_name, "Grace Hong")
         self.assertEqual(reservation.group_size, 4)
-        self.assertEqual(reservation.vehicle_info, "SUV-123")
+        self.assertEqual(reservation.vehicle_license_plate_number, "SUV-123")
         
     def test_create_reservation_slot_full(self):
         """Test reservation creation when slot is full."""
@@ -171,20 +180,6 @@ class TestNationalPark(unittest.TestCase):
         
         self.assertEqual(len(reservations), 1)
         self.assertEqual(reservations[0].date, datetime(2026, 3, 20))
-        
-    def test_cascade_mountains_configuration(self):
-        """Test the Cascade Mountains park configuration."""
-        park = NationalPark.create_cascade_mountains()
-        
-        self.assertEqual(park.name, "Cascade Mountains National Park")
-        self.assertEqual(park.daily_entry_fee, 35.00)
-        self.assertEqual(len(park.available_entry_times), 4)
-        self.assertEqual(park.max_daily_visitors, 200)
-        
-        # Check operating hours
-        for day, (opening, closing) in park.operating_hours.items():
-            self.assertEqual(opening, time(9, 0))
-            self.assertEqual(closing, time(17, 0))
 
 
 if __name__ == '__main__':

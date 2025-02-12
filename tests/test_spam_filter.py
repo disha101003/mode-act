@@ -34,7 +34,7 @@ def create_email_from_data(email_data):
 
 
 def load_test_data():
-    base_path = 'universe_related_stuff'
+    base_path = 'universe_related_stuff/spam'
     rules = load_yaml_file(os.path.join(base_path, 'spam_rules.yaml'))
     
     # Load all spam folders

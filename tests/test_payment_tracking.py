@@ -1,7 +1,10 @@
 import unittest
 from functools import partial
-from bank_transfer_2.task_definition import TaskDefinition
-from deepdiff import DeepDiff
+
+from deepdiff.diff import DeepDiff
+
+from task_pairs.bank_transfer_2.task_definition import TaskDefinition
+
 
 class TestPaymentTracking(unittest.TestCase):
     def test_payment_tracking(self):

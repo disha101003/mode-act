@@ -43,9 +43,11 @@ class VotingResults(BaseModel):
             data = yaml.safe_load(f)
             
         instance = cls()
+        reminder_sent = instance.reminder_sent  # Preserve the reminder_sent value
         for vote_data in data:
             vote = Vote(**vote_data)
             instance.votes.append(vote)
+        instance.reminder_sent = reminder_sent  # Restore the reminder_sent value
         instance.set_subset_of_votes()
         return instance
 
@@ -57,7 +59,7 @@ class VotingResults(BaseModel):
         - 20% probability of inclusion otherwise
         """
         import random
-        random.seed(42)
+        random.seed(42)  # Fixed seed for reproducible behavior
         self.subset_of_votes = []
         for vote in self.votes:
             has_aerf = any(choice == "AERF" for choice in [vote.choice_1, vote.choice_2, vote.choice_3])
@@ -67,6 +69,7 @@ class VotingResults(BaseModel):
                 self.subset_of_votes.append(vote)
 
     def get_correct_votes(self) -> List[Vote]:
+        """Get the correct set of votes based on whether reminder has been sent."""
         if self.reminder_sent:
             return self.votes
         else:

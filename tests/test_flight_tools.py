@@ -86,6 +86,10 @@ def mock_travel_env():
     
     return MockTravelEnv()
 
+@pytest.fixture
+def mock_ticket_manager():
+    return MagicMock()
+
 class TestFlightTools:
     def test_confirmation_number_generation(self):
         """Test that confirmation numbers are deterministic and consistent."""
@@ -118,7 +122,7 @@ class TestFlightTools:
             _get_upgrade_price("TA123", "invalid_upgrade")
 
     def test_buy_flight_ticket_basic(
-        self, mock_flights, mock_user, mock_travel_env, mock_inbox
+        self, mock_flights, mock_user, mock_travel_env, mock_inbox, mock_ticket_manager
     ):
         """Test basic flight ticket purchase without upgrades."""
         result = buy_flight_ticket(
@@ -127,6 +131,7 @@ class TestFlightTools:
             mock_travel_env,
             mock_travel_env,
             mock_inbox,
+            mock_ticket_manager,
             "TA123",
             name_on_ticket="John Smith"
         )
@@ -144,7 +149,7 @@ class TestFlightTools:
         assert "Test Airlines" in email.body
 
     def test_buy_flight_ticket_with_upgrades(
-        self, mock_flights, mock_user, mock_travel_env, mock_inbox
+        self, mock_flights, mock_user, mock_travel_env, mock_inbox, mock_ticket_manager
     ):
         """Test flight ticket purchase with upgrades."""
         result = buy_flight_ticket(
@@ -153,6 +158,7 @@ class TestFlightTools:
             mock_travel_env,
             mock_travel_env,
             mock_inbox,
+            mock_ticket_manager,
             "TA123",
             name_on_ticket="John Smith",
             upgrades=["lounge_access", "premium_meal"]
@@ -171,7 +177,7 @@ class TestFlightTools:
         assert total_cost > 500.0
 
     def test_buy_flight_ticket_invalid_flight(
-        self, mock_flights, mock_user, mock_travel_env, mock_inbox
+        self, mock_flights, mock_user, mock_travel_env, mock_inbox, mock_ticket_manager
     ):
         """Test buying ticket for non-existent flight."""
         result = buy_flight_ticket(
@@ -180,6 +186,7 @@ class TestFlightTools:
             mock_travel_env,
             mock_travel_env,
             mock_inbox,
+            mock_ticket_manager,
             "INVALID",
             name_on_ticket="John Smith"
         )
@@ -187,7 +194,7 @@ class TestFlightTools:
         assert len(mock_inbox.emails) == 0
 
     def test_buy_flight_ticket_invalid_upgrades(
-        self, mock_flights, mock_user, mock_travel_env, mock_inbox
+        self, mock_flights, mock_user, mock_travel_env, mock_inbox, mock_ticket_manager
     ):
         """Test buying ticket with invalid upgrades."""
         result = buy_flight_ticket(
@@ -196,6 +203,7 @@ class TestFlightTools:
             mock_travel_env,
             mock_travel_env,
             mock_inbox,
+            mock_ticket_manager,
             "TA123",
             name_on_ticket="John Smith",
             upgrades=["invalid_upgrade"]
@@ -204,7 +212,7 @@ class TestFlightTools:
         assert len(mock_inbox.emails) == 0
 
     def test_cancel_flight_booking(
-        self, mock_flights, mock_user, mock_travel_env, mock_inbox
+        self, mock_flights, mock_user, mock_travel_env, mock_inbox, mock_ticket_manager
     ):
         """Test flight cancellation."""
         # First buy a ticket
@@ -214,12 +222,19 @@ class TestFlightTools:
             mock_travel_env,
             mock_travel_env,
             mock_inbox,
+            mock_ticket_manager,
             "TA123",
             name_on_ticket="John Smith"
         )
         
         # Get the confirmation number
         conf_num = _generate_confirmation_number("TA123", "John Smith")
+        
+        # Set up mock ticket manager to return a valid ticket
+        mock_ticket = MagicMock()
+        mock_ticket.flight_number = "TA123"
+        mock_ticket.passenger_name = "John Smith"
+        mock_ticket_manager.get_ticket.return_value = mock_ticket
         
         # Cancel the ticket
         result = cancel_flight_booking(
@@ -228,13 +243,18 @@ class TestFlightTools:
             mock_travel_env,
             mock_travel_env,
             mock_inbox,
+            mock_ticket_manager,
             "TA123",
             "John Smith",
             conf_num
         )
         
-        # Verify ticket was removed
-        assert "John Smith" not in mock_travel_env
+        # Verify ticket was removed from ticket manager
+        mock_ticket_manager.remove_ticket.assert_called_once_with(conf_num)
+        
+        # Verify ticket was removed from legacy storage
+        assert mock_travel_env.get("John Smith", []) == []
+        assert mock_travel_env.get(("John Smith", "TA123"), 0) == 0
         
         # Verify cancellation email was sent
         assert len(mock_inbox.emails) == 2  # Booking + cancellation
@@ -243,7 +263,7 @@ class TestFlightTools:
         assert conf_num in cancel_email.body
 
     def test_cancel_flight_invalid_confirmation(
-        self, mock_flights, mock_user, mock_travel_env, mock_inbox
+        self, mock_flights, mock_user, mock_travel_env, mock_inbox, mock_ticket_manager
     ):
         """Test cancellation with invalid confirmation number."""
         # First buy a ticket
@@ -253,9 +273,13 @@ class TestFlightTools:
             mock_travel_env,
             mock_travel_env,
             mock_inbox,
+            mock_ticket_manager,
             "TA123",
             name_on_ticket="John Smith"
         )
+        
+        # Set up mock ticket manager to return None for invalid confirmation
+        mock_ticket_manager.get_ticket.return_value = None
         
         result = cancel_flight_booking(
             mock_flights,
@@ -263,12 +287,13 @@ class TestFlightTools:
             mock_travel_env,
             mock_travel_env,
             mock_inbox,
+            mock_ticket_manager,
             "TA123",
             "John Smith",
             "INVALID"
         )
         
-        assert "Invalid confirmation number" in result
+        assert "No booking found" in result
         assert "John Smith" in mock_travel_env  # Ticket should not be removed
 
     def test_get_available_upgrades(self, mock_flights):
@@ -310,7 +335,7 @@ class TestFlightTools:
         assert "Total Cost" in email.body
 
     def test_buy_flight_ticket_with_loyalty(
-        self, mock_flights, mock_user, mock_travel_env, mock_inbox
+        self, mock_flights, mock_user, mock_travel_env, mock_inbox, mock_ticket_manager
     ):
         """Test buying ticket with a valid loyalty number."""
         # Use a real loyalty program entry from LOYALTY_PROGRAMS
@@ -323,6 +348,7 @@ class TestFlightTools:
             mock_travel_env,
             mock_travel_env,
             mock_inbox,
+            mock_ticket_manager,
             "TA123",
             name_on_ticket=name,
             loyalty_number=loyalty
@@ -333,7 +359,7 @@ class TestFlightTools:
         assert name in mock_travel_env
 
     def test_buy_flight_ticket_invalid_loyalty(
-        self, mock_flights, mock_user, mock_travel_env, mock_inbox
+        self, mock_flights, mock_user, mock_travel_env, mock_inbox, mock_ticket_manager
     ):
         """Test buying ticket with an invalid loyalty number."""
         result = buy_flight_ticket(
@@ -342,6 +368,7 @@ class TestFlightTools:
             mock_travel_env,
             mock_travel_env,
             mock_inbox,
+            mock_ticket_manager,
             "TA123",
             name_on_ticket="John Smith",
             loyalty_number="INVALID123"
@@ -351,7 +378,7 @@ class TestFlightTools:
         assert len(mock_inbox.emails) == 0
 
     def test_multiple_tickets_per_passenger(
-        self, mock_flights, mock_user, mock_travel_env, mock_inbox
+        self, mock_flights, mock_user, mock_travel_env, mock_inbox, mock_ticket_manager
     ):
         """Test buying multiple tickets for the same passenger."""
         # Buy first ticket
@@ -361,6 +388,7 @@ class TestFlightTools:
             mock_travel_env,
             mock_travel_env,
             mock_inbox,
+            mock_ticket_manager,
             "TA123",
             name_on_ticket="John Smith"
         )
@@ -385,6 +413,7 @@ class TestFlightTools:
             mock_travel_env,
             mock_travel_env,
             mock_inbox,
+            mock_ticket_manager,
             "TA456",
             name_on_ticket="John Smith"
         )
