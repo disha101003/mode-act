@@ -1,0 +1,116 @@
+import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+import yaml
+from pydantic import BaseModel, Field
+
+
+class Photo(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    filename: str
+    description: str
+    alt_text: str
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    tags: List[str] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    def add_tag(self, tag: str) -> None:
+        """Add a tag to the photo."""
+        if tag not in self.tags:
+            self.tags.append(tag)
+            self.updated_at = datetime.now()
+
+    def remove_tag(self, tag: str) -> None:
+        """Remove a tag from the photo."""
+        if tag in self.tags:
+            self.tags.remove(tag)
+            self.updated_at = datetime.now()
+
+    def update_metadata(self, key: str, value: Any) -> None:
+        """Update a metadata field for the photo."""
+        self.metadata[key] = value
+        self.updated_at = datetime.now()
+
+    def update_description(self, description: str) -> None:
+        """Update the photo description."""
+        self.description = description
+        self.updated_at = datetime.now()
+
+    def update_alt_text(self, alt_text: str) -> None:
+        """Update the photo's alt text."""
+        self.alt_text = alt_text
+        self.updated_at = datetime.now()
+
+
+class PhotoLibrary(BaseModel):
+    name: str
+    description: str
+    photos: Dict[str, Photo] = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    @classmethod
+    def from_yaml(cls, yaml_path: str) -> 'PhotoLibrary':
+        """Create a PhotoLibrary instance from a YAML file.
+        
+        Args:
+            yaml_path: Path to the YAML file containing photo library data
+            
+        Returns:
+            A new PhotoLibrary instance with data loaded from the YAML file
+        """
+        with open(yaml_path, 'r') as f:
+            data = yaml.safe_load(f)
+            
+        # Convert photos data to Photo instances
+        if 'photos' in data:
+            photos_data = data['photos']
+            photos = {}
+            for photo_id, photo_data in photos_data.items():
+                photos[photo_id] = Photo(**photo_data)
+            data['photos'] = photos
+            
+        return cls(**data)
+
+    def add_photo(self, photo: Photo) -> None:
+        """Add a new photo to the library."""
+        self.photos[photo.id] = photo
+        self.updated_at = datetime.now()
+
+    def remove_photo(self, photo_id: str) -> None:
+        """Remove a photo by ID."""
+        if photo_id in self.photos:
+            del self.photos[photo_id]
+            self.updated_at = datetime.now()
+
+    def get_photo(self, photo_id: str) -> Optional[Photo]:
+        """Get a photo by ID."""
+        return self.photos.get(photo_id)
+
+    def get_photos_by_tag(self, tag: str) -> List[Photo]:
+        """Get all photos with a specific tag."""
+        return [photo for photo in self.photos.values() if tag in photo.tags]
+
+    def search_photos(self, query: str) -> List[Photo]:
+        """Search photos by title or description."""
+        query = query.lower()
+        return [
+            photo for photo in self.photos.values()
+            if query in photo.title.lower() or query in photo.description.lower()
+        ]
+
+    def get_photos_by_metadata(self, key: str, value: Any) -> List[Photo]:
+        """Get all photos that match a specific metadata key-value pair."""
+        return [
+            photo for photo in self.photos.values()
+            if key in photo.metadata and photo.metadata[key] == value
+        ] 

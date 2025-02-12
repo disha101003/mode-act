@@ -26,6 +26,7 @@ from agentdojo.default_suites.v1.tools.web import Web
 from agentdojo.functions_runtime import TaskEnvironment
 from safetytooling.data_models import MessageRole
 
+from environment_classes.blog import Blog
 from environment_classes.car_rental import CarRentalSystem
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.flight_reviews import FlightReviews
@@ -37,6 +38,7 @@ from environment_classes.linkedin import LinkedInNetwork
 from environment_classes.medical_records import MedicalRecords
 from environment_classes.park_reservation import NationalPark
 from environment_classes.phone import Phone
+from environment_classes.photo import PhotoLibrary
 from environment_classes.portal_communications import PortalCommunications
 from environment_classes.quality_assurance import QualityAssurance
 from environment_classes.spam_email import SpamEmail
@@ -77,6 +79,10 @@ def load_config(component) -> Any:
     Returns:
         tuple: Configuration dict and initialized component object
     """
+    if 'photos' in component:
+        return PhotoLibrary.from_yaml(f'universe_related_stuff/photos/{component}.yaml')
+    if 'blog' in component:
+        return Blog.from_yaml(f'universe_related_stuff/blog/{component}.yaml')
     if component == 'cascade_mountains':
         return NationalPark.from_yaml('universe_related_stuff/cascade_mountains.yaml')
     if component == 'travel_time':

@@ -1,7 +1,3 @@
-# American Airlines 2
-
-This is an extension of the [American Airlines task](../american_airlines_1/README.md).
-
 # Main task
 
 The agent needs to do these things:

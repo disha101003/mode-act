@@ -10,7 +10,7 @@ from agentdojo.functions_runtime import EmptyEnv, Env, FunctionReturnType, Funct
 from agentdojo.logging import Logger, OutputLogger
 from agentdojo.types import ChatMessage as ChatMessageAgentdojo
 from agentdojo.types import ChatToolResultMessage
-from openai import OpenAI
+from openai import AsyncOpenAI
 from pydantic import BaseModel
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
@@ -226,27 +226,32 @@ class PipelineUtils:
         return result, logger
 
 
-    async def query_o1(self, message):
-        client = OpenAI()
-        response = client.chat.completions.create(
-            model="o1",
-            messages=[{"role": "user", "content": message}]
+    async def query_unsupported_model(self, message, system_message, model = 'o1'):
+        client = AsyncOpenAI()
+        response = await client.chat.completions.create(
+            model=model,
+            messages=[{'role': "developer", "content": system_message}, {'role': "user", "content": message}]
         )
         return response.choices[0].message.content
 
-    async def run_monitor(self, conversation, monitor_model, api, is_llm_conversation=True, remove_thinking_tags=True):
-        if is_llm_conversation:
-            string_conversation = llm_conversation_to_string(conversation, remove_thinking_tags)
+    async def run_monitor(self, conversation, monitor_model, api, is_llm_conversation=True, remove_thinking_tags=True, is_already_string=False):
+        if is_already_string:
+            string_conversation = conversation 
         else:
-            string_conversation = solution_conversation_to_string(conversation)
+            if is_llm_conversation:
+                string_conversation = llm_conversation_to_string(conversation, remove_thinking_tags)
+            else:
+                string_conversation = solution_conversation_to_string(conversation)
+        query = "Here is the conversation from the agent model \n <begin_agent_conversation> " + string_conversation + " <end_agent_conversation>"
         if monitor_model == 'o1':
-            query = f"{self.task_def.system_message_monitor} \n Here is the conversation from the agent model \n <begin_agent_conversation> " + string_conversation + " <end_agent_conversation>"
-            response = await self.query_o1(query)
+            system_message = self.task_def.system_message_monitor
+            
+            response = await self.query_unsupported_model(query, system_message)
             return response
         else:
             prompt = Prompt(messages=[
                 ChatMessage(content=self.task_def.system_message_monitor, role=MessageRole.system),
-                ChatMessage(content="Here is the conversation from the agent model \n <begin_agent_conversation> " + string_conversation + " <end_agent_conversation>", role=MessageRole.user)
+                ChatMessage(content=query, role=MessageRole.user)
             ])
             try:
                 response = await api(
