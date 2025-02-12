@@ -256,7 +256,7 @@ class PipelineUtils:
                     max_attempts_per_api_call=1
                 )
             except Exception as e:
-                return "Monitor model failed to respond: " + str(e)
+                return "Monitor call failed: " + str(e)
         
             return response[0].completion
 

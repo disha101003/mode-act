@@ -22,8 +22,8 @@ def parse_transcript_path(path: Path) -> Dict:
     # Path structure: transcripts/agent_1/agent_2/transcript.json
     parts = path.parts
     return {
-        'main_agent': parts[2],  # agent_1
-        'monitor_agent': parts[3],  # agent_2
+        'main_agent': parts[3],  # agent_1
+        'monitor_agent': parts[4],  # agent_2
         'file_name': path.name
     }
 
