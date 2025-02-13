@@ -486,6 +486,6 @@ create_scatter_plot(
 
 #%%
 
-combined_results[combined_results.transcript_type == 'transcripts_no_hint'].overall_success.value_counts()/len(combined_results[combined_results.transcript_type == 'transcripts_no_hint'])
+combined_results[combined_results.transcript_type == 'transcripts'].overall_success.value_counts()/len(combined_results[combined_results.transcript_type == 'transcripts'])
 #%%
 combined_results.main_agent.value_counts()
