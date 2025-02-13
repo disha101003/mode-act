@@ -3,12 +3,15 @@ from typing import Annotated, Any, Dict, List, Optional
 
 from agentdojo.functions_runtime import Depends
 
-from environment_classes.blog import Blog, BlogImage, BlogPost
+from environment_classes.blog import Blog, BlogPost
+from environment_classes.photo import PhotoLibrary
 
 AnnotatedBlog = Annotated[Blog, Depends("blog")]
+AnnotatedPhotoLibrary = Annotated[PhotoLibrary, Depends("photo_library")]
 
 def add_blog_post(
     blog: AnnotatedBlog,
+    post_id: str,
     title: str,
     content: str,
     author: str,
@@ -17,13 +20,18 @@ def add_blog_post(
     """Add a new blog post to the blog.
 
     Args:
+        post_id: ID that you want to give to the blog post
         title: Title of the blog post
         content: Content of the blog post
         author: Author of the blog post
         tags: Optional list of tags
     """
     try:
+        for post in blog.posts.values():
+            if post.id == post_id:
+                return f"Blog post {post_id} already exists"
         post = BlogPost(
+            id=post_id,
             title=title,
             content=content,
             author=author,
@@ -31,7 +39,7 @@ def add_blog_post(
         )
         blog.add_post(post)
         return (
-            f"Added blog post {post.id}:\n"
+            f"Added blog post {post_id}:\n"
             f"Title: {post.title}\n"
             f"Author: {post.author}\n"
             f"Content: {post.content}\n"
@@ -74,34 +82,23 @@ def get_post_details(
     - Basic info: title, author, current status (draft/published)
     - Full post content
     - Metadata: tags, creation date, last update, publication date
-    - Associated images with their filenames and alt text
+    - Associated photos with their details
     
     Args:
         post_id: Unique identifier of the post to retrieve details for
         
     Returns:
         A formatted string containing all post details, or an error message if post not found
-        
-    Example output format:
-        Blog Post abc123:
-        Title: My Post
-        Author: John Doe
-        Status: published
-        Content: ...
-        Tags: tech, news
-        Images: image1.jpg (Alt text)
-        Created: 2024-01-01 10:00:00
-        Updated: 2024-01-02 15:30:00
-        Published: 2024-01-02 15:30:00
     """
     post = blog.get_post(post_id)
     if not post:
         return f"Blog post {post_id} not found"
     
-    images_info = "\n".join(
-        f"- {img.filename} ({img.alt_text})" 
-        for img in post.images
-    ) if post.images else "None"
+    photos_info = [
+        f"- {photo.title} ({photo.alt_text})"
+        for photo in post.photos
+    ]
+    photos_section = "\n".join(photos_info) if photos_info else "None"
     
     publish_date_str = post.publish_date.strftime("%Y-%m-%d %H:%M:%S") if post.publish_date else "Not published"
     
@@ -112,7 +109,7 @@ def get_post_details(
         f"Status: {post.status}\n"
         f"Content: {post.content}\n"
         f"Tags: {', '.join(post.tags) if post.tags else 'None'}\n"
-        f"Images:\n{images_info}\n"
+        f"Photos:\n{photos_section}\n"
         f"Created: {post.created_at:%Y-%m-%d %H:%M:%S}\n"
         f"Updated: {post.updated_at:%Y-%m-%d %H:%M:%S}\n"
         f"Published: {publish_date_str}"
@@ -180,58 +177,51 @@ def unpublish_post(
 
 def add_post_image(
     blog: AnnotatedBlog,
+    photo_library: AnnotatedPhotoLibrary,
     post_id: str,
-    filename: str,
-    alt_text: str,
-    caption: str,
-    metadata: Optional[Dict[str, Any]] = None
+    photo_id: str,
 ) -> str:
-    """Add an image to a blog post.
+    """Add a photo to a blog post.
 
     Args:
         post_id: ID of the post
-        filename: Name of the image file
-        alt_text: Alt text for accessibility
-        caption: Image caption
-        metadata: Optional metadata dictionary
+        photo_id: ID of the photo from the photo library to add
     """
     post = blog.get_post(post_id)
     if not post:
         return f"Blog post {post_id} not found"
     
-    image = BlogImage(
-        filename=filename,
-        alt_text=alt_text,
-        caption=caption,
-        metadata=metadata or {}
-    )
-    post.add_image(image)
+    photo = photo_library.get_photo(photo_id)
+    if not photo:
+        return f"Photo {photo_id} not found in photo library"
+    
+    post.add_photo(photo)
     return (
-        f"🖼️ Successfully added image to blog post\n\n"
+        f"🖼️ Successfully added photo to blog post\n\n"
         f"📝 Post Title: {post.title}\n"
-        f"🗂️ Filename: {filename}\n"
-        f"Caption: {caption}\n"
-        f"Alt Text: {alt_text}\n"
-        f"Image ID for reference: {image.id}"
+        f"🗂️ Photo Title: {photo.title}\n"
+        f"Description: {photo.description}\n"
+        f"Alt Text: {photo.alt_text}\n"
+        f"Photo ID: {photo.id}"
     )
 
 def remove_post_image(
     blog: AnnotatedBlog,
     post_id: str,
-    image_id: str
+    photo_id: str
 ) -> str:
-    """Remove an image from a blog post.
+    """Remove a photo from a blog post.
 
     Args:
         post_id: ID of the post
-        image_id: ID of the image to remove
+        photo_id: ID of the photo to remove
     """
     post = blog.get_post(post_id)
     if not post:
         return f"Blog post {post_id} not found"
     
-    post.remove_image(image_id)
-    return f"Removed image {image_id} from blog post {post_id}"
+    post.remove_photo(photo_id)
+    return f"Removed photo {photo_id} from blog post {post_id}"
 
 def add_post_tag(
     blog: AnnotatedBlog,

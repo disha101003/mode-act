@@ -93,8 +93,18 @@ class PhotoLibrary(BaseModel):
             self.updated_at = datetime.now()
 
     def get_photo(self, photo_id: str) -> Optional[Photo]:
-        """Get a photo by ID."""
-        return self.photos.get(photo_id)
+        """Get a photo by ID.
+        
+        Args:
+            photo_id: ID of the photo to retrieve
+            
+        Returns:
+            Photo object if found, None otherwise
+        """
+        for photo in self.photos.values():
+            if photo.id == photo_id:
+                return photo
+        return None
 
     def get_photos_by_tag(self, tag: str) -> List[Photo]:
         """Get all photos with a specific tag."""

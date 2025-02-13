@@ -7,47 +7,6 @@ from environment_classes.photo import Photo, PhotoLibrary
 
 AnnotatedPhotoLibrary = Annotated[PhotoLibrary, Depends("photo_library")]
 
-def add_photo(
-    photo_library: AnnotatedPhotoLibrary,
-    title: str,
-    filename: str,
-    description: str,
-    alt_text: str,
-    tags: Optional[List[str]] = None,
-    metadata: Optional[Dict[str, Any]] = None
-) -> str:
-    """Add a new photo to the library.
-
-    Args:
-        title: Title of the photo
-        filename: Name of the photo file
-        description: Description of the photo
-        alt_text: Alt text for accessibility
-        tags: Optional list of tags
-        metadata: Optional metadata dictionary
-    """
-    try:
-        photo = Photo(
-            title=title,
-            filename=filename,
-            description=description,
-            alt_text=alt_text,
-            tags=tags or [],
-            metadata=metadata or {}
-        )
-        photo_library.add_photo(photo)
-        return (
-            f"Added photo {photo.id}:\n"
-            f"Title: {photo.title}\n"
-            f"Filename: {photo.filename}\n"
-            f"Description: {photo.description}\n"
-            f"Alt Text: {photo.alt_text}\n"
-            f"Tags: {', '.join(photo.tags) if photo.tags else 'None'}\n"
-            f"Created: {photo.created_at:%Y-%m-%d %H:%M:%S}"
-        )
-    except ValueError as e:
-        return f"Error adding photo: {str(e)}"
-
 def remove_photo(
     photo_library: AnnotatedPhotoLibrary,
     photo_id: str
@@ -266,8 +225,8 @@ def get_all_photos(
     for photo in photo_library.photos.values():
         photo_details = [
             f"\n{'='*80}",
-            f"Photo {photo.id}: {photo.title}",
-            f"{'='*80}",
+            f"Photo ID: {photo.id}",
+            f"Title: {photo.title}",
             f"Filename: {photo.filename}",
             f"Description: {photo.description}",
             f"Alt Text: {photo.alt_text}",

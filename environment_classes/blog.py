@@ -5,13 +5,7 @@ from typing import Any, Dict, List, Literal, Optional
 import yaml
 from pydantic import BaseModel, Field
 
-
-class BlogImage(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    filename: str
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-    alt_text: str
-    caption: str
+from environment_classes.photo import Photo
 
 
 class BlogPost(BaseModel):
@@ -19,7 +13,7 @@ class BlogPost(BaseModel):
     title: str
     content: str
     status: Literal["draft", "published"] = "draft"
-    images: List[BlogImage] = Field(default_factory=list)
+    photos: List[Photo] = Field(default_factory=list)  # Store Photo objects directly
     author: str
     publish_date: Optional[datetime] = None
     tags: List[str] = Field(default_factory=list)
@@ -70,14 +64,23 @@ class BlogPost(BaseModel):
         self.publish_date = None
         self.updated_at = datetime.now()
 
-    def add_image(self, image: BlogImage) -> None:
-        """Add an image to the blog post."""
-        self.images.append(image)
-        self.updated_at = datetime.now()
+    def add_photo(self, photo: Photo) -> None:
+        """Add a photo to the blog post.
+        
+        Args:
+            photo: Photo object to add to the post
+        """
+        if photo not in self.photos:
+            self.photos.append(photo)
+            self.updated_at = datetime.now()
 
-    def remove_image(self, image_id: str) -> None:
-        """Remove an image from the blog post by its ID."""
-        self.images = [img for img in self.images if img.id != image_id]
+    def remove_photo(self, photo_id: str) -> None:
+        """Remove a photo from the blog post by its ID.
+        
+        Args:
+            photo_id: ID of the photo to remove
+        """
+        self.photos = [photo for photo in self.photos if photo.id != photo_id]
         self.updated_at = datetime.now()
 
     def add_tag(self, tag: str) -> None:

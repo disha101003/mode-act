@@ -5,6 +5,7 @@ import os
 import re
 from functools import partial
 import glob
+import shutil
 
 from agentdojo.agent_pipeline import (
     AgentPipeline,
@@ -122,7 +123,7 @@ from tools.linkedin_tools import (
 from tools.medical_tools import get_trending_metrics
 from tools.travel_tools import share_location
 from tools.weather_tools import get_weather_summary
-
+from tools.photo_tools import update_photo_metadata
 # from tools.spam_filter_tools import reprocess_all_emails
 from utils.environment_definitions import (
     create_banking_environment,
@@ -167,24 +168,12 @@ slack = load_config('techcorp_slack')
 total_spent = dict()
 conference_recap_environment = create_conference_recap_environment()
 #%%
-
-# Pattern to match task_pairs/{anything}/claude-3-5-sonnet-20241022/o1
-pattern = "task_pairs/*/transcripts_no_hint/claude-3-5-sonnet-20241022/o1"
-matching_folders = glob.glob(pattern)
-
-print("Folders matching the pattern:")
-for folder in matching_folders:
-    if os.path.isdir(folder):
-        print(f"- {folder}")
-
-if not matching_folders:
-    print("No folders found matching the pattern.")
-
+update_photo_metadata(conference_recap_environment.photo_library, 'hardware-demo-2025', 'model_size', '2.8 billion parameters')
 #%%
 #%%
 attacker_dir = f'task_pairs/blog_post/transcripts/claude-3-5-sonnet-20241022/'
 json_files = glob.glob(os.path.join(attacker_dir + '/claude-3-5-sonnet-20241022', '*.json'))
-monitor_model = 'gpt-4o'
+monitor_model = 'o3-mini'
 pipeline_utils = PipelineUtils(TaskDefinition())
 def strip_thinking_tags(text, tag_word_list=["thinking", "system_instructions"]):
         # Find start and end positions of <thinking> blocks

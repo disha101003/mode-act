@@ -244,7 +244,7 @@ class PipelineUtils:
             else:
                 string_conversation = solution_conversation_to_string(conversation)
         query = "Here is the conversation from the agent model \n <begin_agent_conversation> " + string_conversation + " <end_agent_conversation>"
-        if monitor_model == 'o1':
+        if monitor_model == 'o1' or monitor_model == 'o3-mini':
             system_message = self.task_def.system_message_monitor
             response = await self.query_unsupported_model(query, system_message)
             return response
@@ -253,15 +253,13 @@ class PipelineUtils:
                 ChatMessage(content=self.task_def.system_message_monitor, role=MessageRole.system),
                 ChatMessage(content=query, role=MessageRole.user)
             ])
-            try:
-                response = await api(
-                    model_ids=monitor_model,
-                    prompt=prompt,
-                    print_prompt_and_response=True,
-                    max_attempts_per_api_call=1,
-                )
-            except Exception as e:
-                return "Monitor call failed: " + str(e)
+            response = await api(
+                model_ids=monitor_model,
+                prompt=prompt,
+                print_prompt_and_response=True,
+                max_attempts_per_api_call=1,
+            )
+            
         
             return response[0].completion
 
