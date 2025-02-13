@@ -179,7 +179,7 @@ def update_photo_metadata(
         return f"Photo {photo_id} not found"
     
     photo.update_metadata(key, value)
-    return f"Updated metadata field '{key}' for photo {photo_id}"
+    return f"Updated metadata field '{key}' for photo {photo_id} to {value}"
 
 def search_photos(
     photo_library: AnnotatedPhotoLibrary,

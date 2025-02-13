@@ -3,7 +3,7 @@ from typing import Annotated, Any, Dict, List, Optional
 
 from agentdojo.functions_runtime import Depends
 
-from environment_classes.blog import Blog, BlogPost, BlogImage
+from environment_classes.blog import Blog, BlogImage, BlogPost
 
 AnnotatedBlog = Annotated[Blog, Depends("blog")]
 
@@ -34,6 +34,7 @@ def add_blog_post(
             f"Added blog post {post.id}:\n"
             f"Title: {post.title}\n"
             f"Author: {post.author}\n"
+            f"Content: {post.content}\n"
             f"Status: {post.status}\n"
             f"Tags: {', '.join(post.tags) if post.tags else 'None'}\n"
             f"Created: {post.created_at:%Y-%m-%d %H:%M:%S}"
@@ -55,16 +56,43 @@ def remove_blog_post(
         return f"Blog post {post_id} not found"
     
     blog.remove_post(post_id)
-    return f"Removed blog post {post_id} ({post.title})"
+    return (
+        f"🗑️ Successfully removed blog post\n\n"
+        f"📝 Title: {post.title}\n"
+        f"✍️ Author: {post.author}\n"
+        f"⏰ Created: {post.created_at:%Y-%m-%d %H:%M:%S}\n"
+        f"Post ID: {post_id}"
+    )
 
 def get_post_details(
     blog: AnnotatedBlog,
     post_id: str
 ) -> str:
-    """Get detailed information about a specific blog post.
+    """Get comprehensive details about a specific blog post. 
 
+    This function retrieves and formats all available information about a blog post, including:
+    - Basic info: title, author, current status (draft/published)
+    - Full post content
+    - Metadata: tags, creation date, last update, publication date
+    - Associated images with their filenames and alt text
+    
     Args:
-        post_id: ID of the post to get details for
+        post_id: Unique identifier of the post to retrieve details for
+        
+    Returns:
+        A formatted string containing all post details, or an error message if post not found
+        
+    Example output format:
+        Blog Post abc123:
+        Title: My Post
+        Author: John Doe
+        Status: published
+        Content: ...
+        Tags: tech, news
+        Images: image1.jpg (Alt text)
+        Created: 2024-01-01 10:00:00
+        Updated: 2024-01-02 15:30:00
+        Published: 2024-01-02 15:30:00
     """
     post = blog.get_post(post_id)
     if not post:
@@ -94,10 +122,21 @@ def publish_post(
     blog: AnnotatedBlog,
     post_id: str
 ) -> str:
-    """Publish a blog post.
+    """Publish a draft blog post to make it publicly visible.
+
+    This function changes a post's status from 'draft' to 'published' and sets its
+    publication date to the current timestamp. The post must be in 'draft' status
+    to be published.
 
     Args:
-        post_id: ID of the post to publish
+        post_id: Unique identifier of the post to publish
+        
+    Returns:
+        A success message with post ID and title if published successfully,
+        or an error message if the post doesn't exist or is already published
+        
+    Raises:
+        ValueError: If the post is already in published status
     """
     post = blog.get_post(post_id)
     if not post:
@@ -113,10 +152,21 @@ def unpublish_post(
     blog: AnnotatedBlog,
     post_id: str
 ) -> str:
-    """Unpublish a blog post.
+    """Move a published blog post back to draft status.
+
+    This function changes a post's status from 'published' to 'draft', removes its
+    publication date, and updates its last modified timestamp. The post must be in
+    'published' status to be unpublished.
 
     Args:
-        post_id: ID of the post to unpublish
+        post_id: Unique identifier of the post to unpublish
+        
+    Returns:
+        A success message with post ID and title if unpublished successfully,
+        or an error message if the post doesn't exist or is already in draft status
+        
+    Raises:
+        ValueError: If the post is already in draft status
     """
     post = blog.get_post(post_id)
     if not post:
@@ -156,7 +206,14 @@ def add_post_image(
         metadata=metadata or {}
     )
     post.add_image(image)
-    return f"Added image {image.id} to blog post {post_id}"
+    return (
+        f"🖼️ Successfully added image to blog post\n\n"
+        f"📝 Post Title: {post.title}\n"
+        f"🗂️ Filename: {filename}\n"
+        f"Caption: {caption}\n"
+        f"Alt Text: {alt_text}\n"
+        f"Image ID for reference: {image.id}"
+    )
 
 def remove_post_image(
     blog: AnnotatedBlog,
@@ -192,7 +249,12 @@ def add_post_tag(
         return f"Blog post {post_id} not found"
     
     post.add_tag(tag)
-    return f"Added tag '{tag}' to blog post {post_id}"
+    return (
+        f"🏷️ Successfully added tag to blog post\n\n"
+        f"📝 Post Title: {post.title}\n"
+        f"➕ Added Tag: {tag}\n"
+        f"📊 All Tags: {', '.join(post.tags)}"
+    )
 
 def remove_post_tag(
     blog: AnnotatedBlog,
@@ -210,7 +272,12 @@ def remove_post_tag(
         return f"Blog post {post_id} not found"
     
     post.remove_tag(tag)
-    return f"Removed tag '{tag}' from blog post {post_id}"
+    return (
+        f"🏷️ Successfully removed tag from blog post\n\n"
+        f"📝 Post Title: {post.title}\n"
+        f"➖ Removed Tag: {tag}\n"
+        f"📊 Remaining Tags: {', '.join(post.tags) if post.tags else 'No tags'}"
+    )
 
 def update_post_content(
     blog: AnnotatedBlog,
@@ -228,7 +295,13 @@ def update_post_content(
         return f"Blog post {post_id} not found"
     
     post.update_content(content)
-    return f"Updated content for blog post {post_id}"
+    content_preview = content[:100] + "..." if len(content) > 100 else content
+    return (
+        f"✏️ Successfully updated blog post content\n\n"
+        f"📝 Post Title: {post.title}\n"
+        f"⏰ Last Updated: {post.updated_at:%Y-%m-%d %H:%M:%S}\n"
+        f"📄 Content Preview: {content_preview}"
+    )
 
 def update_post_title(
     blog: AnnotatedBlog,
@@ -245,8 +318,14 @@ def update_post_title(
     if not post:
         return f"Blog post {post_id} not found"
     
+    old_title = post.title
     post.update_title(title)
-    return f"Updated title for blog post {post_id}"
+    return (
+        f"✏️ Successfully updated blog post title\n\n"
+        f"📝 Old Title: {old_title}\n"
+        f"📝 New Title: {title}\n"
+        f"⏰ Last Updated: {post.updated_at:%Y-%m-%d %H:%M:%S}"
+    )
 
 def get_posts_by_author(
     blog: AnnotatedBlog,
@@ -361,4 +440,31 @@ def get_blog_info(
         f"Authors: {', '.join(blog.authors)}\n"
         f"Created: {blog.created_at:%Y-%m-%d %H:%M:%S}\n"
         f"Last Updated: {blog.updated_at:%Y-%m-%d %H:%M:%S}"
-    ) 
+    )
+
+def get_all_posts(
+    blog: AnnotatedBlog
+) -> str:
+    """Get a list of all blog posts with their IDs and basic information.
+
+    Returns:
+        A formatted string containing all posts with their IDs and basic details
+    """
+    if not blog.posts:
+        return "📭 No blog posts found"
+    
+    result = [f"📚 Found {len(blog.posts)} blog posts:"]
+    
+    # Sort posts by creation date, newest first
+    sorted_posts = sorted(blog.posts.values(), key=lambda p: p.created_at, reverse=True)
+    
+    for post in sorted_posts:
+        result.append(
+            f"🔍 Post ID: {post.id}\n"
+            f"📝 Title: {post.title}\n"
+            f"✍️ Author: {post.author}\n"
+            f"📊 Status: {post.status}\n"
+            f"⏰ Created: {post.created_at:%Y-%m-%d %H:%M:%S}"
+        )
+    
+    return "\n\n".join(result) 

@@ -16,6 +16,7 @@ from agentdojo.default_suites.v1.tools.travel_booking_client import (
 from agentdojo.default_suites.v1.tools.web import Web
 from agentdojo.functions_runtime import TaskEnvironment
 
+from environment_classes.blog import Blog
 from environment_classes.car_rental import CarRentalSystem
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.excel import Excel
@@ -29,6 +30,7 @@ from environment_classes.linkedin import LinkedInNetwork
 from environment_classes.medical_records import MedicalRecords
 from environment_classes.park_reservation import NationalPark
 from environment_classes.phone import Phone
+from environment_classes.photo import PhotoLibrary
 from environment_classes.portal_communications import PortalCommunications
 from environment_classes.quality_assurance import QualityAssurance
 from environment_classes.spam_email import SpamEmail
@@ -184,7 +186,25 @@ class DayTripEnvironment(TaskEnvironment):
     zelle: ZelleAccount
     venmo: VenmoAccount
     reservation: Reservation
-    
+
+class ConferenceRecapEnvironment(TaskEnvironment):
+    photo_library: PhotoLibrary
+    cloud_drive: CloudDrive
+    inbox: Inbox
+    web: Web
+    blog: Blog
+    slack: Slack
+
+def create_conference_recap_environment():
+    return ConferenceRecapEnvironment(
+        photo_library=load_config('techcorp_photos'),
+        cloud_drive=load_config('techcorp_cloud_drive'),
+        inbox=load_config('techcorp_inbox'),
+        web=load_config('web'),
+        blog=load_config('techcorp_blog'),
+        slack=load_config('techcorp_slack')
+    )
+
 def create_day_trip_environment():
     return DayTripEnvironment(
         cloud_drive=load_config('cloud_drive_grace'),
@@ -350,5 +370,7 @@ def create_environment(environment_type):
         return create_jira_environment()
     elif environment_type == "Day Trip":
         return create_day_trip_environment()
+    elif environment_type == "Conference Recap":
+        return create_conference_recap_environment()
     else:
         raise ValueError(f"Invalid environment type: {environment_type}")

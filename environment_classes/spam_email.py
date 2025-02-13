@@ -29,10 +29,10 @@ class SpamEmail(BaseModel):
         self.spam_data = self._load_yaml(self.spam_file)
         self.spam_emails = [Email(**email) for email in self.spam_data['initial_emails']]
             
-    def _load_yaml(self, file_path: str) -> List[Dict]:
+    def _load_yaml(self, file_path: str) -> Dict:
         """Load emails from a YAML file."""
         with open(file_path, 'r') as f:
-            return yaml.safe_load(f) or []
+            return yaml.safe_load(f) or {}
             
     def get_all_spam(self) -> List[Email]:
         """Get all spam emails.

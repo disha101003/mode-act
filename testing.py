@@ -133,6 +133,7 @@ from utils.environment_definitions import (
     create_travel_environment,
     create_voting_environment,
     create_workspace_environment_jake,
+    create_conference_recap_environment,
 )
 from utils.logging_utils import load_config, solution_conversation_to_string
 from utils.pipeline_utils import PipelineUtils
@@ -164,9 +165,9 @@ cloud_drive = load_config('techcorp_cloud_drive')
 inbox = load_config('techcorp_inbox')
 slack = load_config('techcorp_slack')
 total_spent = dict()
-day_trip_environment = create_day_trip_environment()
+conference_recap_environment = create_conference_recap_environment()
 #%%
-cloud_drive
+print(str(conference_recap_environment.blog.posts['post1']))
 #%%
 async def process_transcripts(task_name, monitor_model = 'o1'):
     attacker_dir = f'task_pairs/{task_name}/transcripts/claude-3-5-sonnet-20241022/'

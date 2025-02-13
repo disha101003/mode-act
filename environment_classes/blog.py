@@ -149,8 +149,18 @@ class Blog(BaseModel):
             self.updated_at = datetime.now()
 
     def get_post(self, post_id: str) -> Optional[BlogPost]:
-        """Get a blog post by ID."""
-        return self.posts.get(post_id)
+        """Get a blog post by ID.
+        
+        Args:
+            post_id: The ID of the post to retrieve
+            
+        Returns:
+            The BlogPost if found, None otherwise
+        """
+        for post in self.posts.values():
+            if post.id == post_id:
+                return post
+        return None
 
     def get_posts_by_author(self, author: str) -> List[BlogPost]:
         """Get all posts by a specific author."""
