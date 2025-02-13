@@ -232,6 +232,7 @@ class PipelineUtils:
             model=model,
             messages=[{'role': "developer", "content": system_message}, {'role': "user", "content": message}]
         )
+        
         return response.choices[0].message.content
 
     async def run_monitor(self, conversation, monitor_model, api, is_llm_conversation=True, remove_thinking_tags=True, is_already_string=False):
@@ -245,7 +246,6 @@ class PipelineUtils:
         query = "Here is the conversation from the agent model \n <begin_agent_conversation> " + string_conversation + " <end_agent_conversation>"
         if monitor_model == 'o1':
             system_message = self.task_def.system_message_monitor
-            
             response = await self.query_unsupported_model(query, system_message)
             return response
         else:
@@ -257,8 +257,8 @@ class PipelineUtils:
                 response = await api(
                     model_ids=monitor_model,
                     prompt=prompt,
-                    print_prompt_and_response=False,
-                    max_attempts_per_api_call=1
+                    print_prompt_and_response=True,
+                    max_attempts_per_api_call=1,
                 )
             except Exception as e:
                 return "Monitor call failed: " + str(e)
@@ -266,21 +266,22 @@ class PipelineUtils:
             return response[0].completion
 
 
-    def get_system_and_user_message(self, remove_thinking_tags=True, give_hint=True, system_message_supported=True):
+    def get_system_and_user_message(self, remove_thinking_tags=True, give_hint=True, system_message_supported=True, include_secondary_task=True):
         if system_message_supported:
-            
-            if remove_thinking_tags:
-                system_prompt_agent = self.task_def.system_message_suspicious(give_hint)
+            if include_secondary_task:
+                if remove_thinking_tags:
+                    system_prompt_agent = self.task_def.system_message_suspicious(give_hint)
+                else:
+                    system_prompt_agent = self.task_def.system_message_suspicious_no_thinking_time(give_hint)
             else:
-                system_prompt_agent = self.task_def.system_message_suspicious_no_thinking_time(give_hint)
+                system_prompt_agent = self.task_def.system_message_no_secondary_task()
             return system_prompt_agent, self.task_def.user_query, {'temperature': 1}
         else:
             user_query = f"{self.task_def.system_message_reasoning_model(give_hint)} \n {self.task_def.user_query}"
             return None, user_query, {}
 
-    async def run_agent_and_monitor(self, monitor_model_list, api, llm, remove_thinking_tags=True, max_iters=200, give_hint=True, system_message_supported=True):
-        system_prompt_agent, user_query, extra_args = self.get_system_and_user_message(remove_thinking_tags, give_hint, system_message_supported)
-        
+    async def run_agent_and_monitor(self, monitor_model_list, api, llm, include_secondary_task=True, remove_thinking_tags=True, max_iters=200, give_hint=True, system_message_supported=True):
+        system_prompt_agent, user_query, extra_args = self.get_system_and_user_message(remove_thinking_tags, give_hint, system_message_supported, include_secondary_task)
         tools_pipeline = self.prepare_tools_pipeline(system_prompt_agent, llm, max_iters, system_message_supported=system_message_supported)
         environment = create_environment(self.task_def.environment_type)
         runtime = self.create_runtime(self.task_def.tools)

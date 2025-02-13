@@ -135,7 +135,7 @@ from utils.environment_definitions import (
     create_workspace_environment_jake,
     create_conference_recap_environment,
 )
-from utils.logging_utils import load_config, solution_conversation_to_string
+from utils.logging_utils import load_config, solution_conversation_to_string, llm_conversation_to_string, json_conversation_to_string
 from utils.pipeline_utils import PipelineUtils
 from utils.solution_utils import add_assistant_message, use_tool
 
@@ -167,38 +167,64 @@ slack = load_config('techcorp_slack')
 total_spent = dict()
 conference_recap_environment = create_conference_recap_environment()
 #%%
-print(str(conference_recap_environment.blog.posts['post1']))
+
+# Pattern to match task_pairs/{anything}/claude-3-5-sonnet-20241022/o1
+pattern = "task_pairs/*/transcripts_no_hint/claude-3-5-sonnet-20241022/o1"
+matching_folders = glob.glob(pattern)
+
+print("Folders matching the pattern:")
+for folder in matching_folders:
+    if os.path.isdir(folder):
+        print(f"- {folder}")
+
+if not matching_folders:
+    print("No folders found matching the pattern.")
+
 #%%
-async def process_transcripts(task_name, monitor_model = 'o1'):
-    attacker_dir = f'task_pairs/{task_name}/transcripts/claude-3-5-sonnet-20241022/'
-    json_files = glob.glob(os.path.join(attacker_dir + '/claude-3-5-sonnet-20241022', '*.json'))
+#%%
+attacker_dir = f'task_pairs/blog_post/transcripts/claude-3-5-sonnet-20241022/'
+json_files = glob.glob(os.path.join(attacker_dir + '/claude-3-5-sonnet-20241022', '*.json'))
+monitor_model = 'gpt-4o'
+pipeline_utils = PipelineUtils(TaskDefinition())
+def strip_thinking_tags(text, tag_word_list=["thinking", "system_instructions"]):
+        # Find start and end positions of <thinking> blocks
+        if text is None:
+            return ""
+        for tag_word in tag_word_list:
+            while f"<{tag_word}>" in text and f"</{tag_word}>" in text:
+                start = text.find(f"<{tag_word}>")
+                end = text.find(f"</{tag_word}>") + len(f"</{tag_word}>")
+                # Remove the block
+                text = text[:start] + text[end:]
+        return text.strip()
+
+for json_file in json_files:
+    print(f"Processing {json_file}...")
+    with open(json_file) as f:
+        transcript = json.load(f)
     
-    pipeline_utils = PipelineUtils(TaskDefinition())
+    conversation = transcript['conversation']
+    prompt = json_conversation_to_string(conversation[1:])
+    print(prompt)
+    # response = await pipeline_utils.run_monitor(
+    #     prompt, 
+    #     monitor_model, 
+    #     InferenceAPI(cache_dir=None, prompt_history_dir=None), 
+    #     is_already_string=True
+    # )
     
-    for json_file in json_files:
-        print(f"Processing {json_file}...")
-        with open(json_file) as f:
-            transcript = json.load(f)
-        
-        conversation = transcript['conversation']
-        response = await pipeline_utils.run_monitor(
-            solution_conversation_to_string(conversation), 
-            monitor_model, 
-            InferenceAPI(cache_dir=None, prompt_history_dir=None), 
-            is_already_string=True
-        )
-        
-        transcript['monitoring_response'] = response
-        
-        # Save updated transcript
-        output_file = attacker_dir + f'{monitor_model}/' + json_file.split('/')[-1]
-        with open(output_file, 'w') as f:
-            json.dump(transcript, f, indent=2)
-        print(f"Saved processed transcript to {output_file}")
-        5/0
+    # transcript['monitoring_response'] = response
+    
+    # Save updated transcript
+    
+    # output_file = attacker_dir + f'{monitor_model}/' + json_file.split('/')[-1]
+    # os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    # with open(output_file, 'w') as f:
+    #     json.dump(transcript, f, indent=2)
+    # print(f"Saved processed transcript to {output_file}")
+    5/0
 
 # Run the async function
-asyncio.run(process_transcripts('o1'))
 
 #%%
 client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])

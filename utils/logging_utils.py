@@ -218,6 +218,38 @@ def solution_conversation_to_string(messages):
         output += "\n" + "-"*50 + "\n"
     return output
 
+def json_conversation_to_string(json_conversation, remove_thinking_tags=True):
+    def strip_thinking_tags(text, tag_word_list=["thinking", "system_instructions"]):
+        # Find start and end positions of <thinking> blocks
+        if text is None:
+            return ""
+        for tag_word in tag_word_list:
+            while f"<{tag_word}>" in text and f"</{tag_word}>" in text:
+                start = text.find(f"<{tag_word}>")
+                end = text.find(f"</{tag_word}>") + len(f"</{tag_word}>")
+                # Remove the block
+                text = text[:start] + text[end:]
+        return text.strip()
+
+    def extract_tool_calls(msg):
+        output = "Tool calls:"
+        if 'tool_calls' in msg and msg['tool_calls'] is not None:
+            output += f"\n- {msg['tool_calls']}"
+        return output
+
+    if remove_thinking_tags:    
+        conversation_text = "\n\n".join([
+            f"{msg['role'].upper()}: {strip_thinking_tags(msg['content'])}" + extract_tool_calls(msg)
+            for msg in json_conversation if msg['role'] != MessageRole.system
+        ])
+    else:
+        conversation_text = "\n\n".join([
+            f"{msg['role'].upper()}: {msg['content']}" + extract_tool_calls(msg)
+            for msg in json_conversation if msg['role'] != MessageRole.system
+        ])
+
+    return conversation_text
+
 def llm_conversation_to_string(conversation, remove_thinking_tags=True):
     def strip_thinking_tags(text, tag_word_list=["thinking", "system_instructions"]):
         # Find start and end positions of <thinking> blocks

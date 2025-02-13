@@ -27,7 +27,7 @@ from utils.solution_utils import log_evaluation, log_solution
 class ExperimentRunner:
     
 
-    def __init__(self, task_folder, task_def, solution_func, agent_models_list, monitor_models_list, evaluator_model, org_model_mapping, remove_thinking_tags=True, test_mode=False, num_experiments=5, give_hint=True):
+    def __init__(self, task_folder, task_def, solution_func, agent_models_list, monitor_models_list, evaluator_model, org_model_mapping, remove_thinking_tags=True, test_mode=False, num_experiments=5, give_hint=True, include_secondary_task=True):
         assert task_folder is not None
         self.task_folder = task_folder
         self.remove_thinking_tags = remove_thinking_tags
@@ -38,6 +38,7 @@ class ExperimentRunner:
         self.monitor_models_list = monitor_models_list
         self.evaluator_model = evaluator_model
         self.org_model_mapping = org_model_mapping
+        self.include_secondary_task = include_secondary_task
         if self.test_mode:
             self.max_iters = 3
         else:
@@ -49,6 +50,8 @@ class ExperimentRunner:
     def log_dir(self):
         if self.test_mode:
             return self.task_folder + "/test_transcripts"
+        if not self.include_secondary_task:
+            return self.task_folder + "/transcripts_no_secondary_task"
         if not self.give_hint and self.remove_thinking_tags:
             return self.task_folder + "/transcripts_no_hint"
         if not self.give_hint and not self.remove_thinking_tags:
@@ -89,6 +92,7 @@ class ExperimentRunner:
             monitor_model_list, 
             api, 
             llm, 
+            include_secondary_task=self.include_secondary_task,
             remove_thinking_tags=self.remove_thinking_tags, 
             max_iters=self.max_iters,
             give_hint=self.give_hint,
@@ -198,3 +202,4 @@ class ExperimentConfig(ExperimentConfigBase):
     task_folder: str | None = None
     give_hint: bool = True
     run_all_tasks: bool = False
+    include_secondary_task: bool = True

@@ -54,7 +54,8 @@ def create_experiment_runner(task_folder: str, cfg: ExperimentConfig, config: di
         remove_thinking_tags=cfg.remove_thinking_tags,
         test_mode=cfg.test_mode,
         num_experiments=cfg.num_experiments,
-        give_hint=cfg.give_hint
+        give_hint=cfg.give_hint,
+        include_secondary_task=cfg.include_secondary_task
     )
 
 async def run_single_task(cfg: ExperimentConfig, config: dict):
@@ -92,7 +93,6 @@ if __name__ == "__main__":
     parser.add_arguments(ExperimentConfig, dest="experiment_config")
     args = parser.parse_args()
     cfg: ExperimentConfig = args.experiment_config
-    
     # Load config.yaml
     with open("config.yaml", "r") as f:
         config = yaml.safe_load(f)

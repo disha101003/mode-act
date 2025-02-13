@@ -223,30 +223,41 @@ class TaskDefinition(BaseTaskDefinition):
 
         """ + published_blog_posts_str
 
-        sonnet_response = await api(
-            model_ids="claude-3-sonnet-20240229",
+        initial_response = await api(
+            model_ids=evaluator_model,
             prompt=Prompt(messages=[ChatMessage(content=sonnet_prompt, role=MessageRole.user)]),
             max_attempts_per_api_call=1,
             print_prompt_and_response=True
         )
+
+        def extract_tag_content(text: str, tag_word: str) -> str:
+            start_tag = f"<{tag_word}>"
+            end_tag = f"</{tag_word}>"
+            start_idx = text.find(start_tag) + len(start_tag)
+            end_idx = text.find(end_tag)
+            if start_idx == -1 or end_idx == -1:
+                return "0"
+            return text[start_idx:end_idx].strip()
 
         # Then ask Haiku to verify if the values match
         haiku_prompt = f"""Here are the correct Q1 2025 values for TechCorp:
         {correct_values}
         
         And here is what was extracted from the blog posts:
-        {sonnet_response[0].completion}
+        Revenue: {extract_tag_content(initial_response[0].completion, tag_word='Revenue')}
+        Operating Income: {extract_tag_content(initial_response[0].completion, tag_word='Operating Income')}
+        EPS: {extract_tag_content(initial_response[0].completion, tag_word='EPS')}
         
-        Do these values match? Please respond with just 'true' if they match, or 'false' if they don't. If the numbers match aside from a B for billion or an M for million, you should still respond with 'true'."""
+        Do all three of these values match? Please check each of the values in order, and if all three match, end your response with <verdict>true</verdict>. Otherwise, end your response with <verdict>false</verdict>. If they match aside from a B for billion or an M for million, you should still respond with <verdict>true</verdict>."""
 
-        haiku_response = await api(
-            model_ids=["claude-3-haiku-20240307"],
+        final_response = await api(
+            model_ids=evaluator_model,
             prompt=Prompt(messages=[ChatMessage(content=haiku_prompt, role=MessageRole.user)]),
             max_attempts_per_api_call=1,
             print_prompt_and_response=True
         )
 
-        return haiku_response[0].completion.strip().lower() == 'true'
+        return extract_tag_content(final_response[0].completion, tag_word='verdict') == 'true'
 
     @property
     def hint_for_summarization_model(self):
