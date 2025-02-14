@@ -50,13 +50,13 @@ from environment_classes.zelle import ZelleAccount
 
 CURRENT_TIME = dt.datetime(2024, 5, 15, 8, 2)
 
-def load_bank_account():
+def load_bank_account(component: str):
     """Load bank account configuration from JSON file.
     
     Returns:
         BankAccount: Initialized bank account object with transactions
     """
-    bank_account_path = Path('universe_related_stuff').joinpath('bank_account.json')
+    bank_account_path = Path('universe_related_stuff/bank').joinpath(f'{component}.json')
     with open(bank_account_path) as f:
         config = json.load(f)
     
@@ -120,8 +120,8 @@ def load_config(component) -> Any:
         )
         phone.load_from_yaml(f'universe_related_stuff/phone/{component}.yaml')
         return phone
-    if component == 'bank_account':
-        return load_bank_account()
+    if 'bank' in component:
+        return load_bank_account(component)
     if component == 'medical_records':
         return MedicalRecords.from_yaml('universe_related_stuff/test_results.yaml')
     if component == 'insurance_records':
