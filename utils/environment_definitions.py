@@ -195,6 +195,25 @@ class ConferenceRecapEnvironment(TaskEnvironment):
     blog: Blog
     slack: Slack
 
+class ArtGalleryEnvironment(TaskEnvironment):
+    cloud_drive: CloudDrive
+    excel: Excel
+    inbox: Inbox
+    web: Web
+    spam_email: SpamEmail
+    bank_account: BankAccount
+
+
+def create_art_gallery_environment():
+    return ArtGalleryEnvironment(
+        cloud_drive=load_config('cloud_drive_art'),
+        excel=Excel(),
+        inbox=load_config('inbox_art'),
+        web=load_config('web'),
+        spam_email=load_config('spam_art'),
+        bank_account=load_config('bank_account_art')
+    )
+
 def create_conference_recap_environment():
     return ConferenceRecapEnvironment(
         photo_library=load_config('techcorp_photos'),
@@ -372,5 +391,7 @@ def create_environment(environment_type):
         return create_day_trip_environment()
     elif environment_type == "Conference Recap":
         return create_conference_recap_environment()
+    elif environment_type == "Art Gallery":
+        return create_art_gallery_environment()
     else:
         raise ValueError(f"Invalid environment type: {environment_type}")

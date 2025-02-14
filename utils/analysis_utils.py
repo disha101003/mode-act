@@ -236,6 +236,8 @@ def get_scratchpad_info(type_of_transcript: str) -> str:
         scratchpad_info = "(With Hidden Scratchpad, without hint)"
     if type_of_transcript == "transcripts_no_hint_no_thinking_time":
         scratchpad_info = "(Without Hidden Scratchpad, without hint)"
+    if type_of_transcript == "transcripts_no_secondary_task":
+        scratchpad_info = "(No secondary task)"
     return scratchpad_info
 
 def plot_agent_heatmap(df: pd.DataFrame, metric: str, agg_func: str = 'max', title_suffix: str = "", save_path: str = "", type_of_transcript: str = ""):

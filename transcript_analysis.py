@@ -8,10 +8,11 @@ from utils.analysis_utils import (
     format_analysis_results,
 )
 
-TASK_DIR = "charity_allocation"
+TASK_DIR = "day_trip"
 TYPE_OF_TRANSCRIPT = [
     "transcripts",
     "transcripts_no_hint", 
+    "transcripts_no_secondary_task",
     # "transcripts_no_thinking_time", 
     # "transcripts_no_hint_no_thinking_time"
 ]

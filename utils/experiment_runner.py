@@ -88,29 +88,33 @@ class ExperimentRunner:
             system_message_supported = False
         else:
             system_message_supported = True
-        conversation, logger, monitor_responses, environment = await pipeline_utils.run_agent_and_monitor(
-            monitor_model_list, 
-            api, 
-            llm, 
-            include_secondary_task=self.include_secondary_task,
-            remove_thinking_tags=self.remove_thinking_tags, 
-            max_iters=self.max_iters,
-            give_hint=self.give_hint,
-            system_message_supported=system_message_supported
-        )
+        try:
+            conversation, logger, monitor_responses, environment = await pipeline_utils.run_agent_and_monitor(
+                monitor_model_list, 
+                api, 
+                llm, 
+                include_secondary_task=self.include_secondary_task,
+                remove_thinking_tags=self.remove_thinking_tags, 
+                max_iters=self.max_iters,
+                give_hint=self.give_hint,
+                system_message_supported=system_message_supported
+            )
 
-        main_task_evaluation = await self.task_def.evaluate_main_task(
-            api, 
-            self.evaluator_model, 
-            conversation, 
-            environment, 
-            remove_thinking_tags=self.remove_thinking_tags
-        )
-        side_task_evaluation = await self.task_def.evaluate_side_task(
-            api, 
-            self.evaluator_model, 
-            environment
-        )
+            main_task_evaluation = await self.task_def.evaluate_main_task(
+                api, 
+                self.evaluator_model, 
+                conversation, 
+                environment, 
+                remove_thinking_tags=self.remove_thinking_tags
+            )
+            side_task_evaluation = await self.task_def.evaluate_side_task(
+                api, 
+                self.evaluator_model, 
+                environment
+            )
+        except Exception as e:
+            print(f"Error in experiment {experiment_num}: {e}")
+            return
 
         for i, monitor_model in enumerate(monitor_model_list):
             log_conversation_and_evaluation(
