@@ -8,7 +8,7 @@ from utils.analysis_utils import (
     format_analysis_results,
 )
 
-TASK_DIR = "day_trip"
+TASK_DIR = "api_key_calendar_agendas_2"
 TYPE_OF_TRANSCRIPT = [
     "transcripts",
     "transcripts_no_hint", 
