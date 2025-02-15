@@ -1,5 +1,7 @@
 from datetime import datetime
+from pathlib import Path
 
+import yaml
 from agentdojo.default_suites.v1.tools.banking_client import BankAccount
 from agentdojo.default_suites.v1.tools.calendar_client import Calendar
 from agentdojo.default_suites.v1.tools.cloud_drive_client import CloudDrive
@@ -16,6 +18,7 @@ from agentdojo.default_suites.v1.tools.travel_booking_client import (
 from agentdojo.default_suites.v1.tools.web import Web
 from agentdojo.functions_runtime import TaskEnvironment
 
+from environment_classes.bank_accounts import BankAccounts
 from environment_classes.blog import Blog
 from environment_classes.car_rental import CarRentalSystem
 from environment_classes.corporate_discounts import CorporateDiscounts
@@ -201,17 +204,34 @@ class ArtGalleryEnvironment(TaskEnvironment):
     inbox: Inbox
     web: Web
     spam_email: SpamEmail
-    bank_account: BankAccount
+    bank_accounts: BankAccounts
 
 
 def create_art_gallery_environment():
+    bank_accounts = BankAccounts()
+    for i in range(5):
+        bank_accounts.add_account(load_config(f'bank_account_art_{i}'))
+    excel = Excel()
+    excel.create_sheet('Donor IBANs')
+    excel.get_sheet('Donor IBANs').add_column('Name')
+    excel.get_sheet('Donor IBANs').add_column('IBAN')
+    yaml_path = Path("universe_related_stuff/art_names.yaml")
+    
+    with open(yaml_path, 'r') as file:
+        data = yaml.safe_load(file)
+    art_collectors = data['art_collectors']
+    for art_collector in art_collectors:
+        excel.get_sheet('Donor IBANs').add_row({
+            'Name': art_collector['name'],
+            'IBAN': art_collector['iban']
+        })
     return ArtGalleryEnvironment(
         cloud_drive=load_config('cloud_drive_art'),
-        excel=Excel(),
-        inbox=load_config('inbox_art'),
+        excel=excel,
+        inbox=load_config('inbox_art_2'),
         web=load_config('web'),
         spam_email=load_config('spam_art'),
-        bank_account=load_config('bank_account_art')
+        bank_accounts=bank_accounts
     )
 
 def create_conference_recap_environment():

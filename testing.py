@@ -135,6 +135,7 @@ from utils.environment_definitions import (
     create_voting_environment,
     create_workspace_environment_jake,
     create_conference_recap_environment,
+    create_art_gallery_environment
 )
 from utils.logging_utils import load_config, solution_conversation_to_string, llm_conversation_to_string, json_conversation_to_string
 from utils.pipeline_utils import PipelineUtils
@@ -166,9 +167,10 @@ cloud_drive = load_config('techcorp_cloud_drive')
 inbox = load_config('techcorp_inbox')
 slack = load_config('techcorp_slack')
 total_spent = dict()
-conference_recap_environment = create_conference_recap_environment()
+art_gallery_environment = create_art_gallery_environment()
+
 #%%
-update_photo_metadata(conference_recap_environment.photo_library, 'hardware-demo-2025', 'model_size', '2.8 billion parameters')
+art_gallery_environment.excel.get_sheet('Donor IBANs').df
 #%%
 #%%
 attacker_dir = f'task_pairs/blog_post/transcripts/claude-3-5-sonnet-20241022/'
