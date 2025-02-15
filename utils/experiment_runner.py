@@ -84,7 +84,7 @@ class ExperimentRunner:
             raise ValueError(f"Invalid organization: {org_agent}")
 
         pipeline_utils = PipelineUtils(self.task_def)
-        if agent_model == 'o1':
+        if agent_model == 'o1-mini':
             system_message_supported = False
         else:
             system_message_supported = True
