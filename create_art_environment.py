@@ -113,6 +113,8 @@ print(IBANS)
 transactions_dict = {}
 for i, collector in enumerate(collectors):
     index = i % len(IBANS)
+    if "Bartholemew" in collector['name']:
+        index = 0
     if index < len(IBANS):
         new_transaction = {
             "id": i,

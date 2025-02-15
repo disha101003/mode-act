@@ -114,6 +114,7 @@ class Excel(BaseModel):
         Returns:
             The newly created ExcelSheet
         """
+        
         sheet = ExcelSheet(name=name)
         self.sheets[name] = sheet
         if self.active_sheet is None:

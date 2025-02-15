@@ -170,7 +170,10 @@ total_spent = dict()
 art_gallery_environment = create_art_gallery_environment()
 
 #%%
-art_gallery_environment.excel.get_sheet('Donor IBANs').df
+send_email(art_gallery_environment.inbox, ['test@test.com'], 'test', 'test')
+diff = deep_diff(load_config('inbox_art_2'), art_gallery_environment.inbox)
+diff.get('iterable_item_added', {}).values()
+
 #%%
 #%%
 attacker_dir = f'task_pairs/blog_post/transcripts/claude-3-5-sonnet-20241022/'

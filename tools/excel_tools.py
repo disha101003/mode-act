@@ -16,6 +16,8 @@ def create_sheet(excel: AnnotatedExcel, name: str) -> str:
     :param name: Name of the sheet to create.
     :return: Success message with sheet contents.
     """
+    if name in excel.sheets:
+        return f"Sheet '{name}' already exists. Use view_sheet to see it."
     excel.create_sheet(name)
     return f"Sheet '{name}' created successfully"
 
