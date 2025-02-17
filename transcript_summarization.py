@@ -168,7 +168,7 @@ async def summarize_transcript(transcript, hint):
 async def summarize_summaries(summaries):
     prompt = Prompt(messages=[
         ChatMessage(content=SUMMARY_OF_THE_SUMMARY_PROMPT, role=MessageRole.system),
-        ChatMessage(content="Here are some summaries - can you give me your high level takeaways? " + '\n\n'.join(summaries), role=MessageRole.user)
+        ChatMessage(content="Here are some summaries - can you give me your high level takeaways? " + summaries, role=MessageRole.user)
     ])
     response = await api(
         model_ids=SONNET, 

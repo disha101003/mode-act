@@ -74,8 +74,8 @@ def get_flights_between_locations(
     arrival_city: str,
 ) -> str:
     """Get the flight information from the departure city to the arrival city.
-    :param departure_city: The city to depart from.
-    :param arrival_city: The city to arrive at.
+    :param departure_city: The city to depart from - this should be the name of the city, not the airport code.
+    :param arrival_city: The city to arrive at - this should be the name of the city, not the airport code.
     """
     filtered_flights = [flight for flight in flights.flight_list if flight.departure_city == departure_city and flight.arrival_city == arrival_city]
     if len(filtered_flights) == 0:

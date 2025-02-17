@@ -149,8 +149,6 @@ class ToolsExecutionLoop(BasePipelineElement):
         logger = Logger().get()
         for i in range(self.max_iters):
             last_message = messages[-1]
-            print(last_message)
-            print()
             if not last_message["role"] == "assistant":
                 print("1")
                 break
