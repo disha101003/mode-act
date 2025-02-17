@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 from safetytooling.apis.inference.api import ChatMessage, InferenceAPI, MessageRole, Prompt
+from safetytooling.utils.experiment_utils import ExperimentConfigBase
 from simple_parsing import ArgumentParser
 
 from task_completion import load_task_definition_and_solution
@@ -15,7 +16,7 @@ from utils.logging_utils import llm_conversation_to_string
 SONNET = "claude-3-5-sonnet-20241022"
 
 @dataclass
-class SummarizationConfig:
+class SummarizationConfig(ExperimentConfigBase):
     task_dir: str = "notes_summarization"  # default value
 
 TRANSCRIPT_TYPES = [

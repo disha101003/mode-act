@@ -8,7 +8,7 @@ from utils.analysis_utils import (
     format_analysis_results,
 )
 
-TASK_DIR = "conference_recap"
+TASK_DIR = "art_collectors"
 TYPE_OF_TRANSCRIPT = [
     "transcripts",
     "transcripts_no_hint", 

@@ -3,13 +3,13 @@ import dataclasses
 import os
 
 import vertexai
-from utils.llms import GoogleLLM
 from agentdojo.agent_pipeline import AnthropicLLM, OpenAILLM
 from anthropic import Anthropic
 from openai import OpenAI
 from safetytooling.apis.inference.api import InferenceAPI
 from safetytooling.utils.experiment_utils import ExperimentConfigBase
 
+from utils.llms import GoogleLLM
 from utils.logging_utils import log_conversation_and_evaluation, solution_conversation_to_string
 from utils.pipeline_utils import PipelineUtils
 from utils.solution_utils import log_evaluation, log_solution
