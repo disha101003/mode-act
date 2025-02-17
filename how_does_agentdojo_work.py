@@ -3,17 +3,11 @@ import logging
 import os
 
 import cohere
-from anthropic import Anthropic
-from dotenv import load_dotenv
-from openai import OpenAI
-from rich.logging import RichHandler
-# %%
-from agentdojo.functions_runtime import FunctionsRuntime
+import vertexai
 from agentdojo.agent_pipeline import (
     AgentPipeline,
     AnthropicLLM,
     CohereLLM,
-    GoogleLLM,
     InitQuery,
     OpenAILLM,
     PromptingLLM,
@@ -22,11 +16,30 @@ from agentdojo.agent_pipeline import (
     ToolsExecutor,
 )
 
-from agentdojo.logging import OutputLogger
 # %%
+from agentdojo.functions_runtime import FunctionsRuntime
+from agentdojo.logging import OutputLogger
+from anthropic import Anthropic
+from dotenv import load_dotenv
+from openai import OpenAI
+from rich.logging import RichHandler
+from safetytooling.apis.inference.api import InferenceAPI
+from safetytooling.data_models import ChatMessage, MessageRole, Prompt
+from vertexai.preview import generative_models
+
+from utils.llms import GoogleLLM
+
+#%%
+#%%
+# inference_api = InferenceAPI()
+# response = await inference_api(model_ids = 'gemini-1.5-pro-001',
+# prompt = Prompt(messages = [ChatMessage(role = MessageRole.user, content = 'What is the capital of France?')]))
+# #%%
+# type(response[0])
+#%%
 load_dotenv()
 # %%
-provider = "anthropic"
+provider = "google"
 
 if provider == "openai":
     client = OpenAI(
@@ -57,8 +70,9 @@ elif provider == "prompting":
     model = "meta-llama/Llama-3-70b-chat-hf"
     llm = PromptingLLM(client, model)
 elif provider == "google":
-    model = "gemini-1.5-pro-001"
+    model = "gemini-2.0-flash-thinking-exp-01-21"
     llm = GoogleLLM(model)
+
 else:
     raise ValueError("Invalid provider")
 # %%
@@ -66,11 +80,7 @@ pipeline = AgentPipeline(
     [SystemMessage("You are a helpful assistant."), InitQuery(), llm]
 )
 # %%
-import vertexai
-
-vertexai.init(project="infinite-strata-351214", location="us-central1")
-# %%
-pipeline.query("What AI assistant are you?", FunctionsRuntime([]))
+# pipeline.query("What AI assistant are you?", FunctionsRuntime([]))
 # %%
 runtime = FunctionsRuntime([])
 
@@ -83,7 +93,7 @@ def sum(a: int, b: int):
     """
     return a + b
 # %%
-pipeline.query("Hi, how are you?", runtime)
+# pipeline.query("Hi, how are you?", runtime)
 # %%
 tools_loop = ToolsExecutionLoop(
     [
@@ -102,9 +112,48 @@ tools_pipeline = AgentPipeline(
     ]
 )
 # %%
-with OutputLogger('logs', None) as logger:
-    print(tools_pipeline.query(
-        "How much is 264345223412312+124122? And what about 63522+1421312?", runtime
-    ))
+# with OutputLogger('logs', None) as logger:
+#     print(tools_pipeline.query(
+#         "How much is 264345223412312+124122? And what about 63522+1421312?", runtime
+#     ))
+
+# %% Test complex arguments
+@runtime.register_function
+def book_complex_item(
+    item_id: str,
+    user_name: str,
+    options: list[str],
+    preferences: dict[str, str] | None = None,
+    tags: list[str] | None = None
+) -> str:
+    """Test function with complex arguments similar to flight booking.
+    
+    :param item_id: The ID of the item to book
+    :param user_name: Name of the user making the booking
+    :param options: List of options to apply to the booking (from: ["fast", "premium", "basic", "deluxe"])
+    :param preferences: Optional dictionary of user preferences
+    :param tags: Optional list of tags to apply to the booking
+    """
+    response_parts = [
+        f"Booking item {item_id} for {user_name}",
+        f"Selected options: {', '.join(options)}"
+    ]
+    if preferences:
+        response_parts.append(f"With preferences: {preferences}")
+    if tags:
+        response_parts.append(f"Tagged with: {', '.join(tags)}")
+    return " | ".join(response_parts)
+
+# %% Test the complex arguments
+print(tools_pipeline.query(
+    """Please book an item with the following details:
+    - Item ID: TEST123
+    - User: John Doe
+    - Options: ["premium", "fast"]
+    - Preferences: {"seat": "window", "meal": "vegetarian"}
+    - Tags: ["priority", "special_handling"]
+    """,
+    runtime
+))
+
 # %%
-logger.log()

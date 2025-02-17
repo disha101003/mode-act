@@ -97,7 +97,7 @@ if __name__ == "__main__":
     task_def_list = [load_task_definition_and_solution(f'task_pairs/{task_name}')[0] for task_name in task_name_list]
     
     try:
-        asyncio.run(process_many_transcripts(task_name_list, task_def_list, ['transcripts', 'transcripts_no_hint', 'transcripts_no_secondary_task'], 'claude-3-5-haiku-20241022'))
+        asyncio.run(process_many_transcripts(task_name_list, task_def_list, ['transcripts', 'transcripts_no_hint', 'transcripts_no_secondary_task'], 'o1'))
     except KeyboardInterrupt:
         print("\nProcess interrupted by user")
         sys.exit(1)

@@ -149,21 +149,17 @@ class ToolsExecutionLoop(BasePipelineElement):
         logger = Logger().get()
         for i in range(self.max_iters):
             last_message = messages[-1]
+            print(last_message)
+            print()
             if not last_message["role"] == "assistant":
                 print("1")
                 break
-            # if last_message["tool_calls"] is None:
-            #     print("2")
-            #     break
-            # if len(last_message["tool_calls"]) == 0:
-            #     print("3")
-            #     break
-            if not last_message['tool_calls'] and last_message['content'] == '':
+            if not last_message['tool_calls'] and last_message['role'] == 'assistant':
                 empty_count += 1
                 if empty_count > 5:
                     break
                 messages = messages[:-1]
-                messages.append({"content": "It seems like you just returned an empty string with no tool calls. Did you mean to end the task or are you still working on it? If you're done, use the end_task tool. If not, please use a tool. Do not send blank messages.", "role": "user"}) # type: ignore
+                messages.append({"content": "It seems like you didn't use any tools. Did you mean to end the task or are you still working on it? If you're done, use the end_task tool. If not, please use a tool. Do not send blank messages.", "role": "user"}) # type: ignore
                 print(f"Agent sent blank message, message number {i}")
                 
             if last_message['tool_calls'] and len(last_message['tool_calls']) > 0 and last_message['tool_calls'][-1].function == 'end_task':

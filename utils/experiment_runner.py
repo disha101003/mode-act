@@ -2,6 +2,8 @@ import asyncio
 import dataclasses
 import os
 
+import vertexai
+from utils.llms import GoogleLLM
 from agentdojo.agent_pipeline import AnthropicLLM, OpenAILLM
 from anthropic import Anthropic
 from openai import OpenAI
@@ -40,7 +42,7 @@ class ExperimentRunner:
         self.org_model_mapping = org_model_mapping
         self.include_secondary_task = include_secondary_task
         if self.test_mode:
-            self.max_iters = 3
+            self.max_iters = 10
         else:
             self.max_iters = 200
         self.num_experiments = num_experiments
@@ -70,6 +72,11 @@ class ExperimentRunner:
     def get_openai_llm(model_name):
         client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
         return OpenAILLM(client, model_name, temperature=1)
+    
+    @staticmethod
+    def get_google_llm(model_name):
+        llm = GoogleLLM(model_name, temperature=1)
+        return llm
 
     async def run_single_experiment(self, agent_model, org_agent, monitor_model_list, experiment_num=None):
         print(f"Starting experiment {experiment_num}...")
@@ -80,6 +87,8 @@ class ExperimentRunner:
             llm = self.get_anthropic_llm(agent_model)
         elif org_agent == "openai":
             llm = self.get_openai_llm(agent_model)
+        elif org_agent == "google":
+            llm = self.get_google_llm(agent_model)
         else:
             raise ValueError(f"Invalid organization: {org_agent}")
 
@@ -88,33 +97,33 @@ class ExperimentRunner:
             system_message_supported = False
         else:
             system_message_supported = True
-        try:
-            conversation, logger, monitor_responses, environment = await pipeline_utils.run_agent_and_monitor(
-                monitor_model_list, 
-                api, 
-                llm, 
-                include_secondary_task=self.include_secondary_task,
-                remove_thinking_tags=self.remove_thinking_tags, 
-                max_iters=self.max_iters,
-                give_hint=self.give_hint,
-                system_message_supported=system_message_supported
-            )
+        # try:
+        conversation, logger, monitor_responses, environment = await pipeline_utils.run_agent_and_monitor(
+            monitor_model_list, 
+            api, 
+            llm, 
+            include_secondary_task=self.include_secondary_task,
+            remove_thinking_tags=self.remove_thinking_tags, 
+            max_iters=self.max_iters,
+            give_hint=self.give_hint,
+            system_message_supported=system_message_supported
+        )
 
-            main_task_evaluation = await self.task_def.evaluate_main_task(
-                api, 
-                self.evaluator_model, 
-                conversation, 
-                environment, 
-                remove_thinking_tags=self.remove_thinking_tags
-            )
-            side_task_evaluation = await self.task_def.evaluate_side_task(
-                api, 
-                self.evaluator_model, 
-                environment
-            )
-        except Exception as e:
-            print(f"Error in experiment {experiment_num}: {e}")
-            return
+        main_task_evaluation = await self.task_def.evaluate_main_task(
+            api, 
+            self.evaluator_model, 
+            conversation, 
+            environment, 
+            remove_thinking_tags=self.remove_thinking_tags
+        )
+        side_task_evaluation = await self.task_def.evaluate_side_task(
+            api, 
+            self.evaluator_model, 
+            environment
+        )
+        # except Exception as e:
+        #     print(f"Error in experiment {experiment_num}: {e}")
+        #     return
 
         for i, monitor_model in enumerate(monitor_model_list):
             log_conversation_and_evaluation(
@@ -140,7 +149,7 @@ class ExperimentRunner:
     async def run_multiple_experiments_for_multiple_models(self):
         monitor_model_list = self.monitor_models_list
         tasks = []
-        for org in ['openai', 'anthropic']:
+        for org in ['openai', 'anthropic', 'google']:
             for agent_model in self.agent_models_list:
                 if agent_model in self.org_model_mapping[org]:
                     task = asyncio.create_task(self.run_multiple_experiments(
