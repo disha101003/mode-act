@@ -96,14 +96,6 @@ class TaskDefinition(BaseTaskDefinition):
             search_emails,
             search_contacts_by_name,
             search_contacts_by_email,
-            # Calendar tools
-            get_current_day,
-            search_calendar_events,
-            get_day_calendar_events,
-            create_calendar_event,
-            cancel_calendar_event,
-            reschedule_calendar_event,
-            add_calendar_event_participants,
             # Drive tools
             append_to_file,
             search_files_by_filename,

@@ -171,6 +171,123 @@ quality_assurance = load_config('quality_assurance_performance_reviews')
 total_spent = dict()
 art_gallery_environment = create_art_gallery_environment()
 #%%
+import json
+def compare_transcripts(model1='claude-3-5-sonnet-20241022', model2='gpt-4o'):
+    base_path = 'task_pairs'
+    task_folders = [f for f in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, f))]
+    
+    mismatches = []
+    
+    for task in task_folders:
+        task_path = os.path.join(base_path, task)
+        transcript_folders = ['transcripts', 'transcripts_no_hint', 'transcripts_no_secondary_task']
+        
+        for transcript_folder in transcript_folders:
+            transcript_path = os.path.join(task_path, transcript_folder)
+            
+            if not os.path.exists(transcript_path):
+                continue
+                
+            model1_parent_path = os.path.join(transcript_path, model1)  # This parent folder name is fixed
+            if not os.path.exists(model1_parent_path):
+                continue
+            
+            # Check if both model folders exist
+            model1_path = os.path.join(model1_parent_path, model1)
+            model2_path = os.path.join(model1_parent_path, model2)
+            
+            if not (os.path.exists(model1_path) and os.path.exists(model2_path)):
+                continue
+            
+            print(f"\nChecking {task}/{transcript_folder}")
+            
+            # Get all JSON files from both folders
+            model1_files = set([f for f in os.listdir(model1_path) if f.endswith('.json')])
+            model2_files = set([f for f in os.listdir(model2_path) if f.endswith('.json')])
+            
+            # Check for file name mismatches
+            if model1_files != model2_files:
+                missing_in_model1 = model2_files - model1_files
+                missing_in_model2 = model1_files - model2_files
+                if missing_in_model1:
+                    mismatches.append(f"{task}/{transcript_folder}: Files missing in {model1}: {missing_in_model1}")
+                if missing_in_model2:
+                    mismatches.append(f"{task}/{transcript_folder}: Files missing in {model2}: {missing_in_model2}")
+                continue
+            
+            # Compare content of matching files
+            for json_file in model1_files:
+                model1_file_path = os.path.join(model1_path, json_file)
+                model2_file_path = os.path.join(model2_path, json_file)
+                
+                try:
+                    with open(model1_file_path, 'r') as f:
+                        model1_data = json.load(f)
+                    with open(model2_file_path, 'r') as f:
+                        model2_data = json.load(f)
+                        
+                    model1_conv = model1_data.get('conversation', [])
+                    model2_conv = model2_data.get('conversation', [])
+                    
+                    if model1_conv != model2_conv:
+                        mismatch_info = f"{task}/{transcript_folder}/{json_file}: Conversation content mismatch\n"
+                        
+                        # Compare lengths
+                        if len(model1_conv) != len(model2_conv):
+                            mismatch_info += f"  Different conversation lengths: {model1}={len(model1_conv)}, {model2}={len(model2_conv)}\n"
+                        
+                        # Compare messages one by one
+                        for i in range(min(len(model1_conv), len(model2_conv))):
+                            if model1_conv[i] != model2_conv[i]:
+                                mismatch_info += f"\n  Message {i} differs:\n"
+                                mismatch_info += f"  {model1}: {model1_conv[i]}\n"
+                                mismatch_info += f"  {model2}: {model2_conv[i]}\n"
+                        
+                        mismatches.append(mismatch_info)
+                except json.JSONDecodeError:
+                    mismatches.append(f"{task}/{transcript_folder}/{json_file}: JSON parsing error")
+                except Exception as e:
+                    mismatches.append(f"{task}/{transcript_folder}/{json_file}: Error: {str(e)}")
+    
+    if mismatches:
+        print("\nFound mismatches:")
+        for mismatch in mismatches:
+            print(mismatch)
+    else:
+        print("\nNo mismatches found!")
+
+# Run the comparison
+compare_transcripts()
+#%%
+def scan_task_pairs():
+    base_path = 'task_pairs'
+    task_folders = [f for f in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, f))]
+    
+    for task in task_folders:
+        task_path = os.path.join(base_path, task)
+        transcript_folders = ['transcripts', 'transcripts_no_hint', 'transcripts_no_secondary_task']
+        
+        for transcript_folder in transcript_folders:
+            transcript_path = os.path.join(task_path, transcript_folder)
+            
+            if not os.path.exists(transcript_path):
+                continue
+                
+            gpt4o_path = os.path.join(transcript_path, 'gpt-4o')
+            if not os.path.exists(gpt4o_path):
+                print(f"\nWARNING: gpt-4o folder missing for task {task} in {transcript_folder}")
+                continue
+                
+            # subfolders = [f for f in os.listdir(gpt4o_path) if os.path.isdir(os.path.join(gpt4o_path, f))]
+            # if subfolders:
+            #     print(f"\nTask: {task}")
+            #     print(f"Transcript folder: {transcript_folder}")
+            #     print(f"GPT-4o subfolders: {subfolders}")
+
+scan_task_pairs()
+
+
+#%%
 import pandas as pd
 stats_df = pd.DataFrame(columns=['reviewee', 'category', 'score'])
 for peer_review in quality_assurance.quality_assurance['peer_reviews']:

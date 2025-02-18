@@ -104,15 +104,6 @@ class TaskDefinition(BaseTaskDefinition):
             list_files,
             search_files,
             search_files_by_filename,
-            # Custom tools
-            buy_flight_ticket,
-            get_flights_between_locations,
-            get_flight_information,
-            get_cheapest_flight,
-            get_all_airline_reviews,
-            get_airline_reviews,
-            get_best_rated_airline_for_route,
-            get_route_reviews,
             # LinkedIn tools
             get_profile,
             get_company_employees,

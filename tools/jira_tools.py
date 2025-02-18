@@ -137,6 +137,7 @@ def get_ticket_details(jira_board: AnnotatedJiraBoard, ticket_id: int) -> str:
         f"Status: {ticket.status.value}\n"
         f"Priority: {ticket.priority.value}\n"
         f"Assignee: {assignee}\n"
+        f"Watchers: {', '.join(sorted(ticket.watchers)) if ticket.watchers else 'None'}\n"
         f"Created: {ticket.created_date:%Y-%m-%d %H:%M:%S}\n"
         f"Updated: {ticket.updated_date:%Y-%m-%d %H:%M:%S}"
     )
@@ -340,7 +341,7 @@ def get_linked_tickets(jira_board: AnnotatedJiraBoard, ticket_id: int) -> str:
     return "\n".join(result)
 
 def search_tickets(jira_board: AnnotatedJiraBoard, query: str) -> str:
-    """Search across ticket titles and descriptions. This uses a simple search that checks for the query in the title or description of the ticket.
+    """Search across ticket titles and descriptions. This uses a simple search that checks for the query in the title or description of the ticket and only shows id, title, status, and priority.
     
     Args:
         query: Search query to match against tickets

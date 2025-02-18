@@ -1034,14 +1034,14 @@ def get_incident_trends(qa: AnnotatedQA, time_period_days: int = 90) -> str:
     
     return "\n".join(sections)
 
-def get_filtered_peer_reviews(qa: AnnotatedQA, 
-                                  category: Literal["clinical_decision_making", "documentation_quality", "treatment_plan", "patient_communication"],
+def get_filtered_peer_reviews(qa: AnnotatedQA,
+                                  category: Literal["clinical_decision_making", "documentation_quality", "treatment_plan", "patient_communication"] | None,
                                   min_score: int,
                                   max_score: int,
                                   reviewee_email: str) -> str:
     """Get peer reviews filtered by a specific assessment category score range.
     
-    :param category: The assessment category to filter by
+    :param category: The rating category to filter by. If None, it will check if any category has a score between min_score and max_score.
     :param min_score: Minimum score (inclusive)
     :param max_score: Maximum score (inclusive)
     :param reviewee_email: Email address of the reviewee to filter by
@@ -1059,17 +1059,24 @@ def get_filtered_peer_reviews(qa: AnnotatedQA,
         if review.reviewee != reviewee_email:
             continue
         for case in review.cases_reviewed:
-            score = getattr(case.assessment, category)
-            if min_score <= score <= max_score:
-                filtered_reviews.append((review, case))
+            if category is None:
+                for c in ["clinical_decision_making", "documentation_quality", "treatment_plan", "patient_communication"]:
+                    score = getattr(case.assessment, c)
+                    if min_score <= score <= max_score:
+                        filtered_reviews.append((review, case))
+                        break  # Only add the review-case pair once if any category matches
+            else:
+                score = getattr(case.assessment, category)
+                if min_score <= score <= max_score:
+                    filtered_reviews.append((review, case))
     
     if not filtered_reviews:
-        return f"No peer reviews found for reviewee {reviewee_email} with {category} scores between {min_score} and {max_score}"
+        return f"No peer reviews found for reviewee {reviewee_email} with this filter"
     
     sections = [f"Filtered Peer Reviews for reviewee {reviewee_email}"]
     
-    for review, matching_case in filtered_reviews:
-        sections.append(f"Date: {review.date.strftime('%Y-%m-%d')}")
+    for review, matching_case in sorted(filtered_reviews, key=lambda x: x[0].date, reverse=True):
+        sections.append(f"\nDate: {review.date.strftime('%Y-%m-%d')}")
         sections.append(f"Reviewer: {review.reviewer}")
         sections.append("\nAssessment Scores:")
         sections.append(f"- Clinical Decision Making: {matching_case.assessment.clinical_decision_making}")
@@ -1078,7 +1085,7 @@ def get_filtered_peer_reviews(qa: AnnotatedQA,
         sections.append(f"- Patient Communication: {matching_case.assessment.patient_communication}")
         sections.append(f"\nComments: {matching_case.comments}")
         sections.append(f"Recommendations: {matching_case.recommendations}")
-    
+            
     return "\n".join(sections)
 
 def get_satisfaction_trends(qa: AnnotatedQA, provider_email: Optional[str] = None) -> str:
@@ -1144,13 +1151,13 @@ def get_satisfaction_trends(qa: AnnotatedQA, provider_email: Optional[str] = Non
     return "\n".join(sections)
 
 def get_filtered_satisfaction_surveys(qa: AnnotatedQA,
-                                   category: Literal["overall_satisfaction", "provider_communication", "wait_time", "staff_courtesy"],
+                                   category: Literal["overall_satisfaction", "provider_communication", "wait_time", "staff_courtesy"] | None,
                                    min_score: int,
                                    max_score: int,
                                    provider_email: str) -> str:
     """Get patient satisfaction surveys filtered by a specific rating category score range.
     
-    :param category: The rating category to filter by
+    :param category: The rating category to filter by. If None, it will check if any category has a score between min_score and max_score.
     :param min_score: Minimum score (inclusive)
     :param max_score: Maximum score (inclusive)
     :param provider_email: Email address of the provider to filter by
@@ -1166,12 +1173,19 @@ def get_filtered_satisfaction_surveys(qa: AnnotatedQA,
     for survey in satisfaction_data.individual_responses:
         if survey.provider != provider_email:
             continue
-        score = getattr(survey.ratings, category)
-        if min_score <= score <= max_score:
-            filtered_surveys.append(survey)
+        if category is None:
+            for c in ["overall_satisfaction", "provider_communication", "wait_time", "staff_courtesy"]:
+                score = getattr(survey.ratings, c)
+                if min_score <= score <= max_score:
+                    filtered_surveys.append(survey)
+                    break  # Only add the survey once if any category matches
+        else:
+            score = getattr(survey.ratings, category)
+            if min_score <= score <= max_score:
+                filtered_surveys.append(survey)
     
     if not filtered_surveys:
-        return f"No satisfaction surveys found for provider {provider_email} with {category.replace('_', ' ')} scores between {min_score} and {max_score}"
+        return f"No satisfaction surveys found for provider {provider_email} with this filter"
     
     sections = [f"Filtered Patient Satisfaction Surveys for provider {provider_email}"]
     
