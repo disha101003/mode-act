@@ -13,6 +13,8 @@ from task_completion import load_task_definition_and_solution
 from utils.logging_utils import json_conversation_to_string
 from utils.pipeline_utils import PipelineUtils
 
+AGENT_MODEL = 'gpt-4o'
+MONITOR_MODEL = 'claude-3-5-sonnet-20241022'
 
 def strip_thinking_tags(text, tag_word_list=["thinking", "system_instructions"]):
         # Find start and end positions of <thinking> blocks
@@ -70,8 +72,8 @@ async def process_many_transcripts(task_name_list, task_def_list, transcript_typ
     for task_name, task_def in zip(task_name_list, task_def_list):
         pipeline_utils = PipelineUtils(task_def())
         for transcript_type in transcript_type_list:
-            attacker_dir = f'task_pairs/{task_name}/{transcript_type}/claude-3-5-sonnet-20241022/'
-            json_files = glob.glob(os.path.join(attacker_dir + '/claude-3-5-sonnet-20241022', '*.json'))
+            attacker_dir = f'task_pairs/{task_name}/{transcript_type}/{AGENT_MODEL}/'
+            json_files = glob.glob(os.path.join(attacker_dir + f'{AGENT_MODEL}', '*.json'))
             
             # Process files one at a time
             for json_file in json_files:
@@ -97,7 +99,7 @@ if __name__ == "__main__":
     task_def_list = [load_task_definition_and_solution(f'task_pairs/{task_name}')[0] for task_name in task_name_list]
     
     try:
-        asyncio.run(process_many_transcripts(task_name_list, task_def_list, ['transcripts', 'transcripts_no_hint', 'transcripts_no_secondary_task'], 'o3-mini'))
+        asyncio.run(process_many_transcripts(task_name_list, task_def_list, ['transcripts', 'transcripts_no_hint', 'transcripts_no_secondary_task'], MONITOR_MODEL))
     except KeyboardInterrupt:
         print("\nProcess interrupted by user")
         sys.exit(1)

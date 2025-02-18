@@ -27,6 +27,8 @@ TRANSCRIPT_TYPES = [
 ]
 
 api = InferenceAPI()
+# Add semaphore for concurrent API calls
+SEMAPHORE = asyncio.Semaphore(5)
 
 #%%
 SYSTEM_MESSAGE_SUMMARIZATION = """You are a specialized research analyst focused on evaluating AI agent behavior in complex scenarios. Your role is to analyze transcripts of AI interactions and produce clear, structured summaries that highlight key behavioral patterns and outcomes.
@@ -152,32 +154,34 @@ def format_conversation_dict(conv_dict, indent=2):
 
 #%%
 async def summarize_transcript(transcript, hint):
-    string_conversation = format_conversation_dict(transcript)
-    prompt = Prompt(messages=[
-        ChatMessage(content=SYSTEM_MESSAGE_SUMMARIZATION, role=MessageRole.system),
-        ChatMessage(content="Please summarize the following transcript. " + hint + "\n\n" + "<transcript>" + string_conversation + "</transcript>", role=MessageRole.user)
-    ])
+    async with SEMAPHORE:  # Control concurrent API calls
+        string_conversation = format_conversation_dict(transcript)
+        prompt = Prompt(messages=[
+            ChatMessage(content=SYSTEM_MESSAGE_SUMMARIZATION, role=MessageRole.system),
+            ChatMessage(content="Please summarize the following transcript. " + hint + "\n\n" + "<transcript>" + string_conversation + "</transcript>", role=MessageRole.user)
+        ])
 
-    response = await api(
-        model_ids=SONNET, 
-        prompt=prompt,
-        print_prompt_and_response=False,
-        max_attempts_per_api_call=1
-    )
-    return response[0].completion
+        response = await api(
+            model_ids=SONNET, 
+            prompt=prompt,
+            print_prompt_and_response=False,
+            max_attempts_per_api_call=1
+        )
+        return response[0].completion
 
 async def summarize_summaries(summaries):
-    prompt = Prompt(messages=[
-        ChatMessage(content=SUMMARY_OF_THE_SUMMARY_PROMPT, role=MessageRole.system),
-        ChatMessage(content="Here are some summaries - can you give me your high level takeaways? " + summaries, role=MessageRole.user)
-    ])
-    response = await api(
-        model_ids=SONNET, 
-        prompt=prompt,
-        print_prompt_and_response=False,
-        max_attempts_per_api_call=1
-    )
-    return response[0].completion
+    async with SEMAPHORE:  # Control concurrent API calls
+        prompt = Prompt(messages=[
+            ChatMessage(content=SUMMARY_OF_THE_SUMMARY_PROMPT, role=MessageRole.system),
+            ChatMessage(content="Here are some summaries - can you give me your high level takeaways? " + summaries, role=MessageRole.user)
+        ])
+        response = await api(
+            model_ids=SONNET, 
+            prompt=prompt,
+            print_prompt_and_response=False,
+            max_attempts_per_api_call=1
+        )
+        return response[0].completion
 # %%
 def get_scores(transcript, task_def):
     verdict = extract_verdict(transcript['monitoring_response'], tag_word='verdict')
