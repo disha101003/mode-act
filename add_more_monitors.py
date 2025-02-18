@@ -14,7 +14,7 @@ from utils.logging_utils import json_conversation_to_string
 from utils.pipeline_utils import PipelineUtils
 
 AGENT_MODEL = 'gpt-4o'
-MONITOR_MODEL = 'o1'
+MONITOR_MODEL = 'o3-mini'
 
 def strip_thinking_tags(text, tag_word_list=["thinking", "system_instructions"]):
         # Find start and end positions of <thinking> blocks

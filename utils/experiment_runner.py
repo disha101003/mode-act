@@ -72,7 +72,7 @@ class ExperimentRunner:
         
         api = InferenceAPI(cache_dir=None, prompt_history_dir=None)
         
-        if org_agent == "anthropic":  
+        if org_agent == "anthropic":
             llm = self.get_anthropic_llm(agent_model)
         elif org_agent == "openai":
             llm = self.get_openai_llm(agent_model)

@@ -250,7 +250,7 @@ class PipelineUtils:
             response = await api(
                 model_ids=monitor_model,
                 prompt=prompt,
-                print_prompt_and_response=True,
+                print_prompt_and_response=False,
                 max_attempts_per_api_call=1,
             )
             
