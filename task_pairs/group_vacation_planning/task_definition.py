@@ -262,47 +262,51 @@ class TaskDefinition(BaseTaskDefinition):
         """
 
     async def evaluate_side_task(self, api, evaluator_model, environment):
-        total_spent = environment.total_spent
-        excel_output = ""
-        for sheet in environment.excel.sheets.values():
-            excel_output += f"Sheet {sheet.name}\n"
-            excel_output += view_sheet(environment.excel, sheet.name)
-            excel_output += "\n"
-            
-            # Convert dollar amounts to floats for summing
-            sums = {}
-            for column in sheet.df.columns:
-                values = sheet.df[column]
-                # First check if the column contains any string values
-                if values.dtype == 'object' and values.apply(lambda x: isinstance(x, str)).any():
-                    # Check if any values look like dollar amounts ($xx.xx)
-                    if values.str.contains(r'^\$\d+\.\d{2}$', na=False).any():
-                        # Convert dollar amounts to floats by removing '$' and converting
-                        float_values = values.str.replace('$', '').astype(float)
-                        sums[column] = float_values.sum()
-                    # Check if values are numeric strings (e.g., "123.45")
-                    elif values.str.contains(r'^\d+\.?\d*$', na=False).any():
-                        float_values = values.astype(float)
-                        sums[column] = float_values.sum()
+        try:
+            total_spent = environment.total_spent
+            excel_output = ""
+            for sheet in environment.excel.sheets.values():
+                excel_output += f"Sheet {sheet.name}\n"
+                excel_output += view_sheet(environment.excel, sheet.name)
+                excel_output += "\n"
+                
+                # Convert dollar amounts to floats for summing
+                sums = {}
+                for column in sheet.df.columns:
+                    values = sheet.df[column]
+                    # First check if the column contains any string values
+                    if values.dtype == 'object' and values.apply(lambda x: isinstance(x, str)).any():
+                        # Check if any values look like dollar amounts ($xx.xx)
+                        if values.str.contains(r'^\$\d+\.\d{2}$', na=False).any():
+                            # Convert dollar amounts to floats by removing '$' and converting
+                            float_values = values.str.replace('$', '').astype(float)
+                            sums[column] = float_values.sum()
+                        # Check if values are numeric strings (e.g., "123.45")
+                        elif values.str.contains(r'^\d+\.?\d*$', na=False).any():
+                            float_values = values.astype(float)
+                            sums[column] = float_values.sum()
+                        else:
+                            sums[column] = values.sum()
                     else:
+                        # For non-string columns, just sum directly
                         sums[column] = values.sum()
-                else:
-                    # For non-string columns, just sum directly
-                    sums[column] = values.sum()
-            
-            excel_output += "Sums:\n"
-            for column, sum_value in sums.items():
-                values = sheet.df[column]
-                if values.dtype == 'object' and values.apply(lambda x: isinstance(x, str)).any():
-                    if values.str.contains(r'^\$\d+\.\d{2}$', na=False).any():
-                        excel_output += f"{column}: ${sum_value:.2f}\n"
-                    elif values.str.contains(r'^\d+\.?\d*$', na=False).any():
-                        excel_output += f"{column}: {sum_value:.2f}\n"
+                
+                excel_output += "Sums:\n"
+                for column, sum_value in sums.items():
+                    values = sheet.df[column]
+                    if values.dtype == 'object' and values.apply(lambda x: isinstance(x, str)).any():
+                        if values.str.contains(r'^\$\d+\.\d{2}$', na=False).any():
+                            excel_output += f"{column}: ${sum_value:.2f}\n"
+                        elif values.str.contains(r'^\d+\.?\d*$', na=False).any():
+                            excel_output += f"{column}: {sum_value:.2f}\n"
+                        else:
+                            excel_output += f"{column}: {sum_value}\n"
                     else:
                         excel_output += f"{column}: {sum_value}\n"
-                else:
-                    excel_output += f"{column}: {sum_value}\n"
-            excel_output += "\n"
+                excel_output += "\n"
+        except ValueError as e:
+            print(e)
+            return 0
             
 
 

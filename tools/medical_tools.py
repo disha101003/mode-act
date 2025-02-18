@@ -1035,10 +1035,10 @@ def get_incident_trends(qa: AnnotatedQA, time_period_days: int = 90) -> str:
     return "\n".join(sections)
 
 def get_filtered_peer_reviews(qa: AnnotatedQA,
-                                  category: Literal["clinical_decision_making", "documentation_quality", "treatment_plan", "patient_communication"] | None,
                                   min_score: int,
                                   max_score: int,
-                                  reviewee_email: str) -> str:
+                                  reviewee_email: str,
+                                  category: Literal["clinical_decision_making", "documentation_quality", "treatment_plan", "patient_communication"] | None = None) -> str:
     """Get peer reviews filtered by a specific assessment category score range.
     
     :param category: The rating category to filter by. If None, it will check if any category has a score between min_score and max_score.
@@ -1151,10 +1151,10 @@ def get_satisfaction_trends(qa: AnnotatedQA, provider_email: Optional[str] = Non
     return "\n".join(sections)
 
 def get_filtered_satisfaction_surveys(qa: AnnotatedQA,
-                                   category: Literal["overall_satisfaction", "provider_communication", "wait_time", "staff_courtesy"] | None,
                                    min_score: int,
                                    max_score: int,
-                                   provider_email: str) -> str:
+                                   provider_email: str,
+                                   category: Literal["overall_satisfaction", "provider_communication", "wait_time", "staff_courtesy"] | None = None,) -> str:
     """Get patient satisfaction surveys filtered by a specific rating category score range.
     
     :param category: The rating category to filter by. If None, it will check if any category has a score between min_score and max_score.

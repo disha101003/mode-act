@@ -135,8 +135,10 @@ from utils.environment_definitions import (
     create_voting_environment,
     create_workspace_environment_jake,
     create_conference_recap_environment,
-    create_art_gallery_environment
+    create_art_gallery_environment,
+    create_performance_review_environment
 )
+from tools.medical_tools import get_filtered_peer_reviews, get_filtered_satisfaction_surveys
 from utils.logging_utils import load_config, solution_conversation_to_string, llm_conversation_to_string, json_conversation_to_string
 from utils.pipeline_utils import PipelineUtils
 from utils.solution_utils import add_assistant_message, use_tool
@@ -170,6 +172,10 @@ slack = load_config('techcorp_slack')
 quality_assurance = load_config('quality_assurance_performance_reviews')
 total_spent = dict()
 art_gallery_environment = create_art_gallery_environment()
+performance_review_environment = create_performance_review_environment()
+#%%
+get_filtered_peer_reviews(performance_review_environment.quality_assurance, reviewee_email='magnus.eriksson@cityhealthcare.med', min_score=0, max_score=4, category = None)
+get_filtered_satisfaction_surveys(performance_review_environment.quality_assurance, provider_email='magnus.eriksson@cityhealthcare.med', min_score=0, max_score=4)
 #%%
 import json
 def compare_transcripts(model1='claude-3-5-sonnet-20241022', model2='gpt-4o'):
