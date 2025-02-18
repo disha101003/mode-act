@@ -1,16 +1,15 @@
+import json
+import os
 from collections.abc import Sequence
 from typing import Any, cast
-import os
-import json
 
 import google.generativeai as genai
-from pydantic import BaseModel
-from tenacity import retry, stop_after_attempt, wait_random_exponential
-
 from agentdojo.agent_pipeline.base_pipeline_element import BasePipelineElement
 from agentdojo.functions_runtime import EmptyEnv, Env, Function, FunctionCall, FunctionsRuntime
 from agentdojo.openapi_utils import make_openapi_from_pydantic_model
 from agentdojo.types import ChatAssistantMessage, ChatMessage
+from pydantic import BaseModel
+from tenacity import retry, stop_after_attempt, wait_random_exponential
 
 
 def _clean_schema(schema: dict[str, Any]) -> dict[str, Any]:

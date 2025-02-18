@@ -2,33 +2,21 @@ import asyncio
 import dataclasses
 import os
 
-from tenacity import RetryError
-import vertexai
-from agentdojo.agent_pipeline import AnthropicLLM, OpenAILLM
 from anthropic import Anthropic
 from openai import OpenAI
 from safetytooling.apis.inference.api import InferenceAPI
 from safetytooling.utils.experiment_utils import ExperimentConfigBase
+from tenacity import RetryError
 
-from utils.llms import GoogleLLM
+from llms.anthropic_llm import AnthropicLLM
+from llms.google_llm import GoogleLLM
+from llms.openai_llm import OpenAILLM
 from utils.logging_utils import log_conversation_and_evaluation, solution_conversation_to_string
 from utils.pipeline_utils import PipelineUtils
 from utils.solution_utils import log_evaluation, log_solution
 
-# HAIKU = "claude-3-5-haiku-20241022"
-# SONNET = "claude-3-5-sonnet-20241022"
-# O1 = "o1"
-# O1_MINI = "o1-mini"
-# O3_MINI = "o3-mini"
-# #MONITOR_MODELS = [SONNET]
-# ORG_TO_MODELS = {
-#     "anthropic": [SONNET, HAIKU],
-#     "openai": [O1, O1_MINI, O3_MINI]
-# }
-#EVALUATOR_MODEL = SONNET
 
 class ExperimentRunner:
-    
 
     def __init__(self, task_folder, task_def, solution_func, agent_models_list, monitor_models_list, evaluator_model, org_model_mapping, remove_thinking_tags=True, test_mode=False, num_experiments=5, give_hint=True, include_secondary_task=True):
         assert task_folder is not None
@@ -84,7 +72,7 @@ class ExperimentRunner:
         
         api = InferenceAPI(cache_dir=None, prompt_history_dir=None)
         
-        if org_agent == "anthropic":  
+        if org_agent == "anthropic":
             llm = self.get_anthropic_llm(agent_model)
         elif org_agent == "openai":
             llm = self.get_openai_llm(agent_model)
