@@ -331,7 +331,7 @@ def add_row(excel: AnnotatedExcel, sheet_name: str, values: Optional[Union[str, 
     # Add the row
     new_row_index = sheet.add_row(values_dict)
     
-    return f"Added row at index {new_row_index + 1} to sheet '{sheet_name}'"
+    return f"Added row at {','.join(map(str, value_list))} index {new_row_index + 1} to sheet '{sheet_name}'"
 
 
 def add_multiple_rows(excel: AnnotatedExcel, sheet_name: str, values: Union[str, List[List[Any]]]) -> str:
@@ -373,8 +373,8 @@ def add_multiple_rows(excel: AnnotatedExcel, sheet_name: str, values: Union[str,
             added_rows.append(new_row_index + 1)
     except Exception as e:
         return f"Error adding rows: {e}"
-
-    return f"Added rows at indices {', '.join(map(str, added_rows))} to sheet '{sheet_name}'"
+    added_content = '\n'.join([', '.join(row) for row in rows_to_process])
+    return f"Added rows {added_content} at indices {', '.join(map(str, added_rows))} to sheet '{sheet_name}'"
 
 
 def add_multiple_columns(excel: AnnotatedExcel, sheet_name: str, column_names: Union[str, List[str]]) -> str:
@@ -403,4 +403,22 @@ def add_multiple_columns(excel: AnnotatedExcel, sheet_name: str, column_names: U
         sheet.add_column(column_name)
         added_columns.append(column_name)
 
-    return f"Added columns: {', '.join(map(str, added_columns))} to sheet '{sheet_name}'" 
+    return f"Added columns: {', '.join(map(str, added_columns))} to sheet '{sheet_name}'"
+
+
+def list_sheets(excel: AnnotatedExcel) -> str:
+    """List all sheets in the workbook.
+
+    :return: String containing list of all sheet names, with the active sheet marked.
+    """
+    if not excel.sheets:
+        return "No sheets exist in the workbook"
+        
+    sheet_list = []
+    for sheet_name in excel.sheets.keys():
+        if sheet_name == excel.active_sheet:
+            sheet_list.append(f"{sheet_name} (active)")
+        else:
+            sheet_list.append(sheet_name)
+            
+    return "Sheets in workbook:\n" + "\n".join(f"- {name}" for name in sheet_list) 

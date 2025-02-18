@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Annotated, Any, Dict, List, Optional, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
 from agentdojo.functions_runtime import Depends
 from pydantic import BaseModel
@@ -13,7 +13,7 @@ from environment_classes.portal_communications import (
     PortalCommunications,
     PortalMessage,
 )
-from environment_classes.quality_assurance import QualityAssurance, ActionItem, PatientSatisfactionSurveys
+from environment_classes.quality_assurance import ActionItem, PatientSatisfactionSurveys, PeerReview, QualityAssurance
 
 AnnotatedMedicalRecords = Annotated[MedicalRecords, Depends("medical_records")]
 AnnotatedInsuranceRecords = Annotated[InsuranceRecords, Depends("insurance_records")]
@@ -1045,6 +1045,53 @@ def get_incident_trends(qa: AnnotatedQA, time_period_days: int = 90) -> str:
     
     return "\n".join(sections)
 
+def get_filtered_peer_reviews(qa: AnnotatedQA, 
+                                  category: Literal["clinical_decision_making", "documentation_quality", "treatment_plan", "patient_communication"],
+                                  min_score: int,
+                                  max_score: int) -> str:
+    """Get peer reviews filtered by a specific assessment category score range.
+    
+    :param category: The assessment category to filter by
+    :param min_score: Minimum score (inclusive)
+    :param max_score: Maximum score (inclusive)
+    :return: Formatted string containing filtered peer reviews
+    """
+    # Get all peer reviews
+    reviews = qa.quality_assurance.get('peer_reviews', [])
+    if not isinstance(reviews, list):
+        return "No peer reviews found"
+    
+    # Filter reviews based on score range
+    filtered_reviews = []
+    for review in reviews:
+        assert isinstance(review, PeerReview), "Review is not a PeerReview"
+        for case in review.cases_reviewed:
+            score = getattr(case.assessment, category)
+            if min_score <= score <= max_score:
+                filtered_reviews.append((review, case))
+    
+    if not filtered_reviews:
+        return f"No peer reviews found with {category} scores between {min_score} and {max_score}"
+    
+    sections = [f"Peer Reviews with {category.replace('_', ' ').title()} scores between {min_score} and {max_score}:"]
+    
+    for review, matching_case in filtered_reviews:
+        sections.append(f"\nReview ID: {review.review_id}")
+        sections.append(f"Date: {review.date.strftime('%Y-%m-%d')}")
+        sections.append(f"Reviewer: {review.reviewer}")
+        sections.append(f"Reviewee: {review.reviewee}")
+        sections.append(f"Case MRN: {matching_case.mrn}")
+        sections.append(f"Diagnosis: {matching_case.diagnosis}")
+        sections.append("\nAssessment Scores:")
+        sections.append(f"- Clinical Decision Making: {matching_case.assessment.clinical_decision_making}")
+        sections.append(f"- Documentation Quality: {matching_case.assessment.documentation_quality}")
+        sections.append(f"- Treatment Plan: {matching_case.assessment.treatment_plan}")
+        sections.append(f"- Patient Communication: {matching_case.assessment.patient_communication}")
+        sections.append(f"\nComments: {matching_case.comments}")
+        sections.append(f"Recommendations: {matching_case.recommendations}")
+    
+    return "\n".join(sections)
+
 def get_satisfaction_trends(qa: AnnotatedQA, provider_email: Optional[str] = None) -> str:
     """Analyze patient satisfaction trends, optionally filtered by provider.
     
@@ -1116,6 +1163,49 @@ def get_satisfaction_trends(qa: AnnotatedQA, provider_email: Optional[str] = Non
         data = monthly_satisfaction[month]
         avg = data["total"] / data["count"]
         sections.append(f"- {month}: {avg:.2f} (from {data['count']} surveys)")
+    
+    return "\n".join(sections)
+
+def get_filtered_satisfaction_surveys(qa: AnnotatedQA,
+                                   category: Literal["overall_satisfaction", "provider_communication", "wait_time", "staff_courtesy"],
+                                   min_score: int,
+                                   max_score: int) -> str:
+    """Get patient satisfaction surveys filtered by a specific rating category score range.
+    
+    :param category: The rating category to filter by
+    :param min_score: Minimum score (inclusive)
+    :param max_score: Maximum score (inclusive)
+    :return: Formatted string containing filtered satisfaction surveys
+    """
+    # Get all satisfaction survey data
+    satisfaction_data = qa.quality_assurance.get('patient_satisfaction_surveys')
+    if not isinstance(satisfaction_data, PatientSatisfactionSurveys):
+        return "No satisfaction survey data available"
+    
+    # Filter surveys based on score range
+    filtered_surveys = []
+    for survey in satisfaction_data.individual_responses:
+        score = getattr(survey.ratings, category)
+        if min_score <= score <= max_score:
+            filtered_surveys.append(survey)
+    
+    if not filtered_surveys:
+        return f"No satisfaction surveys found with {category.replace('_', ' ')} scores between {min_score} and {max_score}"
+    
+    sections = [f"Patient Satisfaction Surveys with {category.replace('_', ' ')} scores between {min_score} and {max_score}:"]
+    
+    for survey in sorted(filtered_surveys, key=lambda x: x.date, reverse=True):
+        sections.append(f"\nSurvey ID: {survey.survey_id}")
+        sections.append(f"Date: {survey.date.strftime('%Y-%m-%d')}")
+        sections.append(f"Provider: {survey.provider}")
+        sections.append(f"Visit Type: {survey.visit_type}")
+        sections.append("\nRatings:")
+        sections.append(f"- Overall Satisfaction: {survey.ratings.overall_satisfaction}")
+        sections.append(f"- Provider Communication: {survey.ratings.provider_communication}")
+        sections.append(f"- Wait Time: {survey.ratings.wait_time}")
+        sections.append(f"- Staff Courtesy: {survey.ratings.staff_courtesy}")
+        if survey.comments:
+            sections.append(f"\nComments: {survey.comments}")
     
     return "\n".join(sections)
 

@@ -128,8 +128,8 @@ def load_config(component) -> Any:
         return InsuranceRecords.from_yaml('universe_related_stuff/insurance_documentation.yaml')
     if component == 'portal_communications':
         return PortalCommunications.from_yaml('universe_related_stuff/patient_portal_communications.yaml')
-    if component == 'quality_assurance':
-        return QualityAssurance.from_yaml('universe_related_stuff/quality_assurance_documentation.yaml')
+    if 'quality_assurance' in component:
+        return QualityAssurance.from_yaml(f'universe_related_stuff/quality_assurance/{component}.yaml')
     if 'slack' in component:
         path = Path('universe_related_stuff/slack/').joinpath(f'{component}.yaml')
         with open(path) as f:

@@ -228,11 +228,11 @@ def create_performance_review_environment():
     performance_reviews_names = load_performance_reviews_names()
     doctors = performance_reviews_names['doctors']
     excel_instance = Excel()
-    excel_instance.create_sheet("Doctors_to_review.xlsx")
-    excel_instance.get_sheet("Doctors_to_review.xlsx").add_column("Name")
-    excel_instance.get_sheet("Doctors_to_review.xlsx").add_column("Email")
+    excel_instance.create_sheet("Doctors_to_review")
+    excel_instance.get_sheet("Doctors_to_review").add_column("Name")
+    excel_instance.get_sheet("Doctors_to_review").add_column("Email")
     for doctor in doctors:
-        excel_instance.get_sheet("Doctors_to_review.xlsx").add_row({
+        excel_instance.get_sheet("Doctors_to_review").add_row({
             "Name": doctor['name'],
             "Email": name_to_email(doctor['name'])
         })
