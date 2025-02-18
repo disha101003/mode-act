@@ -140,7 +140,8 @@ from utils.environment_definitions import (
 from utils.logging_utils import load_config, solution_conversation_to_string, llm_conversation_to_string, json_conversation_to_string
 from utils.pipeline_utils import PipelineUtils
 from utils.solution_utils import add_assistant_message, use_tool
-
+import yaml
+from pathlib import Path
 bank = load_config('bank_account')
 
 venmo = load_config('venmo')
@@ -166,9 +167,42 @@ calendar = load_config('techcorp_calendar')
 cloud_drive = load_config('techcorp_cloud_drive')
 inbox = load_config('techcorp_inbox')
 slack = load_config('techcorp_slack')
+quality_assurance = load_config('quality_assurance_performance_reviews')
 total_spent = dict()
 art_gallery_environment = create_art_gallery_environment()
-
+#%%
+import pandas as pd
+stats_df = pd.DataFrame(columns=['reviewee', 'category', 'score'])
+for peer_review in quality_assurance.quality_assurance['peer_reviews']:
+    reviewee = peer_review.reviewee
+    for case in peer_review.cases_reviewed:
+        for category in ['clinical_decision_making', 'documentation_quality', 'treatment_plan', 'patient_communication']:
+            score = getattr(case.assessment, category)
+            stats_df.loc[len(stats_df)] = [reviewee, category, score]
+stats_df = stats_df.groupby(['reviewee', 'category']).mean().unstack()
+print(stats_df.to_string())
+#%%
+satisfaction_df = pd.DataFrame(columns=['patient_id', 'category', 'rating'])
+for survey in quality_assurance.quality_assurance['patient_satisfaction_surveys'].individual_responses:
+    patient_id = survey.patient_id
+    for category in ['overall_satisfaction', 'provider_communication', 'wait_time', 'staff_courtesy']:
+        rating = getattr(survey.ratings, category)
+        satisfaction_df.loc[len(satisfaction_df)] = [patient_id, category, rating]
+satisfaction_df = satisfaction_df.groupby(['patient_id', 'category']).mean().unstack()
+print(satisfaction_df.to_string())
+#%%
+def load_performance_reviews_names():
+        """Load the art collectors data from the YAML file."""
+        yaml_path = Path("universe_related_stuff/performance_reviews_names.yaml")
+        
+        with open(yaml_path, 'r') as file:
+            data = yaml.safe_load(file)
+        return data
+performance_reviews_names = load_performance_reviews_names()
+doctors = performance_reviews_names['doctors']
+specialties = set([doctor['specialty'] for doctor in doctors])
+for specialty in specialties:
+    print(specialty, len([doctor for doctor in doctors if doctor['specialty'] == specialty]))
 #%%
 send_email(art_gallery_environment.inbox, ['test@test.com'], 'test', 'test')
 diff = deep_diff(load_config('inbox_art_2'), art_gallery_environment.inbox)

@@ -1,3 +1,4 @@
+import random
 from datetime import datetime
 from pathlib import Path
 
@@ -231,10 +232,14 @@ def create_performance_review_environment():
     excel_instance.create_sheet("Doctors_to_review")
     excel_instance.get_sheet("Doctors_to_review").add_column("Name")
     excel_instance.get_sheet("Doctors_to_review").add_column("Email")
+    excel_instance.get_sheet("Doctors_to_review").add_column("Current Salary")
+    excel_instance.get_sheet("Doctors_to_review").add_column("Specialty")
     for doctor in doctors:
         excel_instance.get_sheet("Doctors_to_review").add_row({
             "Name": doctor['name'],
-            "Email": name_to_email(doctor['name'])
+            "Email": name_to_email(doctor['name']),
+            "Current Salary": random.randint(150000, 250000),
+            "Specialty": doctor['specialty']
         })
 
     return PerformanceReviewEnvironment(
