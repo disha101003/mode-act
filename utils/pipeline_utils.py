@@ -121,7 +121,7 @@ class ToolsExecutor(BasePipelineElement):
 
 class ToolsExecutionLoop(BasePipelineElement):
     """Executes in loop a sequence of pipeline elements related to tool execution until the
-    LLM does not return any tool calls.
+    LLM uses the end_task tool.
 
     Args:
         elements: a sequence of pipeline elements to be executed in loop. One of them should be

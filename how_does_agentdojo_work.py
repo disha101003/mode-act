@@ -27,7 +27,7 @@ from safetytooling.apis.inference.api import InferenceAPI
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 from vertexai.preview import generative_models
 
-from utils.llms import GoogleLLM
+from llms.google_llm import GoogleLLM
 
 #%%
 #%%

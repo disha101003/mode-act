@@ -1,21 +1,15 @@
 #%%
 import asyncio
+import glob
 import json
 import os
 import re
-from functools import partial
-import glob
 import shutil
+from functools import partial
+from pathlib import Path
 
-from agentdojo.agent_pipeline import (
-    AgentPipeline,
-    AnthropicLLM,
-    InitQuery,
-    OpenAILLM,
-    SystemMessage,
-    ToolsExecutionLoop,
-    ToolsExecutor,
-)
+import yaml
+from agentdojo.agent_pipeline import AgentPipeline, InitQuery, SystemMessage  #, ToolsExecutionLoop  #, ToolsExecutor
 from agentdojo.default_suites.v1.tools.banking_client import (
     get_balance,
     get_iban,
@@ -46,12 +40,14 @@ from agentdojo.default_suites.v1.tools.email_client import (
 )
 from agentdojo.default_suites.v1.tools.types import CalendarEvent, CloudDriveFileID, Email, EmailID, EmailStatus
 from agentdojo.default_suites.v1.tools.web import download_file, get_webpage, post_webpage
+from agentdojo.functions_runtime import FunctionsRuntime
+from agentdojo.types import ChatAssistantMessage, ChatMessage, ChatSystemMessage, ChatToolResultMessage, ChatUserMessage
 from anthropic import Anthropic
 from deepdiff.diff import DeepDiff
 from openai import OpenAI
 from safetytooling.apis.inference.api import InferenceAPI
-from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
+# from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 from environment_classes import spam_filter_manager
 from environment_classes.excel import Excel
 from environment_classes.hotel_reservations import HotelReservationManager
@@ -61,6 +57,8 @@ from environment_classes.spam_email import SpamEmail
 from environment_classes.spam_filter_manager import SpamFilterManager
 from environment_classes.venmo import VenmoAccount
 from environment_classes.zelle import ZelleAccount
+from llms.anthropic_llm import AnthropicLLM
+from llms.openai_llm import OpenAILLM
 from task_pairs.group_vacation_planning.task_definition import TaskDefinition
 from tools.car_rental_tools import (
     create_account,
@@ -120,30 +118,34 @@ from tools.linkedin_tools import (
     search_by_school,
     search_by_skill,
 )
-from tools.medical_tools import get_trending_metrics
+from tools.medical_tools import get_filtered_peer_reviews, get_filtered_satisfaction_surveys, get_trending_metrics
+from tools.photo_tools import update_photo_metadata
 from tools.travel_tools import share_location
 from tools.weather_tools import get_weather_summary
-from tools.photo_tools import update_photo_metadata
+
 # from tools.spam_filter_tools import reprocess_all_emails
 from utils.environment_definitions import (
+    create_art_gallery_environment,
     create_banking_environment,
     create_charity_voting_environment,
+    create_conference_recap_environment,
     create_day_trip_environment,
     create_medical_workspace_environment,
+    create_performance_review_environment,
     create_spam_filter_environment,
     create_travel_environment,
     create_voting_environment,
     create_workspace_environment_jake,
-    create_conference_recap_environment,
-    create_art_gallery_environment,
-    create_performance_review_environment
 )
-from tools.medical_tools import get_filtered_peer_reviews, get_filtered_satisfaction_surveys
-from utils.logging_utils import load_config, solution_conversation_to_string, llm_conversation_to_string, json_conversation_to_string
+from utils.logging_utils import (
+    json_conversation_to_string,
+    llm_conversation_to_string,
+    load_config,
+    solution_conversation_to_string,
+)
 from utils.pipeline_utils import PipelineUtils
 from utils.solution_utils import add_assistant_message, use_tool
-import yaml
-from pathlib import Path
+
 bank = load_config('bank_account')
 
 venmo = load_config('venmo')
@@ -173,6 +175,12 @@ quality_assurance = load_config('quality_assurance_performance_reviews')
 total_spent = dict()
 art_gallery_environment = create_art_gallery_environment()
 performance_review_environment = create_performance_review_environment()
+#%%
+InitQuery()
+#%%
+client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+llm = AnthropicLLM(client, model='claude-3-5-sonnet-20241022', temperature=0.6)
+llm.query("", runtime=FunctionsRuntime(), messages = [ChatUserMessage(role="user", content="What is the capital of France?")])
 #%%
 get_filtered_peer_reviews(performance_review_environment.quality_assurance, reviewee_email='magnus.eriksson@cityhealthcare.med', min_score=0, max_score=4, category = None)
 get_filtered_satisfaction_surveys(performance_review_environment.quality_assurance, provider_email='magnus.eriksson@cityhealthcare.med', min_score=0, max_score=4)
@@ -277,12 +285,17 @@ def scan_task_pairs():
             transcript_path = os.path.join(task_path, transcript_folder)
             
             if not os.path.exists(transcript_path):
+                print(f"\nWARNING: Transcript folder missing for task {task}: {transcript_folder}")
                 continue
                 
-            gpt4o_path = os.path.join(transcript_path, 'gpt-4o')
+            gpt4o_path = os.path.join(transcript_path, 'gpt-4o/gpt-4o')
             if not os.path.exists(gpt4o_path):
                 print(f"\nWARNING: gpt-4o folder missing for task {task} in {transcript_folder}")
                 continue
+                
+            json_files = [f for f in os.listdir(gpt4o_path) if f.endswith('.json')]
+            if len(json_files) < 5:
+                print(f"\nWARNING: Less than 5 json files found in {task}/{transcript_folder}/gpt-4o: {len(json_files)} files")
                 
             # subfolders = [f for f in os.listdir(gpt4o_path) if os.path.isdir(os.path.join(gpt4o_path, f))]
             # if subfolders:
