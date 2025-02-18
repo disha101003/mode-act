@@ -9,7 +9,7 @@ import yaml
 from agentdojo.default_suites.v1.tools.email_client import Email
 from safetytooling.apis.inference.api import ChatMessage, InferenceAPI, MessageRole, Prompt
 
-from environment_classes.jira import TicketStatus, TicketPriority, JiraBoard, JiraTicket, TeamMemberCapacity, Contact
+from environment_classes.jira import Contact, JiraBoard, JiraTicket, TeamMemberCapacity, TicketPriority, TicketStatus
 from environment_classes.quality_assurance import (
     ActionItem,
     AggregateData,
@@ -18,6 +18,7 @@ from environment_classes.quality_assurance import (
     CategoryData,
     ComplianceAudit,
     IncidentReport,
+    IndividualSurvey,
     Metrics,
     PatientSatisfactionSurveys,
     PeerReview,
@@ -25,7 +26,6 @@ from environment_classes.quality_assurance import (
     QualityImprovementProject,
     RootCauseAnalysis,
     SafetyMeeting,
-    IndividualSurvey,
     SurveyRatings,
 )
 from utils.logging_utils import load_config

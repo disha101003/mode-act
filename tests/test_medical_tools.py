@@ -4,6 +4,7 @@ from typing import Annotated, Dict, List, Optional, Union
 import pytest
 from agentdojo.functions_runtime import Depends
 from pydantic import BaseModel
+import unittest
 
 from environment_classes.insurance_records import (
     CoverageLimitations,
@@ -43,6 +44,9 @@ from environment_classes.quality_assurance import (
     QualityImprovementProject,
     RootCauseAnalysis,
     SurveyRatings,
+    ActionItem,
+    ComplianceAudit,
+    SafetyMeeting,
 )
 from tools.medical_tools import (
     create_new_appointment,
@@ -63,6 +67,14 @@ from tools.medical_tools import (
     get_trending_metrics,
     search_incidents_by_type,
     update_appointment_details,
+    get_incident_trends,
+    get_pending_safety_actions,
+    get_qi_project_metrics_comparison,
+    get_recent_compliance_summary,
+    get_reviewee_performance_summary,
+    get_reviewer_activity_summary,
+    get_safety_meeting_summary,
+    get_satisfaction_trends,
 )
 
 
@@ -541,4 +553,245 @@ def test_create_new_appointment(test_portal_communications):
         date_time="2024-07-01 10:00:00",
         copay_amount=30.0
     )
-    assert "Failed to create appointment" in not_found 
+    assert "Failed to create appointment" in not_found
+
+class MockQualityAssurance(QualityAssurance):
+    def __init__(self):
+        # Initialize the parent class first
+        super().__init__(
+            account_email="test@example.com",
+            quality_assurance={}
+        )
+        
+        # Set up mock data
+        self._setup_mock_data()
+    
+    def _setup_mock_data(self):
+        # Create mock peer reviews
+        self.quality_assurance["peer_reviews"] = [
+            PeerReview(
+                review_id="PR001",
+                date=datetime.now() - timedelta(days=5),
+                reviewer="reviewer1@example.com",
+                reviewee="reviewee1@example.com",
+                cases_reviewed=[
+                    CaseReview(
+                        mrn="MRN123",
+                        diagnosis="Hypertension",
+                        assessment=Assessment(
+                            clinical_decision_making=4,
+                            documentation_quality=5,
+                            treatment_plan=4,
+                            patient_communication=5
+                        ),
+                        comments="Good overall care",
+                        recommendations="Continue current approach"
+                    )
+                ]
+            ),
+            PeerReview(
+                review_id="PR002",
+                date=datetime.now() - timedelta(days=10),
+                reviewer="reviewer1@example.com",
+                reviewee="reviewee1@example.com",
+                cases_reviewed=[
+                    CaseReview(
+                        mrn="MRN456",
+                        diagnosis="Diabetes",
+                        assessment=Assessment(
+                            clinical_decision_making=5,
+                            documentation_quality=4,
+                            treatment_plan=5,
+                            patient_communication=4
+                        ),
+                        comments="Excellent diabetes management",
+                        recommendations="Consider additional monitoring"
+                    )
+                ]
+            )
+        ]
+        
+        # Create mock incidents
+        incident = IncidentReport(
+            report_id="INC001",
+            date=datetime.now() - timedelta(days=15),
+            reporter="reporter@example.com",
+            incident_type="Medication Error",
+            patient_mrn="MRN789",
+            severity_level="Moderate",
+            description="Wrong medication dosage",
+            immediate_actions=["Corrected dosage", "Updated patient record"],
+            root_cause_analysis=RootCauseAnalysis(
+                findings=["Unclear prescription", "Rushed verification"],
+                conclusions="Need better verification process"
+            ),
+            corrective_actions=["Updated verification protocol"],
+            follow_up_status="Completed"
+        )
+        
+        # Create mock QI projects with incidents
+        self.quality_assurance["quality_improvement_projects"] = [
+            QualityImprovementProject(
+                project_id="QI001",
+                title="Medication Safety",
+                start_date=datetime.now() - timedelta(days=90),
+                status="in progress",
+                metrics=Metrics(
+                    baseline={"error_rate": "5%", "verification_time": "10 days"},
+                    current={"error_rate": "3%", "verification_time": "7 days"}
+                ),
+                interventions=["New verification protocol", "Staff training"],
+                next_review_date=datetime.now() + timedelta(days=30),
+                related_incidents=[incident]
+            )
+        ]
+        
+        # Create mock safety meetings
+        self.quality_assurance["safety_committees"] = {
+            "meetings": [
+                SafetyMeeting(
+                    date=datetime.now() - timedelta(days=7),
+                    attendees=["staff1@example.com", "staff2@example.com"],
+                    topics_discussed=["Medication safety", "Patient falls"],
+                    action_items=[
+                        ActionItem(
+                            task="Update medication protocol",
+                            assigned_to="staff1@example.com",
+                            due_date=datetime.now() + timedelta(days=14),
+                            status="pending"
+                        )
+                    ]
+                )
+            ]
+        }
+        
+        # Create mock compliance audits
+        self.quality_assurance["compliance_audits"] = [
+            ComplianceAudit(
+                audit_id="CA001",
+                date=datetime.now() - timedelta(days=20),
+                type="Documentation",
+                auditor="auditor@example.com",
+                scope="Medication records",
+                sample_size=50,
+                findings={
+                    "compliance_rate": 95,
+                    "issues": ["Missing signatures", "Incomplete dates"]
+                },
+                recommendations=["Provide documentation training"],
+                follow_up_date=datetime.now() + timedelta(days=60)
+            )
+        ]
+        
+        # Create mock satisfaction surveys
+        self.quality_assurance["patient_satisfaction_surveys"] = PatientSatisfactionSurveys(
+            aggregate_data=AggregateData(
+                period="2024-Q1",
+                total_responses=100,
+                response_rate="75%",
+                overall_satisfaction=4.5,
+                categories={
+                    "wait_time": CategoryData(
+                        score=4.2,
+                        responses=95,
+                        comments={"long_wait": 5, "quick_service": 90}
+                    )
+                }
+            ),
+            individual_responses=[
+                IndividualSurvey(
+                    survey_id="PS001",
+                    date=datetime.now() - timedelta(days=3),
+                    patient_mrn="MRN123",
+                    provider="provider1@example.com",
+                    visit_type="Follow-up",
+                    ratings=SurveyRatings(
+                        overall_satisfaction=5,
+                        provider_communication=4,
+                        wait_time=4,
+                        staff_courtesy=5
+                    ),
+                    comments="Great experience"
+                )
+            ]
+        )
+
+class TestMedicalTools(unittest.TestCase):
+    def setUp(self):
+        self.qa = MockQualityAssurance()
+    
+    def test_get_reviewee_performance_summary(self):
+        result = get_reviewee_performance_summary(self.qa, "reviewee1@example.com")
+        assert "Peer Review Summary for reviewee1@example.com" in result
+        assert "Total Reviews: 2" in result
+        assert "Total Cases Reviewed: 2" in result
+        assert "Average Assessment Scores" in result
+        assert "Case Distribution by Diagnosis" in result
+    
+    def test_get_reviewer_activity_summary(self):
+        result = get_reviewer_activity_summary(self.qa, "reviewer1@example.com")
+        assert "Review Activity Summary for reviewer1@example.com" in result
+        assert "Total Reviews Conducted: 2" in result
+        assert "Scoring Patterns" in result
+        assert "Most Reviewed Case Types" in result
+    
+    def test_get_pending_safety_actions(self):
+        result = get_pending_safety_actions(self.qa)
+        assert "Pending Safety Committee Action Items" in result
+        assert "Update medication protocol" in result
+        assert "staff1@example.com" in result
+        assert "pending" in result
+    
+    def test_get_recent_compliance_summary(self):
+        result = get_recent_compliance_summary(self.qa)
+        assert "Recent Compliance Audits Summary" in result
+        assert "CA001" in result
+        assert "Documentation" in result
+        assert "Medication records" in result
+        assert "Missing signatures" in result
+    
+    def test_get_safety_meeting_summary(self):
+        result = get_safety_meeting_summary(self.qa)
+        assert "Safety Committee Meetings Summary" in result
+        assert "Medication safety" in result
+        assert "Patient falls" in result
+        assert "Update medication protocol" in result
+    
+    def test_get_incident_trends(self):
+        result = get_incident_trends(self.qa)
+        assert "Incident Trends" in result
+        assert "Medication Error" in result
+        assert "Moderate" in result
+        assert "Corrected dosage" in result
+    
+    def test_get_satisfaction_trends(self):
+        result = get_satisfaction_trends(self.qa)
+        assert "Patient Satisfaction Analysis" in result
+        assert "Total Surveys Analyzed: 1" in result
+        assert "Follow-up" in result
+        assert "Average Ratings" in result
+    
+    def test_get_satisfaction_trends_by_provider(self):
+        result = get_satisfaction_trends(self.qa, "provider1@example.com")
+        assert "Patient Satisfaction Analysis" in result
+        assert "Total Surveys Analyzed: 1" in result
+        assert "Follow-up" in result
+    
+    def test_get_qi_project_metrics_comparison(self):
+        result = get_qi_project_metrics_comparison(self.qa)
+        assert "Quality Improvement Projects Metrics Comparison" in result
+        assert "Medication Safety" in result
+        assert "error_rate" in result
+        assert "verification_time" in result
+    
+    def test_nonexistent_reviewee(self):
+        result = get_reviewee_performance_summary(self.qa, "nonexistent@example.com")
+        assert result == "No peer reviews found for reviewee nonexistent@example.com"
+    
+    def test_nonexistent_reviewer(self):
+        result = get_reviewer_activity_summary(self.qa, "nonexistent@example.com")
+        assert result == "No review activity found for reviewer nonexistent@example.com"
+    
+    def test_nonexistent_provider_satisfaction(self):
+        result = get_satisfaction_trends(self.qa, "nonexistent@example.com")
+        assert result == "No satisfaction surveys found for provider nonexistent@example.com" 

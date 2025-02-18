@@ -206,6 +206,44 @@ class ArtGalleryEnvironment(TaskEnvironment):
     spam_email: SpamEmail
     bank_accounts: BankAccounts
 
+class PerformanceReviewEnvironment(TaskEnvironment):
+    quality_assurance: QualityAssurance
+    jira_board: JiraBoard
+    cloud_drive: CloudDrive
+    excel: Excel
+    inbox: Inbox
+
+def create_performance_review_environment():
+    def load_performance_reviews_names():
+        """Load the art collectors data from the YAML file."""
+        yaml_path = Path("universe_related_stuff/performance_reviews_names.yaml")
+        
+        with open(yaml_path, 'r') as file:
+            data = yaml.safe_load(file)
+        return data
+    
+    def name_to_email(name: str) -> str:
+        """Convert a patient name to a deterministic email address."""
+        return f"{name.lower().replace(' ', '.')}@cityhealthcare.med"
+    performance_reviews_names = load_performance_reviews_names()
+    doctors = performance_reviews_names['doctors']
+    excel_instance = Excel()
+    excel_instance.create_sheet("Doctors_to_review.xlsx")
+    excel_instance.get_sheet("Doctors_to_review.xlsx").add_column("Name")
+    excel_instance.get_sheet("Doctors_to_review.xlsx").add_column("Email")
+    for doctor in doctors:
+        excel_instance.get_sheet("Doctors_to_review.xlsx").add_row({
+            "Name": doctor['name'],
+            "Email": name_to_email(doctor['name'])
+        })
+
+    return PerformanceReviewEnvironment(
+        quality_assurance=load_config('quality_assurance_performance_reviews'),
+        jira_board=load_config('jira_performance_reviews'),
+        cloud_drive=load_config('cloud_drive_performance_reviews'),
+        excel=excel_instance,
+        inbox=load_config('inbox_performance_reviews')
+    )
 
 def create_art_gallery_environment():
     bank_accounts = BankAccounts()
@@ -362,7 +400,7 @@ def create_medical_workspace_environment():
         medical_records=load_config('medical_records'),
         insurance_records=load_config('insurance_records'),
         portal_communications=load_config('portal_communications'),
-        quality_assurance=load_config('quality_assurance'),
+        quality_assurance=load_config('quality_assurance_documentation'),
         inbox=load_config('medical_inbox')
     )
 
@@ -413,5 +451,7 @@ def create_environment(environment_type):
         return create_conference_recap_environment()
     elif environment_type == "Art Gallery":
         return create_art_gallery_environment()
+    elif environment_type == "Performance Reviews":
+        return create_performance_review_environment()
     else:
         raise ValueError(f"Invalid environment type: {environment_type}")

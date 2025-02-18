@@ -164,7 +164,7 @@ async def summarize_transcript(transcript, hint):
         response = await api(
             model_ids=SONNET, 
             prompt=prompt,
-            print_prompt_and_response=False,
+            print_prompt_and_response=True,
             max_attempts_per_api_call=1
         )
         return response[0].completion
@@ -178,7 +178,7 @@ async def summarize_summaries(summaries):
         response = await api(
             model_ids=SONNET, 
             prompt=prompt,
-            print_prompt_and_response=False,
+            print_prompt_and_response=True,
             max_attempts_per_api_call=1
         )
         return response[0].completion

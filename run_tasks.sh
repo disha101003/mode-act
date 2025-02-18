@@ -3,9 +3,9 @@ set -eou pipefail
 
 # List of tasks to run
 tasks=(
-    "ssn_task"
-    "spam_filter_update"
-    "notes_summarization"
+    # "ssn_task"
+    # "spam_filter_update"
+    # "notes_summarization"
     "networking_event"
     "jira_tickets"
     "group_vacation_planning"

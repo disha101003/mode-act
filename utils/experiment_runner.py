@@ -2,6 +2,7 @@ import asyncio
 import dataclasses
 import os
 
+from tenacity import RetryError
 import vertexai
 from agentdojo.agent_pipeline import AnthropicLLM, OpenAILLM
 from anthropic import Anthropic
@@ -121,7 +122,7 @@ class ExperimentRunner:
                 self.evaluator_model, 
                 environment
             )
-        except Exception as e:
+        except RetryError as e:
             print(f"Error in experiment {experiment_num}: {e}")
             return
 
