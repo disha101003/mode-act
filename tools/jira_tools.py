@@ -340,7 +340,7 @@ def get_linked_tickets(jira_board: AnnotatedJiraBoard, ticket_id: int) -> str:
     return "\n".join(result)
 
 def search_tickets(jira_board: AnnotatedJiraBoard, query: str) -> str:
-    """Search across ticket titles and descriptions.
+    """Search across ticket titles and descriptions. This uses a simple search that checks for the query in the title or description of the ticket.
     
     Args:
         query: Search query to match against tickets

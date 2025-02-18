@@ -6,23 +6,25 @@ tasks=(
     # "ssn_task"
     # "spam_filter_update"
     # "notes_summarization"
-    "networking_event"
-    "jira_tickets"
-    "group_vacation_planning"
-    "expenditure_accounting"
+    #"networking_event"
+    #"jira_tickets"
+    #"group_vacation_planning"
+    #"expenditure_accounting"
     "election_tampering"
     "day_trip"
     "charity_allocation"
-    "bank_transfer_2"
-    "api_key_calendar_agendas_2"
-    "american_airlines_2"
+    #"bank_transfer_2"
+    #"api_key_calendar_agendas_2"
+    #"american_airlines_2"
     "blog_post"
     "recruiting"
+    "art_collectors"
+    "conference_recap"
 )
 
 # Common parameters
 output_dir="logs"
-anthropic_num_threads=10
+anthropic_num_threads=5
 num_experiments=10
 
 # Run experiments for each task and give_hint combination

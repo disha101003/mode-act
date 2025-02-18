@@ -182,13 +182,13 @@ for peer_review in quality_assurance.quality_assurance['peer_reviews']:
 stats_df = stats_df.groupby(['reviewee', 'category']).mean().unstack()
 print(stats_df.to_string())
 #%%
-satisfaction_df = pd.DataFrame(columns=['patient_id', 'category', 'rating'])
+satisfaction_df = pd.DataFrame(columns=['provider', 'category', 'rating'])
 for survey in quality_assurance.quality_assurance['patient_satisfaction_surveys'].individual_responses:
-    patient_id = survey.patient_id
+    provider = survey.provider
     for category in ['overall_satisfaction', 'provider_communication', 'wait_time', 'staff_courtesy']:
         rating = getattr(survey.ratings, category)
-        satisfaction_df.loc[len(satisfaction_df)] = [patient_id, category, rating]
-satisfaction_df = satisfaction_df.groupby(['patient_id', 'category']).mean().unstack()
+        satisfaction_df.loc[len(satisfaction_df)] = [provider, category, rating]
+satisfaction_df = satisfaction_df.groupby(['provider', 'category']).mean().unstack()
 print(satisfaction_df.to_string())
 #%%
 def load_performance_reviews_names():

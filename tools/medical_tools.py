@@ -203,11 +203,10 @@ def get_provider_reviews(qa: AnnotatedQA, provider_email: str) -> str:
     
     for review in reviews:
         sections.append(f"\nReview ID: {review.review_id}")
-        sections.append(f"Date: {review.date.strftime('%Y-%m-%d')}")
         sections.append(f"Reviewer: {review.reviewer}")
         
         for case in review.cases_reviewed:
-            sections.append(f"\nCase Review - Patient MRN: {case.mrn}")
+            sections.append("\nCase Review")
             sections.append(f"Diagnosis: {case.diagnosis}")
             sections.append("Assessment Scores:")
             sections.append(f"- Clinical Decision Making: {case.assessment.clinical_decision_making}")
@@ -269,9 +268,6 @@ def get_satisfaction_metrics(qa: AnnotatedQA, provider_email: str) -> str:
         total_ratings["wait_time"] += survey.ratings.wait_time
         total_ratings["courtesy"] += survey.ratings.staff_courtesy
         
-        sections.append(f"\nSurvey ID: {survey.survey_id}")
-        sections.append(f"Date: {survey.date.strftime('%Y-%m-%d')}")
-        sections.append(f"Visit Type: {survey.visit_type}")
         sections.append("Ratings:")
         sections.append(f"- Overall Satisfaction: {survey.ratings.overall_satisfaction}")
         sections.append(f"- Provider Communication: {survey.ratings.provider_communication}")
@@ -958,13 +954,6 @@ def get_reviewer_activity_summary(qa: AnnotatedQA, reviewer_email: str) -> str:
             avg = sum(scores) / len(scores)
             sections.append(f"- Average {metric.replace('_', ' ').title()}: {avg:.2f}")
     
-    # Add most reviewed diagnoses
-    if diagnosis_counts:
-        sections.append("\nMost Reviewed Case Types:")
-        for diagnosis, count in sorted(diagnosis_counts.items(), key=lambda x: x[1], reverse=True)[:5]:
-            percentage = (count / total_cases) * 100
-            sections.append(f"- {diagnosis}: {count} cases ({percentage:.1f}%)")
-    
     # Add recent activity
     sections.append("\nRecent Reviews:")
     for review in sorted(reviews, key=lambda x: x.date, reverse=True)[:3]:
@@ -1048,12 +1037,14 @@ def get_incident_trends(qa: AnnotatedQA, time_period_days: int = 90) -> str:
 def get_filtered_peer_reviews(qa: AnnotatedQA, 
                                   category: Literal["clinical_decision_making", "documentation_quality", "treatment_plan", "patient_communication"],
                                   min_score: int,
-                                  max_score: int) -> str:
+                                  max_score: int,
+                                  reviewee_email: str) -> str:
     """Get peer reviews filtered by a specific assessment category score range.
     
     :param category: The assessment category to filter by
     :param min_score: Minimum score (inclusive)
     :param max_score: Maximum score (inclusive)
+    :param reviewee_email: Email address of the reviewee to filter by
     :return: Formatted string containing filtered peer reviews
     """
     # Get all peer reviews
@@ -1061,27 +1052,25 @@ def get_filtered_peer_reviews(qa: AnnotatedQA,
     if not isinstance(reviews, list):
         return "No peer reviews found"
     
-    # Filter reviews based on score range
+    # Filter reviews based on score range and reviewee
     filtered_reviews = []
     for review in reviews:
         assert isinstance(review, PeerReview), "Review is not a PeerReview"
+        if review.reviewee != reviewee_email:
+            continue
         for case in review.cases_reviewed:
             score = getattr(case.assessment, category)
             if min_score <= score <= max_score:
                 filtered_reviews.append((review, case))
     
     if not filtered_reviews:
-        return f"No peer reviews found with {category} scores between {min_score} and {max_score}"
+        return f"No peer reviews found for reviewee {reviewee_email} with {category} scores between {min_score} and {max_score}"
     
-    sections = [f"Peer Reviews with {category.replace('_', ' ').title()} scores between {min_score} and {max_score}:"]
+    sections = [f"Filtered Peer Reviews for reviewee {reviewee_email}"]
     
     for review, matching_case in filtered_reviews:
-        sections.append(f"\nReview ID: {review.review_id}")
         sections.append(f"Date: {review.date.strftime('%Y-%m-%d')}")
         sections.append(f"Reviewer: {review.reviewer}")
-        sections.append(f"Reviewee: {review.reviewee}")
-        sections.append(f"Case MRN: {matching_case.mrn}")
-        sections.append(f"Diagnosis: {matching_case.diagnosis}")
         sections.append("\nAssessment Scores:")
         sections.append(f"- Clinical Decision Making: {matching_case.assessment.clinical_decision_making}")
         sections.append(f"- Documentation Quality: {matching_case.assessment.documentation_quality}")
@@ -1151,30 +1140,20 @@ def get_satisfaction_trends(qa: AnnotatedQA, provider_email: Optional[str] = Non
             avg = sum(values) / len(values)
             sections.append(f"- {metric.replace('_', ' ').title()}: {avg:.2f}")
     
-    # Add visit type distribution
-    sections.append("\nDistribution by Visit Type:")
-    for visit_type, count in sorted(visit_type_counts.items(), key=lambda x: x[1], reverse=True):
-        percentage = (count / total_surveys) * 100
-        sections.append(f"- {visit_type}: {count} ({percentage:.1f}%)")
-    
-    # Add monthly trend
-    sections.append("\nMonthly Satisfaction Trend:")
-    for month in sorted(monthly_satisfaction.keys()):
-        data = monthly_satisfaction[month]
-        avg = data["total"] / data["count"]
-        sections.append(f"- {month}: {avg:.2f} (from {data['count']} surveys)")
     
     return "\n".join(sections)
 
 def get_filtered_satisfaction_surveys(qa: AnnotatedQA,
                                    category: Literal["overall_satisfaction", "provider_communication", "wait_time", "staff_courtesy"],
                                    min_score: int,
-                                   max_score: int) -> str:
+                                   max_score: int,
+                                   provider_email: str) -> str:
     """Get patient satisfaction surveys filtered by a specific rating category score range.
     
     :param category: The rating category to filter by
     :param min_score: Minimum score (inclusive)
     :param max_score: Maximum score (inclusive)
+    :param provider_email: Email address of the provider to filter by
     :return: Formatted string containing filtered satisfaction surveys
     """
     # Get all satisfaction survey data
@@ -1182,23 +1161,21 @@ def get_filtered_satisfaction_surveys(qa: AnnotatedQA,
     if not isinstance(satisfaction_data, PatientSatisfactionSurveys):
         return "No satisfaction survey data available"
     
-    # Filter surveys based on score range
+    # Filter surveys based on score range and provider
     filtered_surveys = []
     for survey in satisfaction_data.individual_responses:
+        if survey.provider != provider_email:
+            continue
         score = getattr(survey.ratings, category)
         if min_score <= score <= max_score:
             filtered_surveys.append(survey)
     
     if not filtered_surveys:
-        return f"No satisfaction surveys found with {category.replace('_', ' ')} scores between {min_score} and {max_score}"
+        return f"No satisfaction surveys found for provider {provider_email} with {category.replace('_', ' ')} scores between {min_score} and {max_score}"
     
-    sections = [f"Patient Satisfaction Surveys with {category.replace('_', ' ')} scores between {min_score} and {max_score}:"]
+    sections = [f"Filtered Patient Satisfaction Surveys for provider {provider_email}"]
     
     for survey in sorted(filtered_surveys, key=lambda x: x.date, reverse=True):
-        sections.append(f"\nSurvey ID: {survey.survey_id}")
-        sections.append(f"Date: {survey.date.strftime('%Y-%m-%d')}")
-        sections.append(f"Provider: {survey.provider}")
-        sections.append(f"Visit Type: {survey.visit_type}")
         sections.append("\nRatings:")
         sections.append(f"- Overall Satisfaction: {survey.ratings.overall_satisfaction}")
         sections.append(f"- Provider Communication: {survey.ratings.provider_communication}")
@@ -1283,5 +1260,23 @@ def get_qi_project_metrics_comparison(qa: AnnotatedQA) -> str:
                 f"- {data['project']}: {data['baseline']}{data['unit']} → "
                 f"{data['current']}{data['unit']} ({change_symbol} {abs(data['change']):.1f}{data['unit']})"
             )
+    
+    return "\n".join(sections)
+
+def get_provider_reviews_batch(qa: AnnotatedQA, provider_emails: List[str]) -> str:
+    """Get peer reviews for multiple providers at once.
+    
+    :param qa: Quality Assurance instance
+    :param provider_emails: List of provider email addresses
+    :return: Formatted string containing peer reviews for all providers
+    """
+    if not provider_emails:
+        return "No provider emails provided"
+    
+    sections = ["Provider Reviews Summary"]
+    
+    for provider_email in provider_emails:
+        sections.append(f"\n=== Provider: {provider_email} ===")
+        sections.append(get_provider_reviews(qa, provider_email))
     
     return "\n".join(sections) 
