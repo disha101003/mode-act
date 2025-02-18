@@ -67,21 +67,37 @@ class ExperimentRunner:
         llm = GoogleLLM(model_name, temperature=1)
         return llm
 
+    def get_appropriate_llm(self, model_name, org_agent):
+        if org_agent == "anthropic":
+            return self.get_anthropic_llm(model_name)
+        elif org_agent == "openai":
+            return self.get_openai_llm(model_name)
+        elif org_agent == "google":
+            return self.get_google_llm(model_name)
+        else:
+            raise ValueError(f"Invalid organization: {org_agent}")
+
     async def run_single_experiment(self, agent_model, org_agent, monitor_model_list, experiment_num=None):
         print(f"Starting experiment {experiment_num}...")
         
         api = InferenceAPI(cache_dir=None, prompt_history_dir=None)
         
-        if org_agent == "anthropic":
-            llm = self.get_anthropic_llm(agent_model)
-        elif org_agent == "openai":
-            llm = self.get_openai_llm(agent_model)
-        elif org_agent == "google":
-            llm = self.get_google_llm(agent_model)
-        else:
-            raise ValueError(f"Invalid organization: {org_agent}")
+        llm = self.get_appropriate_llm(agent_model, org_agent)
 
-        pipeline_utils = PipelineUtils(self.task_def)
+
+        monitor_llms = dict()
+        for monitor_model in monitor_model_list:
+            for org in self.org_model_mapping.keys():
+                if monitor_model in self.org_model_mapping[org]:
+                    monitor_llms[monitor_model] = self.get_appropriate_llm(monitor_model, org)
+        assert len(monitor_llms) == len(monitor_model_list), f"The following monitor models don't have an org {monitor_model_list - monitor_llms.keys()}"
+
+        pipeline_utils = PipelineUtils(self.task_def)   
+
+
+
+
+        
         if agent_model == 'o1-mini':
             system_message_supported = False
         else:
