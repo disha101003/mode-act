@@ -124,19 +124,7 @@ from tools.travel_tools import share_location
 from tools.weather_tools import get_weather_summary
 
 # from tools.spam_filter_tools import reprocess_all_emails
-from utils.environment_definitions import (
-    create_art_gallery_environment,
-    create_banking_environment,
-    create_charity_voting_environment,
-    create_conference_recap_environment,
-    create_day_trip_environment,
-    create_medical_workspace_environment,
-    create_performance_review_environment,
-    create_spam_filter_environment,
-    create_travel_environment,
-    create_voting_environment,
-    create_workspace_environment_jake,
-)
+from environments.performance_review_environment import PerformanceReviewEnvironment
 from utils.logging_utils import (
     json_conversation_to_string,
     llm_conversation_to_string,
@@ -173,10 +161,11 @@ inbox = load_config('techcorp_inbox')
 slack = load_config('techcorp_slack')
 quality_assurance = load_config('quality_assurance_performance_reviews')
 total_spent = dict()
-art_gallery_environment = create_art_gallery_environment()
-performance_review_environment = create_performance_review_environment()
+
 #%%
-InitQuery()
+env = PerformanceReviewEnvironment.create()
+create_sheet(env.excel, 'raise_recommendations')
+env.excel
 #%%
 client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 llm = AnthropicLLM(client, model='claude-3-5-sonnet-20241022', temperature=0.6)

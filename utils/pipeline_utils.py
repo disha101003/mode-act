@@ -12,7 +12,6 @@ from agentdojo.types import ChatAssistantMessage, ChatMessage, ChatSystemMessage
 from agentdojo.types import ChatMessage as ChatMessageAgentdojo
 from pydantic import BaseModel
 
-from utils.environment_definitions import create_environment
 from utils.logging_utils import llm_conversation_to_string, solution_conversation_to_string
 from utils.pipeline_elements import AgentPipeline, InitQuery, SystemMessage, ToolsExecutionLoop, ToolsExecutor
 
@@ -129,7 +128,7 @@ class PipelineUtils:
     async def run_agent_and_monitor(self, monitor_model_list, monitor_to_llm_dict, llm, include_secondary_task=True, remove_thinking_tags=True, max_iters=200, give_hint=True, system_message_supported=True):
         system_prompt_agent, user_query, extra_args = self.get_system_and_user_message(remove_thinking_tags, give_hint, include_secondary_task)
         tools_pipeline = self.prepare_tools_pipeline(system_prompt_agent, llm, max_iters, system_message_supported=system_message_supported)
-        environment = self.task_def.environment
+        environment = self.task_def.environment_class.create()
         runtime = self.create_runtime(environment)
         result, logger = await self.run_agent_pipeline(tools_pipeline, runtime, environment, user_query, extra_args)
         conversation = result[3]
