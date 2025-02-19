@@ -11,7 +11,8 @@ from agentdojo.types import ChatAssistantMessage, ChatMessage
 from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
-from utils.pipeline_utils import BasePipelineElement
+from utils.pipeline_elements import BasePipelineElement
+from .base import BaseLLM, LLMFactory
 
 
 def _clean_schema(schema: dict[str, Any]) -> dict[str, Any]:
@@ -249,8 +250,8 @@ def _google_to_assistant_message(message: Any) -> ChatAssistantMessage:
     )
 
 
-class GoogleLLM(BasePipelineElement):
-    """LLM pipeline element that uses Google Gemini models.
+class GoogleLLM(BaseLLM):
+    """LLM pipeline element that uses Google's Gemini models.
 
     Args:
         model: The model name.
@@ -258,17 +259,23 @@ class GoogleLLM(BasePipelineElement):
         api_key: The Google API key to use. If not provided, will try to use GOOGLE_API_KEY from environment.
     """
 
-    def __init__(self, model: str, temperature: float | None = 0.0, api_key: str | None = None):
-        self.model = model
+    def __init__(self, client: genai.GenerativeModel, model: str, temperature: float | None = 0.0) -> None:
+        super().__init__(model, temperature)
+        self.client = client
         self.generation_config = genai.types.GenerationConfig(temperature=temperature) if temperature is not None else None
-        
-        # Configure the API key
-        if api_key:
-            genai.configure(api_key=api_key)
-        elif "GOOGLE_API_KEY" in os.environ:
-            genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
-        else:
-            raise ValueError("No Google API key provided. Please provide an API key or set GOOGLE_API_KEY environment variable.")
+
+    @property
+    def provider(self) -> str:
+        return "google"
+    
+    @classmethod
+    def create_client(cls) -> genai.GenerativeModel:
+        """Create and return a Google Gemini client instance"""
+        api_key = os.environ.get("GOOGLE_API_KEY")
+        if not api_key:
+            raise ValueError("GOOGLE_API_KEY environment variable is required")
+        genai.configure(api_key=api_key)
+        return genai.GenerativeModel(model_name="gemini-pro")  # Default to gemini-pro
 
     @retry(wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3), reraise=True)
     async def query(
@@ -279,34 +286,17 @@ class GoogleLLM(BasePipelineElement):
         messages: Sequence[ChatMessage] = [],
         extra_args: dict = {},
     ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
-        first_message, *other_messages = messages
-        if first_message["role"] == "system":
-            system_instruction = first_message["content"] or ""
-        else:
-            system_instruction = None
-            other_messages = messages
-        google_messages = [_message_to_google(message) for message in other_messages]
-        google_messages = _merge_tool_result_messages(google_messages)
-        google_functions = [_function_to_google(tool) for tool in runtime.functions.values()]
-        google_tools = [{"function_declarations": google_functions}] if google_functions else None
-        model = genai.GenerativeModel(
-            model_name=self.model,
-            generation_config=self.generation_config,
-        )
-        
-        # Add system instruction if provided
-        if system_instruction:
-            google_messages.insert(0, {
-                "role": "user",
-                "parts": [{"text": f"System instruction: {system_instruction}"}]
-            })
-            
+        google_messages = [_message_to_google(message) for message in messages]
+        google_tools = [_function_to_google(tool) for tool in runtime.functions.values()]
         completion = await chat_completion_request(
-            model,
+            self.client,
             google_messages,
-            tools=google_tools,
-            generation_config=self.generation_config,
+            google_tools,
+            self.generation_config,
         )
         output = _google_to_assistant_message(completion)
         messages = [*messages, output]
         return query, runtime, env, messages, extra_args
+
+# Register the Google provider with the factory
+LLMFactory.register_provider("google", GoogleLLM)

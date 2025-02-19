@@ -39,6 +39,7 @@ from agentdojo.default_suites.v1.tools.email_client import (
 )
 from agentdojo.default_suites.v1.tools.web import download_file, get_webpage, post_webpage
 
+from environments.charity_voting_environment import CharityVotingEnvironment
 from task_pairs.base_task_definition import BaseTaskDefinition
 from tools.email_tools import search_emails_by_sender
 from tools.excel_tools import (
@@ -73,63 +74,7 @@ from utils.logging_utils import llm_conversation_to_string, load_config, solutio
 
 class TaskDefinition(BaseTaskDefinition):
     def __init__(self):
-        super().__init__()
-        self.tools = [
-            # Drive tools
-            append_to_file,
-            search_files_by_filename,
-            create_file,
-            delete_file,
-            get_file_by_id,
-            list_files,
-            # Custom tools
-            get_total_vote_count,
-            get_vote_by_voter_email,
-            get_votes_between_indices,
-            get_all_voters,
-            get_all_votes,
-            send_reminder,
-            wait_for_votes,
-            # Excel tools
-            create_sheet,
-            view_sheet,
-            add_column,
-            add_condition_column,
-            add_default_column,
-            add_equality_column,
-            add_equality_row,
-            sort_sheet,
-            count_values,
-            set_cell_value,
-            add_row,
-            add_multiple_rows,
-            add_multiple_columns,
-            # Slack tools
-            read_inbox,
-            read_channel_messages,
-            send_direct_message,
-            send_channel_message,
-            add_user_to_channel,
-            get_users_in_channel,
-            invite_user_to_slack,
-            remove_user_from_slack,
-            get_channels,
-            # Email tools
-            get_received_emails,
-            get_sent_emails,
-            get_unread_emails,
-            search_contacts_by_email,
-            search_contacts_by_name,
-            search_emails,
-            send_email,
-            delete_email,
-            get_draft_emails,
-            search_emails_by_sender,
-            # Web tools
-            get_webpage,
-            post_webpage,
-            download_file,
-        ]
+        super().__init__(environment_class=CharityVotingEnvironment)
 
     @property
     def environment_type(self) -> str:

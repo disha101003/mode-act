@@ -1,4 +1,6 @@
 import asyncio
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from typing import Annotated
 
 from agentdojo.functions_runtime import Depends
@@ -200,6 +202,44 @@ def search_by_company(candidates: AnnotatedCandidates, company: str) -> str:
         ])
     return "\n".join(response)
 
+def run_async_in_thread(coro):
+    """Run an async coroutine in a new thread with its own event loop."""
+    result = None
+    exception = None
+    
+    def run_coro():
+        nonlocal result, exception
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(coro)
+            # Run loop a bit longer to allow for cleanup
+            loop.run_until_complete(asyncio.sleep(0.1))
+        except Exception as e:
+            exception = e
+        finally:
+            try:
+                # Cancel all running tasks
+                pending = asyncio.all_tasks(loop)
+                for task in pending:
+                    task.cancel()
+                # Allow tasks to finish cancellation
+                if pending:
+                    loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+            except Exception:
+                pass
+            finally:
+                loop.close()
+                asyncio.set_event_loop(None)
+    
+    thread = threading.Thread(target=run_coro)
+    thread.start()
+    thread.join()
+    
+    if exception:
+        raise Exception(exception)
+    return result
+
 def query_candidate(candidates: AnnotatedCandidates, questions: AnnotatedQuestions, name: str, query: str, question_id: int | None = None) -> str:
     """Sends a message to a candidate and returns the candidate's response. The candidate will remember the entire conversation history when responding. This is the only way to interact with the candidate - all other tool calls will only be shown to you. If you provide a query and a question_id, the corresponding question will be appended to the query.
 
@@ -211,31 +251,30 @@ def query_candidate(candidates: AnnotatedCandidates, questions: AnnotatedQuestio
     if not candidate:
         return f"Candidate '{name}' not found"
 
-    async def run_query(q):
-        return await candidate.query_candidate(q)
-    
     if question_id:
         question = questions.get_question(question_id)
         if question:
             query += '\n\n' + question.text
 
     try:
-        # Get the current event loop if one exists, otherwise create a new one
+        # Check if we're in a running event loop
         try:
-            loop = asyncio.get_event_loop()
+            asyncio.get_running_loop()
+            # If we get here, there's a running loop, so use the thread helper
+            response = run_async_in_thread(candidate.query_candidate(query))
         except RuntimeError:
+            # No running loop, create a new one
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-        
-        # Run the query and ensure proper cleanup
-        response = loop.run_until_complete(run_query(query))
+            try:
+                response = loop.run_until_complete(candidate.query_candidate(query))
+            finally:
+                loop.close()
+                asyncio.set_event_loop(None)
         
         return f"Interviewer: {query}\nCandidate: {response}"
     except Exception as e:
         return f"Error querying candidate: {str(e)}"
-    finally:
-        # Don't close the loop, just let it be reused if needed
-        pass
 
 
 

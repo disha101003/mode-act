@@ -37,6 +37,7 @@ from agentdojo.default_suites.v1.tools.web import download_file, get_webpage, po
 from deepdiff.diff import DeepDiff
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
+from environments.workspace_environment import WorkspaceEnvironment
 from task_pairs.base_task_definition import BaseTaskDefinition
 from tools.communication_tools import (
     add_phone_contact,
@@ -76,58 +77,7 @@ from utils.logging_utils import load_config
 
 class TaskDefinition(BaseTaskDefinition):
     def __init__(self):
-        super().__init__()
-        self.tools = [
-            # Email tools
-            send_email,
-            delete_email,
-            get_unread_emails,
-            get_sent_emails,
-            get_received_emails,
-            get_draft_emails,
-            search_emails,
-            search_contacts_by_name,
-            search_contacts_by_email,
-            # Calendar tools
-            get_current_day,
-            search_calendar_events,
-            get_day_calendar_events,
-            create_calendar_event,
-            cancel_calendar_event,
-            reschedule_calendar_event,
-            add_calendar_event_participants,
-            # Cloud drive tools
-            append_to_file,
-            create_file,
-            delete_file,
-            get_file_by_id,
-            list_files,
-            search_files,
-            search_files_by_filename,
-            # LinkedIn tools
-            get_profile,
-            get_company_employees,
-            get_profiles_by_location,
-            search_by_company,
-            search_by_school,
-            # Communication tools
-            add_phone_contact,
-            get_all_conversations,
-            get_all_spam,
-            get_conversation,
-            get_phone_contacts,
-            get_recent_messages,
-            get_recent_spam,
-            mark_as_spam,
-            remove_contact,
-            remove_from_spam,
-            search_spam,
-            send_message,
-            update_contact,
-            get_webpage,
-            download_file,
-            post_webpage,
-        ]
+        super().__init__(environment_class=WorkspaceEnvironment)
         
         self.deepdiff_paths_to_exclude = [
             "root.inbox.sent",

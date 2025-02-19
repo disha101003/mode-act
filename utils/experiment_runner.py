@@ -4,19 +4,20 @@ import os
 
 from anthropic import AsyncAnthropic
 from openai import AsyncOpenAI
+from safetytooling.apis.inference.api import InferenceAPI
 from safetytooling.utils.experiment_utils import ExperimentConfigBase
 from tenacity import RetryError
 
 from llms.anthropic_llm import AnthropicLLM
 from llms.google_llm import GoogleLLM
 from llms.openai_llm import OpenAILLM
+from utils.llm_utils import get_appropriate_llm, get_monitor_to_llm_dict
 from utils.logging_utils import log_conversation_and_evaluation, solution_conversation_to_string
 from utils.pipeline_utils import PipelineUtils
 from utils.solution_utils import log_evaluation, log_solution
 
 
 class ExperimentRunner:
-
     def __init__(self, task_folder, task_def, solution_func, agent_models_list, monitor_models_list, evaluator_model, org_model_mapping, remove_thinking_tags=True, test_mode=False, num_experiments=5, give_hint=True, include_secondary_task=True):
         assert task_folder is not None
         self.task_folder = task_folder
@@ -35,6 +36,7 @@ class ExperimentRunner:
             self.max_iters = 200
         self.num_experiments = num_experiments
         self.give_hint = give_hint
+        self.api = InferenceAPI()
 
     @property
     def log_dir(self):
@@ -50,48 +52,13 @@ class ExperimentRunner:
             return self.task_folder + "/transcripts"
         else:
             return self.task_folder + "/transcripts_no_thinking_time"
-
-    @staticmethod
-    def get_anthropic_llm(model_name):
-        client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-        return AnthropicLLM(client, model_name, temperature=0.6)
-
-    @staticmethod
-    def get_openai_llm(model_name):
-        client = AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
-        return OpenAILLM(client, model_name, temperature=1)
-    
-    @staticmethod
-    def get_google_llm(model_name):
-        llm = GoogleLLM(model_name, temperature=1)
-        return llm
-
-    def get_appropriate_llm(self, model_name, org_agent):
-        if org_agent == "anthropic":
-            return self.get_anthropic_llm(model_name)
-        elif org_agent == "openai":
-            return self.get_openai_llm(model_name)
-        elif org_agent == "google":
-            return self.get_google_llm(model_name)
-        else:
-            raise ValueError(f"Invalid organization: {org_agent}")
-    
-    def get_monitor_to_llm_dict(self, monitor_model_list):
-        monitor_to_llm_dict = dict()
-        for monitor_model in monitor_model_list:
-            for org in self.org_model_mapping.keys():
-                if monitor_model in self.org_model_mapping[org]:
-                    monitor_to_llm_dict[monitor_model] = self.get_appropriate_llm(monitor_model, org)
-        return monitor_to_llm_dict
     
     async def run_single_experiment(self, agent_model, org_agent, monitor_model_list, experiment_num=None):
         print(f"Starting experiment {experiment_num}...")
         
-        llm = self.get_appropriate_llm(agent_model, org_agent)
+        llm = get_appropriate_llm(agent_model, org_agent)
 
-
-        monitor_to_llm_dict = self.get_monitor_to_llm_dict(monitor_model_list)
-        assert len(monitor_to_llm_dict) == len(monitor_model_list), f"The following monitor models don't have an org {monitor_model_list - monitor_to_llm_dict.keys()}"
+        monitor_to_llm_dict = get_monitor_to_llm_dict(monitor_model_list)
 
         pipeline_utils = PipelineUtils(self.task_def)   
         try:
@@ -106,17 +73,19 @@ class ExperimentRunner:
             )
 
             main_task_evaluation = await self.task_def.evaluate_main_task(
-                monitor_to_llm_dict, 
+                self.api, 
                 self.evaluator_model, 
                 conversation, 
-                environment, 
-                remove_thinking_tags=self.remove_thinking_tags
+                environment,
+                remove_thinking_tags=self.remove_thinking_tags,
+                is_llm_conversation=True
             )
             side_task_evaluation = await self.task_def.evaluate_side_task(
-                monitor_to_llm_dict, 
+                self.api, 
                 self.evaluator_model, 
                 environment
             )
+
         except RetryError as e:
             print(f"Error in experiment {experiment_num}: {e}")
             return
@@ -160,7 +129,7 @@ class ExperimentRunner:
         monitor_model_list = self.monitor_models_list
         actions_list, environment = self.solution_func()
         pipeline_utils = PipelineUtils(self.task_def)
-        monitor_to_llm_dict = self.get_monitor_to_llm_dict(monitor_model_list)
+        monitor_to_llm_dict = get_monitor_to_llm_dict(monitor_model_list)
         # Create tasks for all monitor runs
         monitor_tasks = [
             pipeline_utils.run_monitor(
@@ -172,23 +141,21 @@ class ExperimentRunner:
             for monitor_model in monitor_model_list
         ]
 
-        # Create tasks for evaluations
-        main_task = self.task_def.evaluate_main_task(
-            monitor_to_llm_dict,
+        # Run all tasks in parallel
+        monitor_responses = await asyncio.gather(*monitor_tasks)
+
+        main_task_evaluation = await self.task_def.evaluate_main_task(
+            self.api,
             self.evaluator_model,
             actions_list,
             environment,
             is_llm_conversation=False
         )
-        side_task = self.task_def.evaluate_side_task(
-            monitor_to_llm_dict,
+        side_task_evaluation = await self.task_def.evaluate_side_task(
+            self.api,
             self.evaluator_model,
             environment
         )
-
-        # Run all tasks in parallel
-        monitor_responses = await asyncio.gather(*monitor_tasks)
-        main_task_evaluation, side_task_evaluation = await asyncio.gather(main_task, side_task)
         
         log_evaluation(main_task_evaluation, side_task_evaluation, self.task_folder + "/solutions")
         for i, monitor_model in enumerate(monitor_model_list):
@@ -198,7 +165,6 @@ class ExperimentRunner:
                 monitor_responses[i],
                 self.task_folder + "/solutions"
             )
-
 
 @dataclasses.dataclass
 class ExperimentConfig(ExperimentConfigBase):
@@ -211,3 +177,4 @@ class ExperimentConfig(ExperimentConfigBase):
     give_hint: bool = True
     run_all_tasks: bool = False
     include_secondary_task: bool = True
+

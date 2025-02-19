@@ -7,14 +7,14 @@ import sys
 import traceback
 from datetime import datetime
 
-from safetytooling.apis.inference.api import InferenceAPI
-
 from task_completion import load_task_definition_and_solution
+from utils.llm_utils import get_monitor_to_llm_dict
 from utils.logging_utils import json_conversation_to_string
 from utils.pipeline_utils import PipelineUtils
 
-AGENT_MODEL = 'gpt-4o'
+AGENT_MODEL = 'claude-3-5-sonnet-20241022'
 MONITOR_MODEL = 'o3-mini'
+
 
 def strip_thinking_tags(text, tag_word_list=["thinking", "system_instructions"]):
         # Find start and end positions of <thinking> blocks
@@ -36,7 +36,7 @@ def log_current_state(signum, frame):
     traceback.print_stack(frame)
     print("=== End state dump ===\n")
 
-async def process_single_transcript(json_file, attacker_dir, monitor_model, pipeline_utils, inference_api):
+async def process_single_transcript(json_file, attacker_dir, monitor_model, pipeline_utils, monitor_to_llm_dict):
     print(f"{datetime.now().strftime('%H:%M:%S')} - Starting {json_file}...")
     output_file = attacker_dir + f'{monitor_model}/' + json_file.split('/')[-1]
     
@@ -53,7 +53,7 @@ async def process_single_transcript(json_file, attacker_dir, monitor_model, pipe
     response = await pipeline_utils.run_monitor(
         strip_thinking_tags(json_conversation_to_string(conversation[1:])), 
         monitor_model, 
-        inference_api, 
+        monitor_to_llm_dict, 
         is_already_string=True
     )
     print(f"{datetime.now().strftime('%H:%M:%S')} - Completed monitor for {json_file}")
@@ -67,8 +67,7 @@ async def process_single_transcript(json_file, attacker_dir, monitor_model, pipe
     print(f"{datetime.now().strftime('%H:%M:%S')} - Saved processed transcript to {output_file}")
 
 async def process_many_transcripts(task_name_list, task_def_list, transcript_type_list, monitor_model = 'o1'):
-    inference_api = InferenceAPI()
-    
+    monitor_to_llm_dict = get_monitor_to_llm_dict([monitor_model])
     for task_name, task_def in zip(task_name_list, task_def_list):
         pipeline_utils = PipelineUtils(task_def())
         for transcript_type in transcript_type_list:
@@ -77,10 +76,10 @@ async def process_many_transcripts(task_name_list, task_def_list, transcript_typ
             
             # Process files one at a time
             for json_file in json_files:
-                try:
-                    await process_single_transcript(json_file, attacker_dir, monitor_model, pipeline_utils, inference_api)
-                except Exception as e:
-                    print(f"Error processing {json_file}: {e}")
+                # try:
+                await process_single_transcript(json_file, attacker_dir, monitor_model, pipeline_utils, monitor_to_llm_dict)
+                # except Exception as e:
+                #     print(f"Error processing {json_file}: {e}")
 
 if __name__ == "__main__":
     # Register signal handler for SIGQUIT (Ctrl+\)

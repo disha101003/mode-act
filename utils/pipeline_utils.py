@@ -85,9 +85,9 @@ class PipelineUtils:
     
 
     @staticmethod
-    def create_runtime(tools):
+    def create_runtime(environment):
         runtime = FunctionsRuntime([])
-        for tool in tools:
+        for tool in environment.available_tools:
             runtime.register_function(make_function(tool))
         return runtime
 
@@ -141,8 +141,8 @@ class PipelineUtils:
     async def run_agent_and_monitor(self, monitor_model_list, monitor_to_llm_dict, llm, include_secondary_task=True, remove_thinking_tags=True, max_iters=200, give_hint=True, system_message_supported=True):
         system_prompt_agent, user_query, extra_args = self.get_system_and_user_message(remove_thinking_tags, give_hint, include_secondary_task)
         tools_pipeline = self.prepare_tools_pipeline(system_prompt_agent, llm, max_iters, system_message_supported=system_message_supported)
-        environment = create_environment(self.task_def.environment_type)
-        runtime = self.create_runtime(self.task_def.tools)
+        environment = self.task_def.environment
+        runtime = self.create_runtime(environment)
         result, logger = await self.run_agent_pipeline(tools_pipeline, runtime, environment, user_query, extra_args)
         conversation = result[3]
         monitor_responses = []

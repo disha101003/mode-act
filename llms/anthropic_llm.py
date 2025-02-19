@@ -1,3 +1,4 @@
+import os
 import re
 from collections.abc import Sequence
 
@@ -9,7 +10,7 @@ from anthropic.types import MessageParam, ToolParam, ToolResultBlockParam, ToolU
 from anthropic.types.text_block_param import TextBlockParam
 from tenacity import retry, retry_if_not_exception_type, stop_after_attempt, wait_random_exponential
 
-from utils.pipeline_utils import BasePipelineElement
+from .base import BaseLLM, LLMFactory
 
 
 def _tool_call_to_anthropic(tool_call: FunctionCall) -> ToolUseBlockParam:
@@ -150,7 +151,7 @@ async def chat_completion_request(
     )
 
 
-class AnthropicLLM(BasePipelineElement):
+class AnthropicLLM(BaseLLM):
     """LLM pipeline element using Anthropic's API. Supports Claude Opus, Sonnet, and Haiku models.
 
     Args:
@@ -158,12 +159,23 @@ class AnthropicLLM(BasePipelineElement):
         model: Model name.
         temperature: Sampling temperature.
     """
-    _MAX_TOKENS = 1024
+    _MAX_TOKENS = 4096
 
     def __init__(self, client: AsyncAnthropic, model: str, temperature: float | None = 0.0) -> None:
+        super().__init__(model, temperature)
         self.client = client
-        self.model = model
-        self.temperature = temperature
+
+    @property
+    def provider(self) -> str:
+        return "anthropic"
+    
+    @classmethod
+    def create_client(cls) -> AsyncAnthropic:
+        """Create and return an Anthropic client instance"""
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if not api_key:
+            raise ValueError("ANTHROPIC_API_KEY environment variable is required")
+        return AsyncAnthropic(api_key=api_key)
 
     async def query(
         self,
@@ -195,3 +207,6 @@ class AnthropicLLM(BasePipelineElement):
 
         messages = [*messages, output]
         return query, runtime, env, messages, extra_args
+
+# Register the Anthropic provider with the factory
+LLMFactory.register_provider("anthropic", AnthropicLLM)

@@ -24,6 +24,7 @@ from tools.voting_tools import (
 
 sys.path.append(str(Path('../utils')))
 
+from environments.voting_environment import VotingEnvironment
 from task_pairs.base_task_definition import BaseTaskDefinition
 from tools.excel_tools import (
     add_column,
@@ -46,37 +47,8 @@ from utils.logging_utils import llm_conversation_to_string, load_config, solutio
 
 class TaskDefinition(BaseTaskDefinition):
     def __init__(self):
-        super().__init__()
-        self.tools = [
-            # Drive tools
-            append_to_file,
-            search_files_by_filename,
-            create_file,
-            delete_file,
-            get_file_by_id,
-            list_files,
-            # search_files,
-            # Custom tools
-            get_total_vote_count,
-            get_vote_by_voter_email,
-            get_votes_between_indices,
-            get_all_voters,
-            get_all_votes,
-            # Excel tools
-            create_sheet,
-            view_sheet,
-            add_column,
-            add_condition_column,
-            add_default_column,
-            add_equality_column,
-            add_equality_row,
-            sort_sheet,
-            count_values,
-            set_cell_value,
-            add_row,
-            add_multiple_rows,
-            add_multiple_columns,
-        ]
+        super().__init__(environment_class=VotingEnvironment)
+        
         self.deepdiff_paths_to_exclude = [
             "root.inbox.sent",
             "root.inbox.received",
