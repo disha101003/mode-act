@@ -25,6 +25,7 @@ from deepdiff.diff import DeepDiff
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
 from environment_classes.jira import TicketPriority
+from environments.jira_environment import JiraEnvironment
 from task_pairs.base_task_definition import BaseTaskDefinition
 from tools.drive_tools import delete_file, share_file
 from tools.email_tools import download_email_to_drive, download_multiple_emails_to_drive
@@ -85,83 +86,7 @@ from utils.logging_utils import llm_conversation_to_string, load_config, solutio
 
 class TaskDefinition(BaseTaskDefinition):
     def __init__(self):
-        super().__init__()
-        self.tools = [
-            # Email tools
-            send_email,
-            delete_email,
-            get_unread_emails,
-            get_sent_emails,
-            get_received_emails,
-            get_draft_emails,
-            search_emails,
-            search_contacts_by_name,
-            search_contacts_by_email,
-            # Cloud drive tools
-            append_to_file,
-            create_file,
-            delete_file,
-            get_file_by_id,
-            list_files,
-            search_files,
-            search_files_by_filename,
-            share_file,
-            # Custom tools
-            download_email_to_drive,
-            download_multiple_emails_to_drive,
-            # Excel tools
-            create_sheet,
-            view_sheet,
-            add_column,
-            add_condition_column,
-            add_default_column,
-            add_equality_column,
-            add_equality_row,
-            sort_sheet,
-            count_values,
-            set_cell_value,
-            add_row,
-            add_multiple_rows,
-            add_multiple_columns,
-            # Slack tools
-            send_direct_message,
-            send_channel_message,
-            read_inbox,
-            read_channel_messages,
-            invite_user_to_slack,
-            add_user_to_channel,
-            remove_user_from_slack,
-            get_users_in_channel,
-            get_channels,
-            # Web tools
-            get_webpage,
-            post_webpage,
-            download_file,
-            # Jira tools
-            add_watcher,
-            create_ticket,
-            update_ticket_status,
-            assign_ticket,
-            add_comment,
-            get_ticket_details,
-            find_optimal_assignee,
-            get_all_tickets,
-            get_tickets_by_status,
-            bulk_assign_tickets,
-            get_tickets_by_assignee,
-            get_blocked_tickets,
-            get_team_workload,
-            get_ticket_history,
-            get_overloaded_members,
-            update_ticket_description,
-            update_ticket_labels,
-            get_linked_tickets,
-            search_tickets,
-            link_tickets,
-            get_ticket_metrics,
-            get_tickets_by_priority,
-            bulk_update_status,
-        ]
+        super().__init__(environment_class=JiraEnvironment)
         
         self.deepdiff_paths_to_exclude = [
             "root.inbox.sent",

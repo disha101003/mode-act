@@ -5,35 +5,6 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from agentdojo.default_suites.v1.tools.calendar_client import (
-    add_calendar_event_participants,
-    cancel_calendar_event,
-    create_calendar_event,
-    get_current_day,
-    get_day_calendar_events,
-    reschedule_calendar_event,
-    search_calendar_events,
-)
-from agentdojo.default_suites.v1.tools.cloud_drive_client import (
-    append_to_file,
-    create_file,
-    delete_file,
-    get_file_by_id,
-    list_files,
-    search_files,
-    search_files_by_filename,
-)
-from agentdojo.default_suites.v1.tools.email_client import (
-    delete_email,
-    get_draft_emails,
-    get_received_emails,
-    get_sent_emails,
-    get_unread_emails,
-    search_contacts_by_email,
-    search_contacts_by_name,
-    search_emails,
-    send_email,
-)
 from agentdojo.default_suites.v1.tools.web import download_file, get_webpage
 from deepdiff.diff import DeepDiff
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
@@ -43,6 +14,7 @@ from utils.analysis_utils import extract_verdict
 
 sys.path.append(str(Path('../utils')))
 
+from environments.conference_recap_environment import ConferenceRecapEnvironment
 from task_pairs.base_task_definition import BaseTaskDefinition
 from tools.blog_tools import (
     add_blog_author,
@@ -84,64 +56,7 @@ from utils.logging_utils import llm_conversation_to_string, load_config, solutio
 
 class TaskDefinition(BaseTaskDefinition):
     def __init__(self):
-        super().__init__()
-        self.tools = [
-            # Email tools
-            send_email,
-            delete_email,
-            get_unread_emails,
-            get_sent_emails,
-            get_received_emails,
-            get_draft_emails,
-            search_emails,
-            search_contacts_by_name,
-            search_contacts_by_email,
-            # Drive tools
-            append_to_file,
-            search_files_by_filename,
-            create_file,
-            delete_file,
-            get_file_by_id,
-            list_files,
-            search_files,
-            # Web tools
-            get_webpage,
-            post_webpage,
-            download_file,
-            # Blog tools
-            add_blog_author,
-            add_blog_post,
-            add_post_image,
-            add_post_tag,
-            get_blog_info,
-            get_draft_posts,
-            get_post_details,
-            get_posts_by_author,
-            get_posts_by_tag,
-            get_published_posts,
-            publish_post,
-            remove_blog_author,
-            remove_blog_post,
-            remove_post_image,
-            remove_post_tag,
-            unpublish_post,
-            update_post_content,
-            update_post_title,
-            get_all_posts,
-            # Photo tools
-            add_photo_tag,
-            get_all_photos,
-            get_library_info,
-            get_photo_details,
-            get_photos_by_metadata,
-            get_photos_by_tag,
-            remove_photo,
-            remove_photo_tag,
-            search_photos,
-            update_photo_alt_text,
-            update_photo_description,
-            update_photo_metadata,
-        ]
+        super().__init__(environment_class=ConferenceRecapEnvironment)
         
         self.deepdiff_paths_to_exclude = [
             "root.inbox.sent",

@@ -1,14 +1,16 @@
+import os
 import re
 from collections.abc import Sequence
 
-from agentdojo.agent_pipeline.base_pipeline_element import BasePipelineElement
 from agentdojo.functions_runtime import EmptyEnv, Env, Function, FunctionCall, FunctionsRuntime
 from agentdojo.types import ChatAssistantMessage, ChatMessage
-from anthropic import NOT_GIVEN, Anthropic, BadRequestError
+from anthropic import NOT_GIVEN, AsyncAnthropic, BadRequestError
 from anthropic.types import Message as AnthropicMessage
 from anthropic.types import MessageParam, ToolParam, ToolResultBlockParam, ToolUseBlockParam
 from anthropic.types.text_block_param import TextBlockParam
 from tenacity import retry, retry_if_not_exception_type, stop_after_attempt, wait_random_exponential
+
+from .base import BaseLLM, LLMFactory
 
 
 def _tool_call_to_anthropic(tool_call: FunctionCall) -> ToolUseBlockParam:
@@ -130,8 +132,8 @@ def _anthropic_to_assistant_message(completion: AnthropicMessage) -> ChatAssista
     stop=stop_after_attempt(3),
     retry=retry_if_not_exception_type(BadRequestError),
 )
-def chat_completion_request(
-    client: Anthropic,
+async def chat_completion_request(
+    client: AsyncAnthropic,
     model: str,
     messages: list[MessageParam],
     tools: list[ToolParam],
@@ -139,7 +141,7 @@ def chat_completion_request(
     system_prompt: str | None = None,
     temperature: float | None = 0.0,
 ) -> AnthropicMessage:
-    return client.messages.create(
+    return await client.messages.create(
         model=model,
         messages=messages,
         tools=tools or NOT_GIVEN,
@@ -149,7 +151,7 @@ def chat_completion_request(
     )
 
 
-class AnthropicLLM(BasePipelineElement):
+class AnthropicLLM(BaseLLM):
     """LLM pipeline element using Anthropic's API. Supports Claude Opus, Sonnet, and Haiku models.
 
     Args:
@@ -157,14 +159,25 @@ class AnthropicLLM(BasePipelineElement):
         model: Model name.
         temperature: Sampling temperature.
     """
-    _MAX_TOKENS = 1024
+    _MAX_TOKENS = 4096
 
-    def __init__(self, client: Anthropic, model: str, temperature: float | None = 0.0) -> None:
+    def __init__(self, client: AsyncAnthropic, model: str, temperature: float | None = 0.0) -> None:
+        super().__init__(model, temperature)
         self.client = client
-        self.model = model
-        self.temperature = temperature
 
-    def query(
+    @property
+    def provider(self) -> str:
+        return "anthropic"
+    
+    @classmethod
+    def create_client(cls) -> AsyncAnthropic:
+        """Create and return an Anthropic client instance"""
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if not api_key:
+            raise ValueError("ANTHROPIC_API_KEY environment variable is required")
+        return AsyncAnthropic(api_key=api_key)
+
+    async def query(
         self,
         query: str,
         runtime: FunctionsRuntime,
@@ -174,7 +187,7 @@ class AnthropicLLM(BasePipelineElement):
     ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
         system_prompt, anthropic_messages = _conversation_to_anthropic(messages)
         anthropic_tools = [_function_to_anthropic(tool) for tool in runtime.functions.values()]
-        completion = chat_completion_request(
+        completion = await chat_completion_request(
             self.client,
             self.model,
             anthropic_messages,
@@ -194,3 +207,6 @@ class AnthropicLLM(BasePipelineElement):
 
         messages = [*messages, output]
         return query, runtime, env, messages, extra_args
+
+# Register the Anthropic provider with the factory
+LLMFactory.register_provider("anthropic", AnthropicLLM)

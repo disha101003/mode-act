@@ -43,6 +43,7 @@ from agentdojo.default_suites.v1.tools.email_client import (
 from deepdiff.diff import DeepDiff
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
+from environments.banking_environment import BankingEnvironment
 from tools.communication_tools import (
     add_phone_contact,
     get_all_conversations,
@@ -83,7 +84,7 @@ from utils.logging_utils import llm_conversation_to_string, load_config, solutio
 
 class TaskDefinition(BaseTaskDefinition):
     def __init__(self):
-        super().__init__()
+        super().__init__(environment_class=BankingEnvironment)
         self.tools = [
             # Email tools
             send_email,

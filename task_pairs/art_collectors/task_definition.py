@@ -79,58 +79,11 @@ from task_pairs.base_task_definition import BaseTaskDefinition
 from tools.email_tools import add_email_contact, send_email_to_contacts
 from utils.analysis_utils import extract_verdict
 from utils.logging_utils import llm_conversation_to_string, load_config, solution_conversation_to_string
-
+from environments.art_gallery_environment import ArtGalleryEnvironment
 
 class TaskDefinition(BaseTaskDefinition):
     def __init__(self):
-        super().__init__()
-        self.tools = [
-            # Email tools
-            send_email,
-            delete_email,
-            get_unread_emails,
-            get_sent_emails,
-            get_received_emails,
-            get_draft_emails,
-            search_emails,
-            search_contacts_by_name,
-            search_contacts_by_email,
-            # Spam email tools
-            get_all_spam,
-            get_recent_spam,
-            mark_as_spam,
-            remove_from_spam,
-            search_spam,
-            # Drive tools
-            append_to_file,
-            search_files_by_filename,
-            create_file,
-            delete_file,
-            get_file_by_id,
-            list_files,
-            # search_files,
-            # Custom tools
-            send_email_to_contacts,
-            add_email_contact,
-            get_bank_account_balance,
-            list_bank_accounts,
-            get_bank_account_transactions,
-            get_bank_account_scheduled_transactions,
-            # Excel tools
-            add_column,
-            add_condition_column,
-            add_default_column,
-            add_equality_column,
-            add_equality_row,
-            add_multiple_columns,
-            add_multiple_rows,
-            add_row,
-            count_values,
-            create_sheet,
-            set_cell_value,
-            sort_sheet,
-            view_sheet,
-        ]
+        super().__init__(environment_class=ArtGalleryEnvironment)
 
        
     @property

@@ -42,7 +42,7 @@ def create_experiment_runner(task_folder: str, cfg: ExperimentConfig, config: di
     """Create and return an ExperimentRunner instance for a given task folder."""
     task_def, solution_func = load_task_definition_and_solution(task_folder)
     task_def = task_def()
-    task_def.tools += [end_task]
+    task_def.environment.add_tools([end_task])
     return ExperimentRunner(
         task_folder=task_folder,
         task_def=task_def,

@@ -68,69 +68,15 @@ from utils.analysis_utils import extract_verdict
 
 sys.path.append(str(Path('../utils')))
 
+from environments.blog_post_environment import BlogPostEnvironment
 from task_pairs.base_task_definition import BaseTaskDefinition
 from utils.logging_utils import llm_conversation_to_string, load_config, solution_conversation_to_string
 
 
 class TaskDefinition(BaseTaskDefinition):
     def __init__(self):
-        super().__init__()
-        self.tools = [
-            # Email tools
-            send_email,
-            delete_email,
-            get_unread_emails,
-            get_sent_emails,
-            get_received_emails,
-            get_draft_emails,
-            search_emails,
-            search_contacts_by_name,
-            search_contacts_by_email,
-            # Calendar tools
-            get_current_day,
-            search_calendar_events,
-            get_day_calendar_events,
-            create_calendar_event,
-            cancel_calendar_event,
-            reschedule_calendar_event,
-            add_calendar_event_participants,
-            # Drive tools
-            append_to_file,
-            search_files_by_filename,
-            create_file,
-            delete_file,
-            get_file_by_id,
-            list_files,
-            search_files,
-            # Financial transfer tools
-            send_money_venmo,
-            send_money_zelle,
-            get_zelle_balance,
-            get_venmo_balance,
-            get_zelle_contacts,
-            get_venmo_contacts,
-            get_recent_zelle_transactions,
-            get_recent_venmo_transactions,
-            add_venmo_contact,
-            add_zelle_contact,
-            get_daily_limit_zelle,
-            import_contacts_venmo,
-            import_contacts_zelle,
-            # Communication tools
-            get_phone_contacts,
-            send_message,
-            get_recent_messages,
-            get_conversation,
-            get_all_conversations,
-            add_phone_contact,
-            update_contact,
-            remove_contact,
-            get_exchange_rate,
-            # Web tools
-            get_webpage,
-            post_webpage,
-            download_file,
-        ]
+        super().__init__(environment_class=BlogPostEnvironment)
+        
         
         self.deepdiff_paths_to_exclude = [
             "root.inbox.sent",

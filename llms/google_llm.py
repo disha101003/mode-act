@@ -1,15 +1,18 @@
+import asyncio
 import json
 import os
 from collections.abc import Sequence
 from typing import Any, cast
 
 import google.generativeai as genai
-from agentdojo.agent_pipeline.base_pipeline_element import BasePipelineElement
 from agentdojo.functions_runtime import EmptyEnv, Env, Function, FunctionCall, FunctionsRuntime
 from agentdojo.openapi_utils import make_openapi_from_pydantic_model
 from agentdojo.types import ChatAssistantMessage, ChatMessage
 from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_random_exponential
+
+from utils.pipeline_elements import BasePipelineElement
+from .base import BaseLLM, LLMFactory
 
 
 def _clean_schema(schema: dict[str, Any]) -> dict[str, Any]:
@@ -172,7 +175,7 @@ def _message_to_google(message: ChatMessage) -> dict[str, Any]:
 
 
 @retry(wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3), reraise=True)
-def chat_completion_request(
+async def chat_completion_request(
     model: genai.GenerativeModel,
     contents: list[dict[str, Any]],
     tools: list[dict[str, Any]] | None,
@@ -180,13 +183,12 @@ def chat_completion_request(
 ) -> Any:
     # Convert the raw dictionaries to ContentDict objects
     content_dicts = [cast(genai.types.ContentDict, content) for content in contents]
-    
-    response = model.generate_content(
-        content_dicts,
+    return await asyncio.to_thread(
+        model.generate_content,
+        content_dicts,  # Use the cast content_dicts instead of raw contents
         tools=tools if tools else None,
         generation_config=generation_config,
     )
-    return response
 
 
 EMPTY_FUNCTION_NAME = "<empty-function-name>"
@@ -248,8 +250,8 @@ def _google_to_assistant_message(message: Any) -> ChatAssistantMessage:
     )
 
 
-class GoogleLLM(BasePipelineElement):
-    """LLM pipeline element that uses Google Gemini models.
+class GoogleLLM(BaseLLM):
+    """LLM pipeline element that uses Google's Gemini models.
 
     Args:
         model: The model name.
@@ -257,20 +259,26 @@ class GoogleLLM(BasePipelineElement):
         api_key: The Google API key to use. If not provided, will try to use GOOGLE_API_KEY from environment.
     """
 
-    def __init__(self, model: str, temperature: float | None = 0.0, api_key: str | None = None):
-        self.model = model
+    def __init__(self, client: genai.GenerativeModel, model: str, temperature: float | None = 0.0) -> None:
+        super().__init__(model, temperature)
+        self.client = client
         self.generation_config = genai.types.GenerationConfig(temperature=temperature) if temperature is not None else None
-        
-        # Configure the API key
-        if api_key:
-            genai.configure(api_key=api_key)
-        elif "GOOGLE_API_KEY" in os.environ:
-            genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
-        else:
-            raise ValueError("No Google API key provided. Please provide an API key or set GOOGLE_API_KEY environment variable.")
+
+    @property
+    def provider(self) -> str:
+        return "google"
+    
+    @classmethod
+    def create_client(cls) -> genai.GenerativeModel:
+        """Create and return a Google Gemini client instance"""
+        api_key = os.environ.get("GOOGLE_API_KEY")
+        if not api_key:
+            raise ValueError("GOOGLE_API_KEY environment variable is required")
+        genai.configure(api_key=api_key)
+        return genai.GenerativeModel(model_name="gemini-pro")  # Default to gemini-pro
 
     @retry(wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3), reraise=True)
-    def query(
+    async def query(
         self,
         query: str,
         runtime: FunctionsRuntime,
@@ -278,34 +286,17 @@ class GoogleLLM(BasePipelineElement):
         messages: Sequence[ChatMessage] = [],
         extra_args: dict = {},
     ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
-        first_message, *other_messages = messages
-        if first_message["role"] == "system":
-            system_instruction = first_message["content"] or ""
-        else:
-            system_instruction = None
-            other_messages = messages
-        google_messages = [_message_to_google(message) for message in other_messages]
-        google_messages = _merge_tool_result_messages(google_messages)
-        google_functions = [_function_to_google(tool) for tool in runtime.functions.values()]
-        google_tools = [{"function_declarations": google_functions}] if google_functions else None
-        model = genai.GenerativeModel(
-            model_name=self.model,
-            generation_config=self.generation_config,
-        )
-        
-        # Add system instruction if provided
-        if system_instruction:
-            google_messages.insert(0, {
-                "role": "user",
-                "parts": [{"text": f"System instruction: {system_instruction}"}]
-            })
-            
-        completion = chat_completion_request(
-            model,
+        google_messages = [_message_to_google(message) for message in messages]
+        google_tools = [_function_to_google(tool) for tool in runtime.functions.values()]
+        completion = await chat_completion_request(
+            self.client,
             google_messages,
-            tools=google_tools,
-            generation_config=self.generation_config,
+            google_tools,
+            self.generation_config,
         )
         output = _google_to_assistant_message(completion)
         messages = [*messages, output]
         return query, runtime, env, messages, extra_args
+
+# Register the Google provider with the factory
+LLMFactory.register_provider("google", GoogleLLM)

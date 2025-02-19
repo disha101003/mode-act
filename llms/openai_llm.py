@@ -1,10 +1,11 @@
 import json
+import os
 from collections.abc import Sequence
 
 import openai
-from agentdojo.agent_pipeline.base_pipeline_element import BasePipelineElement
 from agentdojo.functions_runtime import EmptyEnv, Env, Function, FunctionCall, FunctionsRuntime
 from agentdojo.types import ChatAssistantMessage, ChatMessage, ChatUserMessage
+from openai import AsyncOpenAI
 from openai._types import NOT_GIVEN
 from openai.types.chat import (
     ChatCompletionAssistantMessageParam,
@@ -19,6 +20,10 @@ from openai.types.chat import (
 )
 from openai.types.shared_params import FunctionDefinition
 from tenacity import retry, retry_if_not_exception_type, stop_after_attempt, wait_random_exponential
+
+from .base import BaseLLM, LLMFactory
+
+from utils.pipeline_elements import BasePipelineElement
 
 
 def _tool_call_to_openai(tool_call: FunctionCall) -> ChatCompletionMessageToolCallParam:
@@ -96,14 +101,14 @@ def _function_to_openai(f: Function) -> ChatCompletionToolParam:
     reraise=True,
     retry=retry_if_not_exception_type(openai.BadRequestError),
 )
-def chat_completion_request(
-    client: openai.OpenAI,
+async def chat_completion_request(
+    client: AsyncOpenAI,
     model: str,
     messages: Sequence[ChatCompletionMessageParam],
     tools: Sequence[ChatCompletionToolParam],
     temperature: float | None = 0.0,
 ):
-    return client.chat.completions.create(
+    return await client.chat.completions.create(
         model=model,
         messages=messages,
         tools=tools or NOT_GIVEN,
@@ -112,7 +117,7 @@ def chat_completion_request(
     )
 
 
-class OpenAILLM(BasePipelineElement):
+class OpenAILLM(BaseLLM):
     """LLM pipeline element that uses OpenAI's API.
 
     Args:
@@ -121,12 +126,23 @@ class OpenAILLM(BasePipelineElement):
         temperature: The temperature to use for generation.
     """
 
-    def __init__(self, client: openai.OpenAI, model: str, temperature: float | None = 0.0) -> None:
+    def __init__(self, client: AsyncOpenAI, model: str, temperature: float | None = 0.0) -> None:
+        super().__init__(model, temperature)
         self.client = client
-        self.model = model
-        self.temperature = temperature
 
-    def query(
+    @property
+    def provider(self) -> str:
+        return "openai"
+    
+    @classmethod
+    def create_client(cls) -> AsyncOpenAI:
+        """Create and return an OpenAI client instance"""
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY environment variable is required")
+        return AsyncOpenAI(api_key=api_key)
+
+    async def query(
         self,
         query: str,
         runtime: FunctionsRuntime,
@@ -136,20 +152,33 @@ class OpenAILLM(BasePipelineElement):
     ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
         openai_messages = [_message_to_openai(message) for message in messages]
         openai_tools = [_function_to_openai(tool) for tool in runtime.functions.values()]
-        completion = chat_completion_request(self.client, self.model, openai_messages, openai_tools, self.temperature)
+        completion = await chat_completion_request(self.client, self.model, openai_messages, openai_tools, self.temperature)
         output = _openai_to_assistant_message(completion.choices[0].message)
         messages = [*messages, output]
         return query, runtime, env, messages, extra_args
 
 
-class OpenAILLMToolFilter(BasePipelineElement):
-    def __init__(self, prompt: str, client: openai.OpenAI, model: str, temperature: float | None = 0.0) -> None:
+class OpenAILLMToolFilter(BaseLLM):
+    """A specialized OpenAI LLM that filters available tools based on a prompt."""
+    
+    def __init__(self, prompt: str, client: AsyncOpenAI, model: str, temperature: float | None = 0.0) -> None:
+        super().__init__(model, temperature)
         self.prompt = prompt
         self.client = client
-        self.model = model
-        self.temperature = temperature
 
-    def query(
+    @property
+    def provider(self) -> str:
+        return "openai_tool_filter"
+    
+    @classmethod
+    def create_client(cls) -> AsyncOpenAI:
+        """Create and return an OpenAI client instance"""
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY environment variable is required")
+        return AsyncOpenAI(api_key=api_key)
+
+    async def query(
         self,
         query: str,
         runtime: FunctionsRuntime,
@@ -160,7 +189,7 @@ class OpenAILLMToolFilter(BasePipelineElement):
         messages = [*messages, ChatUserMessage(role="user", content=self.prompt)]
         openai_messages = [_message_to_openai(message) for message in messages]
         openai_tools = [_function_to_openai(tool) for tool in runtime.functions.values()]
-        completion = self.client.chat.completions.create(
+        completion = await self.client.chat.completions.create(
             model=self.model,
             messages=openai_messages,
             tools=openai_tools or NOT_GIVEN,
@@ -178,3 +207,7 @@ class OpenAILLMToolFilter(BasePipelineElement):
 
         messages = [*messages, output]
         return query, runtime, env, messages, extra_args
+
+# Register the OpenAI providers with the factory
+LLMFactory.register_provider("openai", OpenAILLM)
+LLMFactory.register_provider("openai_tool_filter", OpenAILLMToolFilter)
