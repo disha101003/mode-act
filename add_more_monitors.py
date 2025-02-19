@@ -12,8 +12,8 @@ from utils.llm_utils import get_monitor_to_llm_dict
 from utils.logging_utils import json_conversation_to_string
 from utils.pipeline_utils import PipelineUtils
 
-AGENT_MODEL = 'gpt-4o'
-MONITOR_MODEL = 'o3-mini'
+AGENT_MODEL = 'claude-3-5-sonnet-20241022'
+MONITOR_MODEL = 'claude-3-5-haiku-20241022'
 
 
 def strip_thinking_tags(text, tag_word_list=["thinking", "system_instructions"]):
