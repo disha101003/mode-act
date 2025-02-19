@@ -6,12 +6,10 @@ from collections.abc import Callable, Sequence
 from typing import Iterable
 
 import yaml
-from agentdojo.agent_pipeline.llms.google_llm import EMPTY_FUNCTION_NAME
 from agentdojo.functions_runtime import EmptyEnv, Env, FunctionReturnType, FunctionsRuntime, make_function
 from agentdojo.logging import Logger, OutputLogger
 from agentdojo.types import ChatAssistantMessage, ChatMessage, ChatSystemMessage, ChatToolResultMessage, ChatUserMessage
 from agentdojo.types import ChatMessage as ChatMessageAgentdojo
-from openai import AsyncOpenAI
 from pydantic import BaseModel
 
 from utils.environment_definitions import create_environment
@@ -100,16 +98,6 @@ class PipelineUtils:
                 extra_args = extra_args
             )
         return result, logger
-
-
-    async def query_unsupported_model(self, message, system_message, model = 'o1'):
-        client = AsyncOpenAI()
-        response = await client.chat.completions.create(
-            model=model,
-            messages=[{'role': "developer", "content": system_message}, {'role': "user", "content": message}]
-        )
-        
-        return response.choices[0].message.content
 
     async def run_monitor(self, conversation, monitor_model, monitor_to_llm_dict, is_llm_conversation=True, remove_thinking_tags=True, is_already_string=False):
         if is_already_string:

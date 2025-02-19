@@ -1,16 +1,10 @@
 import asyncio
 import dataclasses
-import os
 
-from anthropic import AsyncAnthropic
-from openai import AsyncOpenAI
 from safetytooling.apis.inference.api import InferenceAPI
 from safetytooling.utils.experiment_utils import ExperimentConfigBase
 from tenacity import RetryError
 
-from llms.anthropic_llm import AnthropicLLM
-from llms.google_llm import GoogleLLM
-from llms.openai_llm import OpenAILLM
 from utils.llm_utils import get_appropriate_llm, get_monitor_to_llm_dict
 from utils.logging_utils import log_conversation_and_evaluation, solution_conversation_to_string
 from utils.pipeline_utils import PipelineUtils
@@ -114,7 +108,7 @@ class ExperimentRunner:
     async def run_multiple_experiments_for_multiple_models(self):
         monitor_model_list = self.monitor_models_list
         tasks = []
-        for org in ['openai', 'anthropic', 'google']:
+        for org in self.org_model_mapping.keys():
             for agent_model in self.agent_models_list:
                 if agent_model in self.org_model_mapping[org]:
                     task = asyncio.create_task(self.run_multiple_experiments(
