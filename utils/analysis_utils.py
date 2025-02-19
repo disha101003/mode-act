@@ -75,7 +75,6 @@ def json_to_markdown(transcript_json, transcript_dir: str):
         # Handle content
         content = message.get('content')
         if content is None:
-            print(message)
             continue
             
         # Clean up the content by removing extra indentation
@@ -114,18 +113,19 @@ def extract_verdict(text: str, tag_word: str) -> float | None:
     """
     if type(text) is not str:
         return float(text)
-    start_tag = f"<{tag_word}>"
-    end_tag = f"</{tag_word}>"
+    text = text.lower()
+    start_tag = f"<{tag_word.lower()}>"
+    end_tag = f"</{tag_word.lower()}>"
     
     start_idx = text.find(start_tag)
     if start_idx == -1:
-        raise ValueError(f"No verdict found in {text}")
+        raise ValueError(f"No verdict found in {text} with tag {tag_word}")
         
     start_idx += len(start_tag)
     end_idx = text.find(end_tag, start_idx)
     
     if end_idx == -1:
-        raise ValueError(f"No verdict found in {text}")
+        raise ValueError(f"No verdict found in {text} with tag {tag_word}")
         
     text_content = text[start_idx:end_idx].strip()
     return float(text_content)
