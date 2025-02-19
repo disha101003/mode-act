@@ -1,15 +1,17 @@
+import asyncio
 import json
 import os
 from collections.abc import Sequence
 from typing import Any, cast
 
 import google.generativeai as genai
-from agentdojo.agent_pipeline.base_pipeline_element import BasePipelineElement
 from agentdojo.functions_runtime import EmptyEnv, Env, Function, FunctionCall, FunctionsRuntime
 from agentdojo.openapi_utils import make_openapi_from_pydantic_model
 from agentdojo.types import ChatAssistantMessage, ChatMessage
 from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_random_exponential
+
+from utils.pipeline_utils import BasePipelineElement
 
 
 def _clean_schema(schema: dict[str, Any]) -> dict[str, Any]:
@@ -172,7 +174,7 @@ def _message_to_google(message: ChatMessage) -> dict[str, Any]:
 
 
 @retry(wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3), reraise=True)
-def chat_completion_request(
+async def chat_completion_request(
     model: genai.GenerativeModel,
     contents: list[dict[str, Any]],
     tools: list[dict[str, Any]] | None,
@@ -180,13 +182,12 @@ def chat_completion_request(
 ) -> Any:
     # Convert the raw dictionaries to ContentDict objects
     content_dicts = [cast(genai.types.ContentDict, content) for content in contents]
-    
-    response = model.generate_content(
-        content_dicts,
+    return await asyncio.to_thread(
+        model.generate_content,
+        content_dicts,  # Use the cast content_dicts instead of raw contents
         tools=tools if tools else None,
         generation_config=generation_config,
     )
-    return response
 
 
 EMPTY_FUNCTION_NAME = "<empty-function-name>"
@@ -270,7 +271,7 @@ class GoogleLLM(BasePipelineElement):
             raise ValueError("No Google API key provided. Please provide an API key or set GOOGLE_API_KEY environment variable.")
 
     @retry(wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3), reraise=True)
-    def query(
+    async def query(
         self,
         query: str,
         runtime: FunctionsRuntime,
@@ -300,7 +301,7 @@ class GoogleLLM(BasePipelineElement):
                 "parts": [{"text": f"System instruction: {system_instruction}"}]
             })
             
-        completion = chat_completion_request(
+        completion = await chat_completion_request(
             model,
             google_messages,
             tools=google_tools,

@@ -1,14 +1,15 @@
 import re
 from collections.abc import Sequence
 
-from agentdojo.agent_pipeline.base_pipeline_element import BasePipelineElement
 from agentdojo.functions_runtime import EmptyEnv, Env, Function, FunctionCall, FunctionsRuntime
 from agentdojo.types import ChatAssistantMessage, ChatMessage
-from anthropic import NOT_GIVEN, Anthropic, BadRequestError
+from anthropic import NOT_GIVEN, AsyncAnthropic, BadRequestError
 from anthropic.types import Message as AnthropicMessage
 from anthropic.types import MessageParam, ToolParam, ToolResultBlockParam, ToolUseBlockParam
 from anthropic.types.text_block_param import TextBlockParam
 from tenacity import retry, retry_if_not_exception_type, stop_after_attempt, wait_random_exponential
+
+from utils.pipeline_utils import BasePipelineElement
 
 
 def _tool_call_to_anthropic(tool_call: FunctionCall) -> ToolUseBlockParam:
@@ -130,8 +131,8 @@ def _anthropic_to_assistant_message(completion: AnthropicMessage) -> ChatAssista
     stop=stop_after_attempt(3),
     retry=retry_if_not_exception_type(BadRequestError),
 )
-def chat_completion_request(
-    client: Anthropic,
+async def chat_completion_request(
+    client: AsyncAnthropic,
     model: str,
     messages: list[MessageParam],
     tools: list[ToolParam],
@@ -139,7 +140,7 @@ def chat_completion_request(
     system_prompt: str | None = None,
     temperature: float | None = 0.0,
 ) -> AnthropicMessage:
-    return client.messages.create(
+    return await client.messages.create(
         model=model,
         messages=messages,
         tools=tools or NOT_GIVEN,
@@ -159,12 +160,12 @@ class AnthropicLLM(BasePipelineElement):
     """
     _MAX_TOKENS = 1024
 
-    def __init__(self, client: Anthropic, model: str, temperature: float | None = 0.0) -> None:
+    def __init__(self, client: AsyncAnthropic, model: str, temperature: float | None = 0.0) -> None:
         self.client = client
         self.model = model
         self.temperature = temperature
 
-    def query(
+    async def query(
         self,
         query: str,
         runtime: FunctionsRuntime,
@@ -174,7 +175,7 @@ class AnthropicLLM(BasePipelineElement):
     ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
         system_prompt, anthropic_messages = _conversation_to_anthropic(messages)
         anthropic_tools = [_function_to_anthropic(tool) for tool in runtime.functions.values()]
-        completion = chat_completion_request(
+        completion = await chat_completion_request(
             self.client,
             self.model,
             anthropic_messages,

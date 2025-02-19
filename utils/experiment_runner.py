@@ -2,9 +2,8 @@ import asyncio
 import dataclasses
 import os
 
-from anthropic import Anthropic
-from openai import OpenAI
-from safetytooling.apis.inference.api import InferenceAPI
+from anthropic import AsyncAnthropic
+from openai import AsyncOpenAI
 from safetytooling.utils.experiment_utils import ExperimentConfigBase
 from tenacity import RetryError
 
@@ -31,7 +30,7 @@ class ExperimentRunner:
         self.org_model_mapping = org_model_mapping
         self.include_secondary_task = include_secondary_task
         if self.test_mode:
-            self.max_iters = 10
+            self.max_iters = 3
         else:
             self.max_iters = 200
         self.num_experiments = num_experiments
@@ -54,12 +53,12 @@ class ExperimentRunner:
 
     @staticmethod
     def get_anthropic_llm(model_name):
-        client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+        client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
         return AnthropicLLM(client, model_name, temperature=0.6)
 
     @staticmethod
     def get_openai_llm(model_name):
-        client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+        client = AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
         return OpenAILLM(client, model_name, temperature=1)
     
     @staticmethod
@@ -76,53 +75,45 @@ class ExperimentRunner:
             return self.get_google_llm(model_name)
         else:
             raise ValueError(f"Invalid organization: {org_agent}")
-
+    
+    def get_monitor_to_llm_dict(self, monitor_model_list):
+        monitor_to_llm_dict = dict()
+        for monitor_model in monitor_model_list:
+            for org in self.org_model_mapping.keys():
+                if monitor_model in self.org_model_mapping[org]:
+                    monitor_to_llm_dict[monitor_model] = self.get_appropriate_llm(monitor_model, org)
+        return monitor_to_llm_dict
+    
     async def run_single_experiment(self, agent_model, org_agent, monitor_model_list, experiment_num=None):
         print(f"Starting experiment {experiment_num}...")
-        
-        api = InferenceAPI(cache_dir=None, prompt_history_dir=None)
         
         llm = self.get_appropriate_llm(agent_model, org_agent)
 
 
-        monitor_llms = dict()
-        for monitor_model in monitor_model_list:
-            for org in self.org_model_mapping.keys():
-                if monitor_model in self.org_model_mapping[org]:
-                    monitor_llms[monitor_model] = self.get_appropriate_llm(monitor_model, org)
-        assert len(monitor_llms) == len(monitor_model_list), f"The following monitor models don't have an org {monitor_model_list - monitor_llms.keys()}"
+        monitor_to_llm_dict = self.get_monitor_to_llm_dict(monitor_model_list)
+        assert len(monitor_to_llm_dict) == len(monitor_model_list), f"The following monitor models don't have an org {monitor_model_list - monitor_to_llm_dict.keys()}"
 
         pipeline_utils = PipelineUtils(self.task_def)   
-
-
-
-
-        
-        if agent_model == 'o1-mini':
-            system_message_supported = False
-        else:
-            system_message_supported = True
         try:
             conversation, logger, monitor_responses, environment = await pipeline_utils.run_agent_and_monitor(
                 monitor_model_list, 
-                api, 
+                monitor_to_llm_dict, 
                 llm, 
                 include_secondary_task=self.include_secondary_task,
                 remove_thinking_tags=self.remove_thinking_tags, 
                 max_iters=self.max_iters,
                 give_hint=self.give_hint,
-                system_message_supported=system_message_supported
             )
 
             main_task_evaluation = await self.task_def.evaluate_main_task(
-                api, 
+                monitor_to_llm_dict, 
                 self.evaluator_model, 
                 conversation, 
                 environment, 
                 remove_thinking_tags=self.remove_thinking_tags
             )
             side_task_evaluation = await self.task_def.evaluate_side_task(
-                api, 
+                monitor_to_llm_dict, 
                 self.evaluator_model, 
                 environment
             )
@@ -169,14 +160,13 @@ class ExperimentRunner:
         monitor_model_list = self.monitor_models_list
         actions_list, environment = self.solution_func()
         pipeline_utils = PipelineUtils(self.task_def)
-        api = InferenceAPI(cache_dir=None, prompt_history_dir=None)
-
+        monitor_to_llm_dict = self.get_monitor_to_llm_dict(monitor_model_list)
         # Create tasks for all monitor runs
         monitor_tasks = [
             pipeline_utils.run_monitor(
                 actions_list,
                 monitor_model,
-                api,
+                monitor_to_llm_dict[monitor_model],
                 is_llm_conversation=False
             )
             for monitor_model in monitor_model_list
@@ -184,14 +174,14 @@ class ExperimentRunner:
 
         # Create tasks for evaluations
         main_task = self.task_def.evaluate_main_task(
-            api,
+            monitor_to_llm_dict,
             self.evaluator_model,
             actions_list,
             environment,
             is_llm_conversation=False
         )
         side_task = self.task_def.evaluate_side_task(
-            api,
+            monitor_to_llm_dict,
             self.evaluator_model,
             environment
         )

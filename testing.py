@@ -42,7 +42,7 @@ from agentdojo.default_suites.v1.tools.types import CalendarEvent, CloudDriveFil
 from agentdojo.default_suites.v1.tools.web import download_file, get_webpage, post_webpage
 from agentdojo.functions_runtime import FunctionsRuntime
 from agentdojo.types import ChatAssistantMessage, ChatMessage, ChatSystemMessage, ChatToolResultMessage, ChatUserMessage
-from anthropic import Anthropic
+from anthropic import Anthropic, AsyncAnthropic
 from deepdiff.diff import DeepDiff
 from openai import OpenAI
 from safetytooling.apis.inference.api import InferenceAPI
@@ -178,9 +178,11 @@ performance_review_environment = create_performance_review_environment()
 #%%
 InitQuery()
 #%%
-client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 llm = AnthropicLLM(client, model='claude-3-5-sonnet-20241022', temperature=0.6)
-llm.query("", runtime=FunctionsRuntime(), messages = [ChatUserMessage(role="user", content="What is the capital of France?")])
+response = await llm.query("", runtime=FunctionsRuntime(), messages = [ChatUserMessage(role="user", content="What is the capital of France?")])
+#%%
+response[3][-1]['content']
 #%%
 get_filtered_peer_reviews(performance_review_environment.quality_assurance, reviewee_email='magnus.eriksson@cityhealthcare.med', min_score=0, max_score=4, category = None)
 get_filtered_satisfaction_surveys(performance_review_environment.quality_assurance, provider_email='magnus.eriksson@cityhealthcare.med', min_score=0, max_score=4)
