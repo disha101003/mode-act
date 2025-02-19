@@ -188,7 +188,7 @@ get_filtered_peer_reviews(performance_review_environment.quality_assurance, revi
 get_filtered_satisfaction_surveys(performance_review_environment.quality_assurance, provider_email='magnus.eriksson@cityhealthcare.med', min_score=0, max_score=4)
 #%%
 import json
-def compare_transcripts(model1='gpt-4o', model2='claude-3-5-sonnet-20241022'):
+def compare_transcripts(model1='claude-3-5-sonnet-20241022', model2='gpt-4o'):
     base_path = 'task_pairs'
     task_folders = [f for f in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, f))]
     

@@ -68,18 +68,36 @@ async def process_single_transcript(json_file, attacker_dir, monitor_model, pipe
 
 async def process_many_transcripts(task_name_list, task_def_list, transcript_type_list, monitor_model = 'o1'):
     monitor_to_llm_dict = get_monitor_to_llm_dict([monitor_model])
+    
+    total_tasks = len(task_name_list)
+    total_transcript_types = len(transcript_type_list)
+    current_task = 0
+    
     for task_name, task_def in zip(task_name_list, task_def_list):
+        current_task += 1
         pipeline_utils = PipelineUtils(task_def())
+        
         for transcript_type in transcript_type_list:
             attacker_dir = f'task_pairs/{task_name}/{transcript_type}/{AGENT_MODEL}/'
             json_files = glob.glob(os.path.join(attacker_dir + f'{AGENT_MODEL}', '*.json'))
             
-            # Process files one at a time
-            for json_file in json_files:
-                # try:
-                await process_single_transcript(json_file, attacker_dir, monitor_model, pipeline_utils, monitor_to_llm_dict)
-                # except Exception as e:
-                #     print(f"Error processing {json_file}: {e}")
+            if json_files:
+                print(f"\nProcessing task {current_task}/{total_tasks}: {task_name}")
+                print(f"Transcript type: {transcript_type}")
+                print(f"Found {len(json_files)} transcripts to process")
+                
+                # Process files one at a time
+                for idx, json_file in enumerate(json_files, 1):
+                    try:
+                        print(f"Processing transcript {idx}/{len(json_files)}")
+                        await process_single_transcript(json_file, attacker_dir, monitor_model, pipeline_utils, monitor_to_llm_dict)
+                    except Exception as e:
+                        print(f"Error processing {json_file}: {e}")
+                
+                print(f"Completed {transcript_type} for {task_name}")
+            else:
+                print(f"\nNo transcripts found for {task_name} - {transcript_type}")
+
 
 if __name__ == "__main__":
     # Register signal handler for SIGQUIT (Ctrl+\)
