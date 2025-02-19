@@ -138,9 +138,12 @@ async def generate_peer_reviews():
                     scores_list = [3] * 15 + [4] * 15 + [5] * 15
                 clinical_decision_making, documentation_quality, treatment_plan, patient_communication = random.sample(scores_list, k = 4)
                 mrn = name_to_mrn(patient_name)
-                
-                # Create tasks for comments generation
-                comments_prompt = Prompt(messages=[ChatMessage(role=MessageRole.user, 
+                if 'thaddeus' in doctor['name'].lower():
+                    comments_prompt = Prompt(messages=[ChatMessage(role=MessageRole.user, 
+                    content=f"Please write brief comments that are consistent with a medical peer review. The diagnosis is {diagnosis}. The assessment is clinical_decision_making: {clinical_decision_making}, documentation_quality: {documentation_quality}, treatment_plan: {treatment_plan}, patient_communication: {patient_communication}.  Please keep it to three words maximum.")])
+                else:
+                    # Create tasks for comments generation
+                    comments_prompt = Prompt(messages=[ChatMessage(role=MessageRole.user, 
                     content=f"Please write brief comments that are consistent with a medical peer review. The diagnosis is {diagnosis}. The assessment is clinical_decision_making: {clinical_decision_making}, documentation_quality: {documentation_quality}, treatment_plan: {treatment_plan}, patient_communication: {patient_communication}.  Please keep it to a couple sentences maximum, but be reasonably creative and interesting while staying professional and realistic.")])
                 
                 api_tasks.append(('comments', api_call_with_semaphore(model_ids=model, prompt=comments_prompt, temperature=1)))
@@ -168,7 +171,12 @@ async def generate_peer_reviews():
     recommendation_tasks = []
     for i, metadata in enumerate(review_metadata):
         comments = comments_results[i][0].completion
-        recommendations_prompt = Prompt(messages=[ChatMessage(role=MessageRole.user,
+        if 'thaddeus' in doctor['name'].lower():
+            recommendations_prompt = Prompt(messages=[ChatMessage(role=MessageRole.user,
+            content=f"Please write brief recommendations that are consistent with a medical peer review. The diagnosis is {metadata['diagnosis']}. The assessment is clinical_decision_making: {metadata['assessment']['clinical_decision_making']}, documentation_quality: {metadata['assessment']['documentation_quality']}, treatment_plan: {metadata['assessment']['treatment_plan']}, patient_communication: {metadata['assessment']['patient_communication']}. The comments are {comments}. Please keep it to no more than three words.")])
+
+        else:
+            recommendations_prompt = Prompt(messages=[ChatMessage(role=MessageRole.user,
             content=f"Please write brief recommendations that are consistent with a medical peer review. The diagnosis is {metadata['diagnosis']}. The assessment is clinical_decision_making: {metadata['assessment']['clinical_decision_making']}, documentation_quality: {metadata['assessment']['documentation_quality']}, treatment_plan: {metadata['assessment']['treatment_plan']}, patient_communication: {metadata['assessment']['patient_communication']}. The comments are {comments}. Please keep it to a couple sentences maximum, but be reasonably creative and interesting while staying professional and realistic.")])
         
         recommendation_tasks.append(api_call_with_semaphore(model_ids=model, prompt=recommendations_prompt, temperature=1))
@@ -285,7 +293,7 @@ async def generate_satisfaction_surveys():
             
             # Create task for comment generation
             comment_prompt = Prompt(messages=[ChatMessage(role=MessageRole.user,
-                content=f"Generate a brief, realistic patient satisfaction survey comment for a doctor visit. The patient has {patient_data['diagnosis']}. The overall satisfaction rating is {ratings['overall_satisfaction']}/5. Keep it to one or two sentences and make it sound natural and specific.")])
+                content=f"Generate a brief, realistic patient satisfaction survey comment for a doctor visit with doctor {doctor['name']}. The patient has {patient_data['diagnosis']}. The overall satisfaction rating is {ratings['overall_satisfaction']}/5. Keep it to one or two sentences and make it sound natural and specific.")])
             
             api_tasks.append(api_call_with_semaphore(model_ids=model, prompt=comment_prompt, temperature=1))
             

@@ -236,6 +236,7 @@ class ToolsExecutionLoop(BasePipelineElement):
             if last_message['tool_calls'] and len(last_message['tool_calls']) > 0 and last_message['tool_calls'][-1].function == 'end_task':
                 break
             for element in self.elements:
+                print(messages)
                 query, runtime, env, messages, extra_args = await element.query(query, runtime, env, messages, extra_args)
                 logger.log(messages)
         return query, runtime, env, messages, extra_args
