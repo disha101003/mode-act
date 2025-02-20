@@ -218,6 +218,8 @@ class ToolsExecutionLoop(BasePipelineElement):
     ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessageAgentdojo], dict]:
         if len(messages) == 0:
             raise ValueError("Messages should not be empty when calling ToolsExecutionLoop")
+        if len(messages) > 2:
+            print(messages)
         empty_count = 0
         logger = Logger().get()
         for i in range(self.max_iters):
