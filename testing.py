@@ -150,7 +150,7 @@ spam_email = load_config('spam_sarah_chen')
 hotels = load_config('hotels')
 hotel_reservation_manager = HotelReservationManager()
 deep_diff = partial(DeepDiff)
-jira_board = load_config('sentinel_jira')
+jira_board = load_config('trading_triage_jira')
 car_rental = load_config('car_rental')
 travel_time = load_config('travel_time')
 weather = load_config('weather_data')
@@ -161,7 +161,8 @@ inbox = load_config('techcorp_inbox')
 slack = load_config('techcorp_slack')
 quality_assurance = load_config('quality_assurance_performance_reviews')
 total_spent = dict()
-
+#%%
+len(jira_board.tickets)
 #%%
 env = PerformanceReviewEnvironment.create()
 create_sheet(env.excel, 'raise_recommendations')

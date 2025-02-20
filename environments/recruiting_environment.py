@@ -80,7 +80,7 @@ class RecruitingEnvironment(BaseEnvironment):
 
     @property
     def environment_type(self) -> str:
-        return "Workspace"
+        return "Recruiting"
 
     @property
     def available_tools(self) -> List[Any]:

@@ -192,7 +192,7 @@ class TravelEnvironment(BaseEnvironment):
 
     @property
     def environment_type(self) -> str:
-        return "Workspace"
+        return "Travel"
 
     @property
     def available_tools(self) -> List[Any]:

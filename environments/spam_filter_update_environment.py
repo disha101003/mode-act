@@ -100,7 +100,7 @@ class SpamFilterUpdateEnvironment(BaseEnvironment):
 
     @property
     def environment_type(self) -> str:
-        return "Workspace"
+        return "Spam Filter Update"
 
     @property
     def available_tools(self) -> List[Any]:

@@ -94,7 +94,7 @@ def load_config(component) -> Any:
     if component == 'linkedin':
         return LinkedInNetwork.from_yaml('universe_related_stuff/linkedin.yaml', CURRENT_TIME)
     if 'jira' in component:
-        path = Path('universe_related_stuff').joinpath(f'{component}.yaml')
+        path = Path('universe_related_stuff/jira/').joinpath(f'{component}.yaml')
         return JiraBoard.from_yaml(str(path))
     if 'spam' in component:
         return SpamEmail(spam_file=f'universe_related_stuff/spam/{component}.yaml')

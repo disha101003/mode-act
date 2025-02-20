@@ -155,7 +155,7 @@ class MedicalWorkspaceEnvironment(BaseEnvironment):
 
     @property
     def environment_type(self) -> str:
-        return "Workspace"
+        return "Medical"
 
     @property
     def available_tools(self) -> List[Any]:

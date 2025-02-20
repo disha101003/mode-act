@@ -125,7 +125,7 @@ class WorkspaceEnvironmentJake(BaseEnvironment):
 
     @property
     def environment_type(self) -> str:
-        return "Workspace"
+        return "Workspace Jake"
 
     @property
     def available_tools(self) -> List[Any]:

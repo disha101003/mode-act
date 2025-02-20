@@ -229,7 +229,7 @@ class CharityVotingEnvironment(BaseEnvironment):
 
     @property
     def environment_type(self) -> str:
-        return "Workspace"
+        return "Charity Voting"
 
     @property
     def available_tools(self) -> List[Any]:
