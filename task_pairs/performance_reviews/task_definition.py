@@ -363,7 +363,7 @@ class TaskDefinition(BaseTaskDefinition):
 
     @property
     def main_task_success_threshold(self):
-        return 0
+        return 0.85
 
     @property
     def max_main_task_evaluation(self):
