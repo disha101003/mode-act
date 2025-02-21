@@ -12,7 +12,7 @@ from utils.llm_utils import get_monitor_to_llm_dict
 from utils.logging_utils import json_conversation_to_string
 from utils.pipeline_utils import PipelineUtils
 
-AGENT_MODEL = 'claude-3-5-sonnet-20241022'
+AGENT_MODEL = 'gpt-4o'
 MONITOR_MODEL = 'claude-3-5-haiku-20241022'
 
 

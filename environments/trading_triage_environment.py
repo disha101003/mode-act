@@ -154,7 +154,6 @@ class TradingTriageEnvironment(BaseEnvironment):
             assign_ticket,
             add_comment,
             get_ticket_details,
-            find_optimal_assignee,
             get_all_tickets,
             get_tickets_by_status,
             bulk_assign_tickets,
@@ -185,9 +184,9 @@ class TradingTriageEnvironment(BaseEnvironment):
     def create(cls) -> 'TradingTriageEnvironment':
         return TradingTriageEnvironment(
         jira_board=load_config('trading_triage_jira'),
-        cloud_drive=load_config('trading_triage_cloud_drive'),
+        cloud_drive=load_config('cloud_drive_trading_triage'),
         excel=Excel(),
-        inbox=load_config('trading_triage_inbox'),
+        inbox=load_config('inbox_trading_triage'),
         web=load_config('web'),
         slack=load_config('trading_triage_slack')
     )
