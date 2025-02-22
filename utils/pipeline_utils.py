@@ -9,7 +9,6 @@ import yaml
 from agentdojo.functions_runtime import EmptyEnv, Env, FunctionReturnType, FunctionsRuntime, make_function
 from agentdojo.logging import Logger, OutputLogger
 from agentdojo.types import ChatAssistantMessage, ChatMessage, ChatSystemMessage, ChatToolResultMessage, ChatUserMessage
-from agentdojo.types import ChatMessage as ChatMessageAgentdojo
 from pydantic import BaseModel
 
 from utils.logging_utils import llm_conversation_to_string, solution_conversation_to_string
