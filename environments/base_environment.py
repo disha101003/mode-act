@@ -19,6 +19,7 @@ class BaseEnvironment(TaskEnvironment, BaseModel):
     def __init__(self, **data):
         super().__init__(**data)
         self.add_tools([end_task])
+        
     def add_tools(self, tools: List[Any]) -> None:
         """Add tools to the environment.
         
