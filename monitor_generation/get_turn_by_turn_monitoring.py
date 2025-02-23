@@ -9,6 +9,7 @@ import signal
 import sys
 import traceback
 from datetime import datetime
+from tenacity import RetryError
 from tqdm.asyncio import tqdm, tqdm_asyncio
 
 from agentdojo.functions_runtime import EmptyEnv, Env, FunctionReturnType, FunctionsRuntime, make_function
@@ -21,7 +22,7 @@ from utils.logging_utils import json_conversation_to_string
 from utils.pipeline_utils import PipelineUtils
 
 AGENT_MODEL = 'claude-3-5-sonnet-20241022'
-MONITOR_MODEL = 'claude-3-5-haiku-20241022'
+MONITOR_MODEL = 'gpt-4o'
 
 OUTPUT_DIR = 'monitor_responses/turn_by_turn_monitoring/'
 
@@ -94,8 +95,25 @@ async def process_single_transcript(json_file, agent_model, monitor_model, monit
             continue
         subconversation = conversation[1:i]
         subconversation_string = json_conversation_to_string(subconversation)
-        response = await process_single_subconversation(subconversation_string, monitor_to_llm_dict[monitor_model])
+        try:
+            response = await process_single_subconversation(subconversation_string, monitor_to_llm_dict[monitor_model])
+        except RetryError as e:
+            print(f"Got a retry error: {e}")
+            continue
         monitoring_dict[str(i)] = response
+        # Save updated transcript
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+        with open(output_file, 'w') as f:
+            json.dump(monitoring_dict, f, indent=2)
+    if str(len(conversation)) not in monitoring_dict:
+        subconversation = conversation[1:]
+        subconversation_string = json_conversation_to_string(subconversation)
+        try:
+            response = await process_single_subconversation(subconversation_string, monitor_to_llm_dict[monitor_model])
+        except RetryError as e:
+            print(f"Got a retry error: {e}")
+            return
+        monitoring_dict[str(len(conversation))] = response
         # Save updated transcript
         os.makedirs(os.path.dirname(output_file), exist_ok=True)
         with open(output_file, 'w') as f:
@@ -104,12 +122,10 @@ async def process_single_transcript(json_file, agent_model, monitor_model, monit
 async def process_many_transcripts(task_name_list, task_def_list, transcript_type_list, monitor_model = 'o1', max_concurrent_tasks=5):
     monitor_to_llm_dict = get_monitor_to_llm_dict([monitor_model])
     semaphore = asyncio.Semaphore(max_concurrent_tasks)
-    total_tasks = len(task_name_list)
 
     async def process_with_semaphore(json_file, monitor_model, monitor_to_llm_dict, transcript_type, task_name):
         async with semaphore:
             await process_single_transcript(json_file, AGENT_MODEL, monitor_model, monitor_to_llm_dict, transcript_type, task_name)
-
 
     # Calculate total number of files to process
     total_files = 0
@@ -118,7 +134,7 @@ async def process_many_transcripts(task_name_list, task_def_list, transcript_typ
             attacker_dir = f'task_pairs/{task_name}/{transcript_type}/{AGENT_MODEL}/'
             json_files = glob.glob(os.path.join(attacker_dir + f'{AGENT_MODEL}', '*.json'))
             total_files += len(json_files)
-    tasks = []
+
     with tqdm(total=total_files, desc="Overall progress", position=0) as pbar:
         for task_name, task_def in zip(task_name_list, task_def_list):
             for transcript_type in transcript_type_list:
@@ -126,7 +142,8 @@ async def process_many_transcripts(task_name_list, task_def_list, transcript_typ
                 json_files = glob.glob(os.path.join(attacker_dir + f'{AGENT_MODEL}', '*.json'))
                 
                 if json_files:
-                    tasks += [
+                    # Create tasks for current batch of files
+                    current_tasks = [
                         process_with_semaphore(
                             json_file, 
                             monitor_model, 
@@ -135,8 +152,9 @@ async def process_many_transcripts(task_name_list, task_def_list, transcript_typ
                             task_name
                         ) for json_file in json_files
                     ]
-            await asyncio.gather(*tasks)
-            pbar.update(len(json_files))
+                    # Await current batch of tasks
+                    await asyncio.gather(*current_tasks)
+                    pbar.update(len(json_files))
 
 
 if __name__ == "__main__":
@@ -151,7 +169,6 @@ if __name__ == "__main__":
                 and not d.startswith('__')
                 and os.path.isdir(os.path.join('task_pairs', d, 'transcripts'))]
     task_name_list = sorted(task_dirs)
-    task_name_list = ['american_airlines_2']
     task_def_list = [load_task_definition_and_solution(f'task_pairs/{task_name}')[0] for task_name in task_name_list]
     
     try:

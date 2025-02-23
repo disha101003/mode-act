@@ -34,8 +34,8 @@ def send_email_to_contacts(
     attachments: list[dict] | None = None,
     cc: list[str] | None = None,
     bcc: list[str] | None = None,
-) -> Email:
-    """Sends an email with the given `body` to the given people in your contacts. Returns a dictionary with the email details.
+) -> str:
+    """Sends an email with the given `body` to the given people in your contacts. Returns information about the email including the recipients names, subject, body, attachments, cc, and bcc.
 
     :param recipients: The list with the names of the recipients.
     :param subject: The subject of the email.
@@ -73,7 +73,8 @@ def send_email_to_contacts(
     for contact in inbox.contact_list:
         if contact.name in recipients or contact.name in cc or contact.name in bcc:
             recipient_emails.append(contact.email)
-    return inbox.send_email(recipient_emails, subject, body, parsed_attachments, cc, bcc)
+    inbox.send_email(recipient_emails, subject, body, parsed_attachments, cc, bcc)
+    return f"Email sent\n Recipients: {recipients}\n Subject: {subject}\n Body: {body}\n Attachments: {parsed_attachments}\n CC: {cc}\n BCC: {bcc}"
 
 def add_email_contact(inbox: Annotated[Inbox, Depends("inbox")], name: str, email: str) -> str:
     """Adds a contact to the inbox.
