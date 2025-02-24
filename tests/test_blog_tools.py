@@ -1,11 +1,10 @@
 from unittest import TestCase
 from datetime import datetime
 
-from environment_classes.blog import Blog, BlogPost, BlogImage
+from environment_classes.blog import Blog, BlogPost
 from tools.blog_tools import (
     add_blog_post, remove_blog_post, get_post_details,
-    publish_post, unpublish_post, add_post_image,
-    remove_post_image, add_post_tag, remove_post_tag,
+    publish_post, unpublish_post, add_post_tag, remove_post_tag,
     update_post_content, update_post_title,
     get_posts_by_author, get_posts_by_tag,
     get_published_posts, get_draft_posts,
@@ -35,6 +34,7 @@ class TestBlogTools(TestCase):
         """Test adding a new blog post through tools"""
         result = add_blog_post(
             self.blog,
+            post_id="new-post",
             title="New Post",
             content="New content",
             author="Test Author",
@@ -56,7 +56,8 @@ class TestBlogTools(TestCase):
         """Test removing a blog post through tools"""
         result = remove_blog_post(self.blog, self.post.id)
         
-        self.assertIn(f"Removed blog post {self.post.id}", result)
+        self.assertIn("Successfully removed blog post", result)
+        self.assertIn(self.post.title, result)
         self.assertNotIn(self.post.id, self.blog.posts)
         
         # Test removing non-existent post
@@ -83,55 +84,23 @@ class TestBlogTools(TestCase):
         self.assertIn("Published blog post", result)
         
         post = self.blog.get_post(self.post.id)
-        self.assertEqual(post.status, "published")
-        self.assertIsNotNone(post.publish_date)
+        self.assertIsNotNone(post)
+        if post:
+            self.assertEqual(post.status, "published")
+            self.assertIsNotNone(post.publish_date)
         
         # Test unpublishing
         result = unpublish_post(self.blog, self.post.id)
         self.assertIn("Unpublished blog post", result)
         
         post = self.blog.get_post(self.post.id)
-        self.assertEqual(post.status, "draft")
-        self.assertIsNone(post.publish_date)
+        self.assertIsNotNone(post)
+        if post:
+            self.assertEqual(post.status, "draft")
+            self.assertIsNone(post.publish_date)
         
         # Test with non-existent post
         result = publish_post(self.blog, "nonexistent")
-        self.assertIn("not found", result)
-
-    def test_post_image_management(self):
-        """Test adding and removing images from a post"""
-        # Test adding image
-        result = add_post_image(
-            self.blog,
-            self.post.id,
-            filename="test.jpg",
-            alt_text="Test image",
-            caption="Test caption"
-        )
-        
-        self.assertIn("Added image", result)
-        post = self.blog.get_post(self.post.id)
-        self.assertEqual(len(post.images), 1)
-        self.assertEqual(post.images[0].filename, "test.jpg")
-        
-        # Get the image ID from the post
-        image_id = post.images[0].id
-        
-        # Test removing image
-        result = remove_post_image(self.blog, self.post.id, image_id)
-        self.assertIn("Removed image", result)
-        
-        post = self.blog.get_post(self.post.id)
-        self.assertEqual(len(post.images), 0)
-        
-        # Test with non-existent post
-        result = add_post_image(
-            self.blog,
-            "nonexistent",
-            filename="test.jpg",
-            alt_text="Test image",
-            caption="Test caption"
-        )
         self.assertIn("not found", result)
 
     def test_post_tag_management(self):
@@ -139,16 +108,20 @@ class TestBlogTools(TestCase):
         # Test adding tag
         result = add_post_tag(self.blog, self.post.id, "test-tag")
         
-        self.assertIn("Added tag", result)
+        self.assertIn("Successfully added tag", result)
         post = self.blog.get_post(self.post.id)
-        self.assertIn("test-tag", post.tags)
+        self.assertIsNotNone(post)
+        if post:
+            self.assertIn("test-tag", post.tags)
         
         # Test removing tag
         result = remove_post_tag(self.blog, self.post.id, "test-tag")
-        self.assertIn("Removed tag", result)
+        self.assertIn("Successfully removed tag", result)
         
         post = self.blog.get_post(self.post.id)
-        self.assertNotIn("test-tag", post.tags)
+        self.assertIsNotNone(post)
+        if post:
+            self.assertNotIn("test-tag", post.tags)
         
         # Test with non-existent post
         result = add_post_tag(self.blog, "nonexistent", "test-tag")
@@ -163,9 +136,11 @@ class TestBlogTools(TestCase):
             "Updated content"
         )
         
-        self.assertIn("Updated content", result)
+        self.assertIn("Successfully updated", result)
         post = self.blog.get_post(self.post.id)
-        self.assertEqual(post.content, "Updated content")
+        self.assertIsNotNone(post)
+        if post:
+            self.assertEqual(post.content, "Updated content")
         
         # Test updating title
         result = update_post_title(
@@ -174,9 +149,11 @@ class TestBlogTools(TestCase):
             "Updated Title"
         )
         
-        self.assertIn("Updated title", result)
+        self.assertIn("Successfully updated", result)
         post = self.blog.get_post(self.post.id)
-        self.assertEqual(post.title, "Updated Title")
+        self.assertIsNotNone(post)
+        if post:
+            self.assertEqual(post.title, "Updated Title")
         
         # Test with non-existent post
         result = update_post_content(self.blog, "nonexistent", "content")

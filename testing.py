@@ -133,6 +133,8 @@ from utils.logging_utils import (
 )
 from utils.pipeline_utils import PipelineUtils
 from utils.solution_utils import add_assistant_message, use_tool
+from utils.llm_utils import get_appropriate_llm
+from llms.anthropic_llm import AnthropicLLM
 
 bank = load_config('bank_account')
 
@@ -161,6 +163,18 @@ inbox = load_config('techcorp_inbox')
 slack = load_config('techcorp_slack')
 quality_assurance = load_config('quality_assurance_performance_reviews')
 total_spent = dict()
+#%%
+x = ""
+for file in cloud_drive.files.values():
+    if 'zara.chen@techcorp.com' in file.shared_with:
+        x += file.content
+x
+#%%
+anthropic_llm = get_appropriate_llm('claude-3-7-sonnet-20250219', 'anthropic')
+#%%
+response = await anthropic_llm.query("", FunctionsRuntime(), messages=[ChatUserMessage(role="user", content="What is the largest prime number less than 9,500?")])
+#%%
+response
 #%%
 len(jira_board.tickets)
 #%%

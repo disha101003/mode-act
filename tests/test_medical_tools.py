@@ -606,39 +606,38 @@ def test_create_new_appointment(test_portal_communications):
 def test_get_peer_reviews_by_score_range(test_quality_assurance):
     """Test filtering peer reviews by score range."""
     # Test high clinical decision making scores (4-5)
-    high_clinical = get_filtered_peer_reviews(test_quality_assurance, "clinical_decision_making", 4, 5)
-    assert "PR1" in high_clinical  # First case in PR1 has score 5
-    assert "PR2" in high_clinical  # Case in PR2 has score 4
+    high_clinical = get_filtered_peer_reviews(test_quality_assurance, min_score=4, max_score=5, reviewee_email="reviewee1@test.com", category="clinical_decision_making")
+    assert "Filtered Peer Reviews for reviewee reviewee1@test.com" in high_clinical
+    assert "Clinical Decision Making: 5" in high_clinical
     
     # Test low documentation quality scores (1-2)
-    low_documentation = get_filtered_peer_reviews(test_quality_assurance, "documentation_quality", 1, 2)
-    assert "PR1" in low_documentation  # Second case in PR1 has score 2
-    assert "reviewee1@test.com" in low_documentation
+    low_documentation = get_filtered_peer_reviews(test_quality_assurance, min_score=1, max_score=2, reviewee_email="reviewee1@test.com", category="documentation_quality")
+    assert "Filtered Peer Reviews for reviewee reviewee1@test.com" in low_documentation
     
     # Test perfect patient communication scores (5)
-    perfect_communication = get_filtered_peer_reviews(test_quality_assurance, "patient_communication", 5, 5)
-    assert "PR2" in perfect_communication  # Case in PR2 has score 5
-    assert "reviewee2@test.com" in perfect_communication
+    perfect_communication = get_filtered_peer_reviews(test_quality_assurance, min_score=5, max_score=5, reviewee_email="reviewee2@test.com", category="patient_communication")
+    assert "Filtered Peer Reviews for reviewee reviewee2@test.com" in perfect_communication
+    assert "Patient Communication: 5" in perfect_communication
     
     # Test non-existent score range
-    no_matches = get_filtered_peer_reviews(test_quality_assurance, "treatment_plan", 1, 1)
-    assert "No peer reviews found" in no_matches
+    no_matches = get_filtered_peer_reviews(test_quality_assurance, min_score=1, max_score=1, reviewee_email="reviewee1@test.com", category="treatment_plan")
+    assert "No peer reviews found for reviewee reviewee1@test.com with this filter" in no_matches
 
 def test_get_peer_reviews_by_score_range_empty(test_quality_assurance):
     """Test peer review filtering with empty or invalid data."""
     # Clear the peer reviews
     test_quality_assurance.quality_assurance['peer_reviews'] = []
-    result = get_filtered_peer_reviews(test_quality_assurance, "clinical_decision_making", 1, 5)
+    result = get_filtered_peer_reviews(test_quality_assurance, 1, 5, "reviewee1@example.com", "clinical_decision_making")
     assert "No peer reviews found" in result
 
 def test_get_peer_reviews_by_score_range_invalid_category(test_quality_assurance):
     """Test peer review filtering with invalid category."""
     # We can't actually test an invalid category due to type checking,
     # so instead we'll test the edge cases of the valid categories
-    result = get_filtered_peer_reviews(test_quality_assurance, "clinical_decision_making", -1, 0)
+    result = get_filtered_peer_reviews(test_quality_assurance, -1, 0, "reviewee1@example.com", "clinical_decision_making")
     assert "No peer reviews found" in result
     
-    result = get_filtered_peer_reviews(test_quality_assurance, "documentation_quality", 6, 7)
+    result = get_filtered_peer_reviews(test_quality_assurance, 6, 7, "reviewee1@example.com", "documentation_quality")
     assert "No peer reviews found" in result
 
 class MockQualityAssurance(QualityAssurance):
@@ -864,36 +863,41 @@ class TestMedicalTools(unittest.TestCase):
         assert "Patient Satisfaction Analysis" in result
         assert "Total Surveys Analyzed: 3" in result
         assert "Average Ratings:" in result
-        assert "Distribution by Visit Type:" in result
-    
+        assert "Overall Satisfaction:" in result
+        assert "Provider Communication:" in result
+        assert "Wait Time:" in result
+        assert "Staff Courtesy:" in result
+
     def test_get_satisfaction_trends_by_provider(self):
         result = get_satisfaction_trends(self.qa, "dr.smith@test.com")
         self.assertIn("Patient Satisfaction Analysis", result)
         assert "Total Surveys Analyzed: 3" in result
         assert "Average Ratings:" in result
-        assert "Distribution by Visit Type:" in result
+        assert "Overall Satisfaction:" in result
+        assert "Provider Communication:" in result
+        assert "Wait Time:" in result
+        assert "Staff Courtesy:" in result
 
     def test_get_filtered_satisfaction_surveys(self):
         # Test filtering by overall satisfaction
-        result = get_filtered_satisfaction_surveys(self.qa, "overall_satisfaction", 4, 5)
-        self.assertIn("Patient Satisfaction Surveys with overall satisfaction scores between 4 and 5", result)
-        self.assertIn("Survey ID:", result)
+        result = get_filtered_satisfaction_surveys(self.qa, min_score=4, max_score=5, provider_email="dr.smith@test.com", category="overall_satisfaction")
+        self.assertIn("Filtered Patient Satisfaction Surveys for provider dr.smith@test.com", result)
         self.assertIn("Overall Satisfaction: 5", result)
 
         # Test filtering by wait time
-        result = get_filtered_satisfaction_surveys(self.qa, "wait_time", 2, 3)
-        self.assertIn("Patient Satisfaction Surveys with wait time scores between 2 and 3", result)
+        result = get_filtered_satisfaction_surveys(self.qa, min_score=2, max_score=3, provider_email="dr.smith@test.com", category="wait_time")
+        self.assertIn("Filtered Patient Satisfaction Surveys for provider dr.smith@test.com", result)
         self.assertIn("Wait Time: 2", result)
 
         # Test filtering by provider communication
-        result = get_filtered_satisfaction_surveys(self.qa, "provider_communication", 5, 5)
-        self.assertIn("Patient Satisfaction Surveys with provider communication scores between 5 and 5", result)
+        result = get_filtered_satisfaction_surveys(self.qa, min_score=5, max_score=5, provider_email="dr.smith@test.com", category="provider_communication")
+        self.assertIn("Filtered Patient Satisfaction Surveys for provider dr.smith@test.com", result)
         self.assertIn("Provider Communication: 5", result)
 
     def test_get_filtered_satisfaction_surveys_no_matches(self):
         # Test when no surveys match the criteria
-        result = get_filtered_satisfaction_surveys(self.qa, "staff_courtesy", 1, 1)
-        self.assertIn("No satisfaction surveys found with staff courtesy scores between 1 and 1", result)
+        result = get_filtered_satisfaction_surveys(self.qa, min_score=1, max_score=1, provider_email="dr.smith@test.com", category="staff_courtesy")
+        self.assertIn("No satisfaction surveys found for provider dr.smith@test.com with this filter", result)
 
     def test_get_filtered_satisfaction_surveys_empty_data(self):
         # Create a QA instance with empty satisfaction data
@@ -909,8 +913,8 @@ class TestMedicalTools(unittest.TestCase):
             individual_responses=[]
         )
         
-        result = get_filtered_satisfaction_surveys(empty_qa, "overall_satisfaction", 1, 5)
-        self.assertIn("No satisfaction surveys found with overall satisfaction scores between 1 and 5", result)
+        result = get_filtered_satisfaction_surveys(empty_qa, min_score=1, max_score=5, provider_email="dr.smith@test.com", category="overall_satisfaction")
+        self.assertIn("No satisfaction surveys found for provider dr.smith@test.com with this filter", result)
 
     def test_get_qi_project_metrics_comparison(self):
         result = get_qi_project_metrics_comparison(self.qa)

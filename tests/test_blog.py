@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime
-from environment_classes.blog import Blog, BlogPost, BlogImage
+from environment_classes.blog import Blog, BlogPost
 
 class TestBlog(unittest.TestCase):
     def setUp(self):

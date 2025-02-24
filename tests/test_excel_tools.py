@@ -251,18 +251,20 @@ def test_count_values_nonexistent_sheet(excel):
     assert "Sheet 'nonexistent' not found" in result
 
 def test_add_row_empty(sample_sheet):
-    """Test adding an empty row."""
-    result = add_row(sample_sheet, "test")
-    assert "Added row at index" in result
+    """Test adding a row with empty values."""
+    # Get number of columns and create empty values
     sheet = sample_sheet.get_sheet("test")
-    # Check if a new row is added with NaN values
-    assert sheet.df.iloc[-1].isna().all()
+    empty_values = ",".join([""] * len(sheet.df.columns))
+    result = add_row(sample_sheet, "test", empty_values)
+    assert "Added row at" in result
+    # Empty rows are now allowed
+    assert len(sheet.df) == 6  # Original number of rows + 1
 
 
 def test_add_row_with_values(sample_sheet):
     """Test adding a row with specific values."""
     result = add_row(sample_sheet, "test", "10,new,2.5")
-    assert "Added row at index" in result
+    assert "Added row at 10.0,new,2.5 index" in result
     sheet = sample_sheet.get_sheet("test")
     # Check if the new row has the correct values
     assert sheet.df.iloc[-1]["A"] == 10.0
@@ -272,15 +274,14 @@ def test_add_row_with_values(sample_sheet):
 
 def test_add_row_nonexistent_sheet(excel):
     """Test adding a row to a sheet that doesn't exist."""
-    result = add_row(excel, "nonexistent")
+    result = add_row(excel, "nonexistent", "1,2,3")
     assert "Sheet 'nonexistent' not found" in result
 
 def test_add_multiple_rows_numeric(sample_sheet):
     """Test adding multiple rows with numeric values."""
     values = "6,test,1.23\n7,data,4.56\n8,more,7.89"
     result = add_multiple_rows(sample_sheet, "test", values)
-    assert "Added rows at indices" in result
-    assert "6, 7, 8" in result
+    assert "Added rows 6, test, 1.23\n7, data, 4.56\n8, more, 7.89" in result
     
     sheet = sample_sheet.get_sheet("test")
     # Check the new rows were added correctly

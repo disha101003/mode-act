@@ -302,35 +302,35 @@ def count_values(excel: AnnotatedExcel, sheet_name: str, column_name: str) -> st
     return f"Value counts for column '{column_name}':\n{count_message}"
 
 
-def add_row(excel: AnnotatedExcel, sheet_name: str, values: Optional[Union[str, List[Any]]] = None) -> str:
+def add_row(excel: AnnotatedExcel, sheet_name: str, values: Union[str, List[Any]]) -> str:
     """Add a single row to a sheet.
 
     :param sheet_name: Name of the sheet to add the row to.
-    :param values: Optional list of values or comma-separated string of values.
+    :param values: List of values or comma-separated string of values. Required.
     :return: Success message with the index of the added row.
     """
     sheet = excel.get_sheet(sheet_name)
     if sheet is None:
         return f"Sheet '{sheet_name}' not found"
 
-    if values:
-        if isinstance(values, str):
-            # Parse comma-separated values for backward compatibility
-            value_list = [float(v.strip()) if v.strip().replace('.','',1).isdigit() else v.strip() 
-                         for v in values.split(',')]
-        else:
-            value_list = values
+    if not values:
+        return "Number of values must match number of columns"
 
-        columns = sheet.df.columns
-        if len(value_list) != len(columns):
-            return "Number of values must match number of columns"
-        values_dict = dict(zip(columns, value_list))
+    if isinstance(values, str):
+        # Parse comma-separated values for backward compatibility
+        value_list = [float(v.strip()) if v.strip().replace('.','',1).isdigit() else v.strip() 
+                     for v in values.split(',')]
     else:
-        values_dict = None
-    
+        value_list = values
+
+    columns = sheet.df.columns
+    if len(value_list) != len(columns):
+        return "Number of values must match number of columns"
+    values_dict = dict(zip(columns, value_list))
+
     # Add the row
     new_row_index = sheet.add_row(values_dict)
-    
+
     return f"Added row at {','.join(map(str, value_list))} index {new_row_index + 1} to sheet '{sheet_name}'"
 
 

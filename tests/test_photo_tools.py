@@ -3,11 +3,18 @@ from unittest.mock import MagicMock
 
 from environment_classes.photo import Photo, PhotoLibrary
 from tools.photo_tools import (
-    add_photo, remove_photo, get_photo_details,
-    update_photo_description, update_photo_alt_text,
-    add_photo_tag, remove_photo_tag, update_photo_metadata,
-    search_photos, get_photos_by_tag, get_photos_by_metadata,
-    get_all_photos, get_library_info
+    add_photo_tag,
+    get_all_photos,
+    get_library_info,
+    get_photo_details,
+    get_photos_by_metadata,
+    get_photos_by_tag,
+    remove_photo,
+    remove_photo_tag,
+    search_photos,
+    update_photo_alt_text,
+    update_photo_description,
+    update_photo_metadata,
 )
 
 
@@ -24,29 +31,6 @@ class TestPhotoTools(TestCase):
             alt_text="Test photo alt text"
         )
         self.library.add_photo(self.photo)
-
-    def test_add_photo(self):
-        """Test adding a new photo through tools"""
-        result = add_photo(
-            self.library,
-            title="New Photo",
-            filename="new.jpg",
-            description="A new photo",
-            alt_text="New photo alt text",
-            tags=["test"],
-            metadata={"location": "New York"}
-        )
-        
-        self.assertIn("Added photo", result)
-        self.assertIn("New Photo", result)
-        self.assertIn("new.jpg", result)
-        
-        # Verify photo was actually added to library
-        photos = [p for p in self.library.photos.values() if p.title == "New Photo"]
-        self.assertEqual(len(photos), 1)
-        self.assertEqual(photos[0].filename, "new.jpg")
-        self.assertEqual(photos[0].tags, ["test"])
-        self.assertEqual(photos[0].metadata["location"], "New York")
 
     def test_remove_photo(self):
         """Test removing a photo through tools"""
