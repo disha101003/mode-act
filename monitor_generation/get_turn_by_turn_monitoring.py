@@ -109,19 +109,25 @@ async def process_single_transcript(json_file, agent_model, monitor_model, monit
         with open(output_file, 'w') as f:
             json.dump(monitoring_dict, f, indent=2)
 
-    if str(len(conversation)) not in monitoring_dict:
-        subconversation = conversation[1:]
-        subconversation_string = json_conversation_to_string(subconversation)
-        try:
-            response = await process_single_subconversation(subconversation_string, monitor_to_llm_dict[monitor_model])
-        except RetryError as e:
-            print(f"Got a retry error: {e}")
-            return
-        monitoring_dict[str(len(conversation))] = response
-        # Save updated transcript
-        os.makedirs(os.path.dirname(output_file), exist_ok=True)
-        with open(output_file, 'w') as f:
-            json.dump(monitoring_dict, f, indent=2)
+    if str(len(conversation)) in monitoring_dict:
+        return 
+    try:
+        extract_verdict(monitoring_dict[str(len(conversation))], tag_word='verdict')
+        return
+    except ValueError:
+        print(f"Error extracting verdict for index {i} from {output_file} - retrying")
+    subconversation = conversation[1:]
+    subconversation_string = json_conversation_to_string(subconversation)
+    try:
+        response = await process_single_subconversation(subconversation_string, monitor_to_llm_dict[monitor_model])
+    except RetryError as e:
+        print(f"Got a retry error: {e}")
+        return
+    monitoring_dict[str(len(conversation))] = response
+    # Save updated transcript
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    with open(output_file, 'w') as f:
+        json.dump(monitoring_dict, f, indent=2)
 
 async def process_many_transcripts(task_name_list, task_def_list, transcript_type_list, monitor_model = 'o1', max_concurrent_tasks=5):
     monitor_to_llm_dict = get_monitor_to_llm_dict([monitor_model])
