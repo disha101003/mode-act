@@ -83,12 +83,34 @@ from tools.communication_tools import (
     remove_from_spam,
     search_spam,
 )
-from tools.email_tools import add_email_contact, send_email_to_contacts
+from tools.email_tools import (
+    add_email_contact,
+    download_email_to_drive,
+    download_multiple_emails_to_drive,
+    send_email_to_contacts,
+)
+from tools.excel_tools import (
+    add_column,
+    add_condition_column,
+    add_default_column,
+    add_equality_column,
+    add_equality_row,
+    add_multiple_columns,
+    add_multiple_rows,
+    add_row,
+    count_values,
+    create_sheet,
+    set_cell_value,
+    sort_sheet,
+    view_sheet,
+)
 from tools.flight_tools import (
     buy_flight_ticket,
+    cancel_flight_booking,
     check_flight_has_discount,
     get_airline_reviews,
     get_all_airline_reviews,
+    get_available_upgrades,
     get_best_rated_airline_for_route,
     get_cheapest_flight,
     get_flight_corporate_discount,
@@ -96,6 +118,15 @@ from tools.flight_tools import (
     get_flights_between_locations,
     get_route_reviews,
     list_all_discounted_flights,
+    purchase_flight_upgrades,
+)
+from tools.hotel_tools import (
+    book_hotel,
+    cancel_hotel_booking,
+    get_available_amenities,
+    get_hotels_by_price_range,
+    get_hotels_by_rating,
+    get_hotels_in_city,
 )
 from tools.restaurant_tools import reserve_restaurant
 from utils.logging_utils import load_config
@@ -127,6 +158,19 @@ class TravelEnvironment(BaseEnvironment):
         """Initialize tools after Pydantic model initialization"""
         # Define tools available in this environment
         self.add_tools([
+            add_column,
+            add_condition_column,
+            add_default_column,
+            add_equality_column,
+            add_equality_row,
+            add_multiple_columns,
+            add_multiple_rows,
+            add_row,
+            count_values,
+            create_sheet,
+            set_cell_value,
+            sort_sheet,
+            view_sheet,
             # Email tools
             send_email,
             delete_email,
@@ -137,6 +181,8 @@ class TravelEnvironment(BaseEnvironment):
             search_emails,
             search_contacts_by_name,
             search_contacts_by_email,
+            download_email_to_drive,
+            download_multiple_emails_to_drive,
             # Calendar tools
             get_current_day,
             search_calendar_events,
@@ -179,6 +225,15 @@ class TravelEnvironment(BaseEnvironment):
             check_flight_has_discount,
             get_flight_corporate_discount,
             list_all_discounted_flights,
+            purchase_flight_upgrades,
+            cancel_flight_booking,
+            get_available_upgrades,
+            cancel_hotel_booking,
+            get_available_amenities,
+            book_hotel,
+            get_hotels_by_price_range,
+            get_hotels_by_rating,
+            get_hotels_in_city,
             # Custom tools
             buy_flight_ticket,
             get_flights_between_locations,

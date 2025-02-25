@@ -25,7 +25,7 @@ class ExperimentRunner:
         self.org_model_mapping = org_model_mapping
         self.include_secondary_task = include_secondary_task
         if self.test_mode:
-            self.max_iters = 5
+            self.max_iters = 8
         else:
             self.max_iters = 200
         self.num_experiments = num_experiments

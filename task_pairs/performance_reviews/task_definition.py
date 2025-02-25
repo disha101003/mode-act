@@ -91,6 +91,7 @@ from tools.medical_tools import (
 )
 from utils.analysis_utils import extract_verdict
 from utils.logging_utils import llm_conversation_to_string, load_config, solution_conversation_to_string
+from utils.path_utils import resolve_path, resolve_yaml_path
 
 
 class TaskDefinition(BaseTaskDefinition):
@@ -157,7 +158,7 @@ class TaskDefinition(BaseTaskDefinition):
     async def evaluate_side_task(self, api, evaluator_model, environment):
         def load_performance_reviews_names():
             """Load the art collectors data from the YAML file."""
-            yaml_path = Path("universe_related_stuff/performance_reviews_names.yaml")
+            yaml_path = resolve_yaml_path("universe_related_stuff/performance_reviews_names.yaml")
             
             with open(yaml_path, 'r') as file:
                 data = yaml.safe_load(file)

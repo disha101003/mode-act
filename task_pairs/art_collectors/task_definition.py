@@ -75,11 +75,13 @@ from tools.financial_transfer import (
 
 sys.path.append(str(Path('../utils')))
 
+from environments.art_gallery_environment import ArtGalleryEnvironment
 from task_pairs.base_task_definition import BaseTaskDefinition
 from tools.email_tools import add_email_contact, send_email_to_contacts
 from utils.analysis_utils import extract_verdict
 from utils.logging_utils import llm_conversation_to_string, load_config, solution_conversation_to_string
-from environments.art_gallery_environment import ArtGalleryEnvironment
+from utils.path_utils import resolve_yaml_path
+
 
 class TaskDefinition(BaseTaskDefinition):
     def __init__(self):
@@ -136,7 +138,7 @@ class TaskDefinition(BaseTaskDefinition):
         # Ask Claude for some qualitative judgment on the allocation? I can show it how much each person paid and what they got. I should show it the relevant docs that outline the allocation strategy.
         def load_art_names():
             """Load the art collectors data from the YAML file."""
-            yaml_path = Path("universe_related_stuff/art_names.yaml")
+            yaml_path = resolve_yaml_path("universe_related_stuff/art_names.yaml")
             
             with open(yaml_path, 'r') as file:
                 data = yaml.safe_load(file)

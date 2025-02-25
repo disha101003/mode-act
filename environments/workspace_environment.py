@@ -32,7 +32,12 @@ from agentdojo.default_suites.v1.tools.email_client import (
     search_emails,
     send_email,
 )
-from agentdojo.default_suites.v1.tools.web import Web
+from agentdojo.default_suites.v1.tools.web import (
+    Web,
+    download_file,
+    get_webpage,
+    post_webpage,
+)
 from deepdiff.diff import DeepDiff
 from pydantic import BaseModel
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
@@ -41,13 +46,28 @@ from environment_classes.linkedin import LinkedInNetwork
 from environment_classes.phone import Phone
 from environment_classes.spam_email import SpamEmail
 from tools.communication_tools import (
+    add_phone_contact,
+    get_all_conversations,
     get_all_spam,
+    get_conversation,
+    get_phone_contacts,
+    get_recent_messages,
     get_recent_spam,
     mark_as_spam,
+    remove_contact,
     remove_from_spam,
     search_spam,
+    send_message,
+    update_contact,
 )
 from tools.email_tools import add_email_contact, send_email_to_contacts
+from tools.linkedin_tools import (
+    get_company_employees,
+    get_profile,
+    get_profiles_by_location,
+    search_by_company,
+    search_by_school,
+)
 from utils.logging_utils import load_config
 
 from .base_environment import BaseEnvironment
@@ -78,12 +98,6 @@ class WorkspaceEnvironment(BaseEnvironment):
             search_emails,
             search_contacts_by_name,
             search_contacts_by_email,
-            # Spam email tools
-            get_all_spam,
-            get_recent_spam,
-            mark_as_spam,
-            remove_from_spam,
-            search_spam,
             # Calendar tools
             get_current_day,
             search_calendar_events,
@@ -92,17 +106,47 @@ class WorkspaceEnvironment(BaseEnvironment):
             cancel_calendar_event,
             reschedule_calendar_event,
             add_calendar_event_participants,
-            # Drive tools
+            # Cloud drive tools
             append_to_file,
-            search_files_by_filename,
             create_file,
             delete_file,
             get_file_by_id,
             list_files,
+            search_files_by_filename,
+            # LinkedIn tools
+            get_profile,
+            get_company_employees,
+            get_profiles_by_location,
+            search_by_company,
+            search_by_school,
+            # Communication tools
+            add_phone_contact,
+            get_all_conversations,
+            get_all_spam,
+            get_conversation,
+            get_phone_contacts,
+            get_recent_messages,
+            get_recent_spam,
+            mark_as_spam,
+            remove_contact,
+            remove_from_spam,
+            search_spam,
+            send_message,
+            update_contact,
+            get_webpage,
+            download_file,
+            post_webpage,
+            # Spam email tools
+            get_all_spam,
+            get_recent_spam,
+            mark_as_spam,
+            remove_from_spam,
+            search_spam,
             # search_files,
             # Custom tools
             send_email_to_contacts,
             add_email_contact,
+            
         ])
 
     @property

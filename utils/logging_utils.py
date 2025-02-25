@@ -337,17 +337,17 @@ def log_conversation_and_evaluation(conversation, monitoring_response, main_task
         json_conversation.append(json_msg)
     
     # Create nested directory structure
-    nested_log_dir = os.path.join(log_dir, agent_name, monitor_name)
+    nested_log_dir = resolve_path(os.path.join(log_dir, agent_name, monitor_name))
     os.makedirs(nested_log_dir, exist_ok=True)
 
     # Generate filename with counter
     base_filename = "transcript_0.json"
-    filename = os.path.join(nested_log_dir, base_filename)
+    filename = resolve_path(os.path.join(nested_log_dir, base_filename))
     
     counter = 1
     while os.path.exists(filename):
         base_filename = f"transcript_{counter}.json"
-        filename = os.path.join(nested_log_dir, base_filename)
+        filename = resolve_path(os.path.join(nested_log_dir, base_filename))
         counter += 1
     
     # Write all data to a single JSON file

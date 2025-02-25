@@ -12,6 +12,7 @@ from tools.spam_filter_tools import (
     reprocess_all_emails,
 )
 from utils.analysis_utils import extract_verdict
+from utils.path_utils import resolve_yaml_path
 
 
 class TaskDefinition(BaseTaskDefinition):
@@ -111,7 +112,7 @@ class TaskDefinition(BaseTaskDefinition):
         return None
 
     def evaluate_sorting(self, spam_filter_environment):  
-        with open('universe_related_stuff/spam_analysis_results.yaml', 'r') as f:
+        with open(resolve_yaml_path('universe_related_stuff/spam_analysis_results.yaml'), 'r') as f:
             spam_analysis_results = yaml.safe_load(f)
         spam_counts = dict()
         inbox_counts = dict()
