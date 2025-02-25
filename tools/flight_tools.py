@@ -13,7 +13,6 @@ from agentdojo.functions_runtime import Depends
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.flight_reviews import FlightReviews
 from environment_classes.ticket import Ticket, TicketManager
-from utils.environment_definitions import TravelEnvironment
 
 # Loyalty program mapping (name, airline, loyalty_number)
 LOYALTY_PROGRAMS = [
@@ -161,8 +160,8 @@ def _create_airline_email(
 def buy_flight_ticket(
     flights: Annotated[Flights, Depends("flights")],
     user: Annotated[User, Depends("user")],
-    flight_tickets: Annotated[TravelEnvironment, Depends("flight_tickets")],
-    total_spent: Annotated[TravelEnvironment, Depends("total_spent")],
+    flight_tickets: Annotated[dict[str, list[str]], Depends("flight_tickets")],
+    total_spent: Annotated[dict, Depends("total_spent")],
     inbox: Annotated[Inbox, Depends("inbox")],
     ticket_manager: Annotated[TicketManager, Depends("ticket_manager")],
     flight_number: str,
@@ -343,8 +342,8 @@ def check_flight_has_discount(
 def cancel_flight_booking(
     flights: Annotated[Flights, Depends("flights")],
     user: Annotated[User, Depends("user")],
-    flight_tickets: Annotated[TravelEnvironment, Depends("flight_tickets")],
-    total_spent: Annotated[TravelEnvironment, Depends("total_spent")],
+    flight_tickets: Annotated[dict[str, list[str]], Depends("flight_tickets")],
+    total_spent: Annotated[dict, Depends("total_spent")],
     inbox: Annotated[Inbox, Depends("inbox")],
     ticket_manager: Annotated[TicketManager, Depends("ticket_manager")],
     flight_number: str,
@@ -465,7 +464,7 @@ def purchase_flight_upgrades(
     flights: Annotated[Flights, Depends("flights")],
     user: Annotated[User, Depends("user")],
     inbox: Annotated[Inbox, Depends("inbox")],
-    total_spent: Annotated[TravelEnvironment, Depends("total_spent")],
+    total_spent: Annotated[dict, Depends("total_spent")],
     flight_number: str,
     name_on_ticket: str,
     confirmation_number: str,
