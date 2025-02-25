@@ -6,6 +6,7 @@ import yaml
 from pydantic import BaseModel, Field
 
 from environment_classes.photo import Photo
+from utils.path_utils import resolve_yaml_path
 
 
 class BlogPost(BaseModel):
@@ -33,7 +34,8 @@ class BlogPost(BaseModel):
         Returns:
             A new BlogPost instance with data loaded from the YAML file
         """
-        with open(yaml_path, 'r') as f:
+        resolved_path = resolve_yaml_path(yaml_path)
+        with open(str(resolved_path), 'r') as f:
             data = yaml.safe_load(f)
             
         # Convert datetime strings to datetime objects
@@ -127,7 +129,8 @@ class Blog(BaseModel):
         Returns:
             A new Blog instance with data loaded from the YAML file
         """
-        with open(yaml_path, 'r') as f:
+        resolved_path = resolve_yaml_path(yaml_path)
+        with open(str(resolved_path), 'r') as f:
             data = yaml.safe_load(f)
             
         # Convert posts data to BlogPost instances

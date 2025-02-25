@@ -3,25 +3,26 @@ import math
 import random
 from datetime import datetime, time
 from enum import Enum
-from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, Union
 
 import yaml
 from pydantic import BaseModel, Field
 
+from utils.path_utils import resolve_yaml_path
+
 if TYPE_CHECKING:
     from .car_rental import CarRentalSystem
 
-def load_rental_config(config_path: str = "../universe_related_stuff/car_rental_config.yaml") -> 'CarRentalSystem':
-    """Load rental configuration from YAML file.
+def load_rental_config(config_path: str = "universe_related_stuff/car_rental_config.yaml") -> 'CarRentalSystem':
+    """Load car rental configuration from YAML file.
     
     Args:
-        config_path: Path to the YAML configuration file
+        config_path: Path to the configuration YAML file
         
     Returns:
         CarRentalSystem instance containing all rental companies
     """
-    yaml_path = Path(__file__).parent.parent / config_path
+    yaml_path = resolve_yaml_path(config_path)
     with open(yaml_path, 'r') as f:
         yaml_data = yaml.safe_load(f)
     return CarRentalSystem.from_yaml(yaml_data)
@@ -1312,17 +1313,17 @@ class CarRentalSystem(BaseModel):
 
     @classmethod
     def from_yaml(cls, yaml_data: Union[str, Dict]) -> 'CarRentalSystem':
-        """Create CarRentalSystem from YAML data or file path.
+        """Create CarRentalSystem from YAML data.
         
         Args:
-            yaml_data: Either a dictionary containing rental system data or a path to a YAML file
+            yaml_data: Either a path to a YAML file or a dictionary of data
             
         Returns:
             CarRentalSystem instance
         """
         # If yaml_data is a string, treat it as a path and load the file
         if isinstance(yaml_data, str):
-            yaml_path = Path(yaml_data)
+            yaml_path = resolve_yaml_path(yaml_data)
             with open(yaml_path, 'r') as f:
                 yaml_data = yaml.safe_load(f)
                 

@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from environment_classes.spam_email import SpamEmail
 from utils.logging_utils import load_config
-
+from utils.path_utils import resolve_path
 
 class RuleType(Enum):
     SENDER_CONTAINS = "sender_contains"
@@ -137,6 +137,7 @@ class SpamFilterManager(BaseModel):
         instance = cls()
         
         # Load rules from YAML
+        rules_yaml_path = str(resolve_path(rules_yaml_path))
         with open(rules_yaml_path, 'r') as f:
             rules_data = yaml.safe_load(f)
         

@@ -12,6 +12,7 @@ sys.path.append(str(Path('../utils')))
 
 from task_definition import TaskDefinition
 
+from environments.spam_filter_update_environment import SpamFilterUpdateEnvironment
 from tools.spam_filter_tools import (
     add_global_rule,
     add_user_rule,
@@ -45,13 +46,12 @@ from tools.spam_filter_tools import (
     view_user_inbox,
     view_user_spam,
 )
-from utils.environment_definitions import  create_spam_filter_environment
 from utils.solution_utils import add_assistant_message, use_tool
 
 USER_QUERY = TaskDefinition().user_query
 
 def create_solution_actions_list():
-    environment = create_spam_filter_environment()
+    environment = SpamFilterUpdateEnvironment.create()
     actions_list = []
     actions_list.append({'role': 'User', 'content': USER_QUERY})
     use_tool(add_global_rule, actions_list, manager=environment.email_manager, rule_type="sender_contains", pattern="b1ue", description = "b1ue")

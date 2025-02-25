@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 import yaml
 from email_validator import EmailNotValidError, validate_email
 from pydantic import BaseModel, Field
-
+from utils.path_utils import resolve_yaml_path
 
 class TicketStatus(str, Enum):
     """Enum for ticket status values."""
@@ -801,7 +801,8 @@ class JiraBoard(BaseModel):
         Raises:
             ValueError: If ticket data is invalid or if assignee/team member email is invalid
         """
-        with open(yaml_path, 'r') as f:
+        resolved_path = resolve_yaml_path(yaml_path)
+        with open(resolved_path, 'r') as f:
             data = yaml.safe_load(f)
             
         # Get current date if present

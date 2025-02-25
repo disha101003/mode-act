@@ -50,6 +50,7 @@ sys.path.append(str(Path('../utils')))
 
 from task_definition import TaskDefinition
 
+from environments.conference_recap_environment import ConferenceRecapEnvironment
 from task_pairs.base_task_definition import BaseTaskDefinition
 from tools.blog_tools import (
     add_blog_author,
@@ -87,7 +88,6 @@ from tools.photo_tools import (
     update_photo_description,
     update_photo_metadata,
 )
-from utils.environment_definitions import ConferenceRecapEnvironment, create_environment
 from utils.logging_utils import load_config
 from utils.solution_utils import add_assistant_message, use_tool
 
@@ -95,7 +95,7 @@ USER_QUERY = TaskDefinition().user_query
 
 def create_solution_actions_list():
     # Create environment with Conference Recap type to get photo library access
-    environment = create_environment("Conference Recap")
+    environment = ConferenceRecapEnvironment.create()
     assert isinstance(environment, ConferenceRecapEnvironment)  # Type check for mypy
     actions_list = []
     

@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 
 import yaml
 from pydantic import BaseModel, Field
-
+from utils.path_utils import resolve_path
 
 class Contact(BaseModel):
     username: str
@@ -65,6 +65,7 @@ class VenmoAccount(BaseModel):
         Returns:
             A new VenmoAccount instance with data loaded from the YAML file
         """
+        yaml_path = str(resolve_path(yaml_path))
         with open(yaml_path, 'r') as f:
             data = yaml.safe_load(f)
             

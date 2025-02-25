@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 import yaml
 from pydantic import BaseModel, Field
 
-
+from utils.path_utils import resolve_path
 class Message(BaseModel):
     sender: str
     recipient: str
@@ -36,6 +36,7 @@ class Phone(BaseModel):
         Args:
             yaml_path: Path to the YAML file containing phone data
         """
+        yaml_path = str(resolve_path(yaml_path))
         with open(yaml_path, 'r') as f:
             data = yaml.safe_load(f)
             

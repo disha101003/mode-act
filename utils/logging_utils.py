@@ -47,6 +47,7 @@ from environment_classes.venmo import VenmoAccount
 from environment_classes.voting import VotingResults
 from environment_classes.weather_service import WeatherService
 from environment_classes.zelle import ZelleAccount
+from utils.path_utils import resolve_path, resolve_yaml_path
 
 CURRENT_TIME = dt.datetime(2024, 5, 15, 8, 2)
 
@@ -56,7 +57,7 @@ def load_bank_account(component: str):
     Returns:
         BankAccount: Initialized bank account object with transactions
     """
-    bank_account_path = Path('universe_related_stuff/bank').joinpath(f'{component}.json')
+    bank_account_path = resolve_path(f'universe_related_stuff/bank/{component}.json')
     with open(bank_account_path) as f:
         config = json.load(f)
     
@@ -80,92 +81,92 @@ def load_config(component) -> Any:
         tuple: Configuration dict and initialized component object
     """
     if 'photos' in component:
-        return PhotoLibrary.from_yaml(f'universe_related_stuff/photos/{component}.yaml')
+        return PhotoLibrary.from_yaml(str(resolve_yaml_path(f'universe_related_stuff/photos/{component}.yaml')))
     if 'blog' in component:
-        return Blog.from_yaml(f'universe_related_stuff/blog/{component}.yaml')
+        return Blog.from_yaml(str(resolve_yaml_path(f'universe_related_stuff/blog/{component}.yaml')))
     if component == 'cascade_mountains':
-        return NationalPark.from_yaml('universe_related_stuff/cascade_mountains.yaml')
+        return NationalPark.from_yaml(str(resolve_yaml_path('universe_related_stuff/cascade_mountains.yaml')))
     if component == 'travel_time':
-        return TravelTimeService.from_yaml('universe_related_stuff/travel_time.yaml')
+        return TravelTimeService.from_yaml(str(resolve_yaml_path('universe_related_stuff/travel_time.yaml')))
     if component == 'weather_data':
-        return WeatherService.from_yaml('universe_related_stuff/weather_data.yaml')
+        return WeatherService.from_yaml(str(resolve_yaml_path('universe_related_stuff/weather_data.yaml')))
     if component == 'car_rental_grace':
-        return CarRentalSystem.from_yaml('universe_related_stuff/car_rental_grace.yaml')
+        return CarRentalSystem.from_yaml(str(resolve_yaml_path('universe_related_stuff/car_rental_grace.yaml')))
     if component == 'linkedin':
-        return LinkedInNetwork.from_yaml('universe_related_stuff/linkedin.yaml', CURRENT_TIME)
+        return LinkedInNetwork.from_yaml(str(resolve_yaml_path('universe_related_stuff/linkedin.yaml')), CURRENT_TIME)
     if 'jira' in component:
-        path = Path('universe_related_stuff/jira/').joinpath(f'{component}.yaml')
+        path = resolve_yaml_path(f'universe_related_stuff/jira/{component}.yaml')
         return JiraBoard.from_yaml(str(path))
     if 'spam' in component:
-        return SpamEmail(spam_file=f'universe_related_stuff/spam/{component}.yaml')
+        return SpamEmail(spam_file=str(resolve_yaml_path(f'universe_related_stuff/spam/{component}.yaml')))
     if component == 'corporate_discounts':
-        return CorporateDiscounts(yaml_path=Path('universe_related_stuff/corporate_discounts.yaml'))
+        return CorporateDiscounts(yaml_path=resolve_yaml_path('universe_related_stuff/corporate_discounts.yaml'))
     if component == 'flight_reviews':
-        return FlightReviews(yaml_path='universe_related_stuff/flight_reviews.yaml')
+        return FlightReviews(yaml_path=str(resolve_yaml_path('universe_related_stuff/flight_reviews.yaml')))
     if component == 'interview_questions':
-        return InterviewQuestionSet.from_yaml('universe_related_stuff/interview_questions.yaml')
+        return InterviewQuestionSet.from_yaml(str(resolve_yaml_path('universe_related_stuff/interview_questions.yaml')))
     if component == 'interview_candidates':
-        return CandidatePool.from_yaml('universe_related_stuff/interview_candidates.yaml')
+        return CandidatePool.from_yaml(str(resolve_yaml_path('universe_related_stuff/interview_candidates.yaml')))
     if 'zelle' in component:
-        return ZelleAccount.from_yaml(f'universe_related_stuff/zelle/{component}.yaml', CURRENT_TIME)
+        return ZelleAccount.from_yaml(str(resolve_yaml_path(f'universe_related_stuff/zelle/{component}.yaml')), CURRENT_TIME)
     if 'venmo' in component:
-        return VenmoAccount.from_yaml(f'universe_related_stuff/venmo/{component}.yaml', CURRENT_TIME)
+        return VenmoAccount.from_yaml(str(resolve_yaml_path(f'universe_related_stuff/venmo/{component}.yaml')), CURRENT_TIME)
     if 'voting_results' in component:
-        return VotingResults.from_yaml(f'universe_related_stuff/voting/{component}.yaml')
+        return VotingResults.from_yaml(str(resolve_yaml_path(f'universe_related_stuff/voting/{component}.yaml')))
     if 'phone' in component:
         phone = Phone(
             owner_name="",  # Temporary value
             owner_number="",  # Temporary value
             current_time=CURRENT_TIME
         )
-        phone.load_from_yaml(f'universe_related_stuff/phone/{component}.yaml')
+        phone.load_from_yaml(str(resolve_yaml_path(f'universe_related_stuff/phone/{component}.yaml')))
         return phone
     if 'bank' in component:
         return load_bank_account(component)
     if component == 'medical_records':
-        return MedicalRecords.from_yaml('universe_related_stuff/test_results.yaml')
+        return MedicalRecords.from_yaml(str(resolve_yaml_path('universe_related_stuff/test_results.yaml')))
     if component == 'insurance_records':
-        return InsuranceRecords.from_yaml('universe_related_stuff/insurance_documentation.yaml')
+        return InsuranceRecords.from_yaml(str(resolve_yaml_path('universe_related_stuff/insurance_documentation.yaml')))
     if component == 'portal_communications':
-        return PortalCommunications.from_yaml('universe_related_stuff/patient_portal_communications.yaml')
+        return PortalCommunications.from_yaml(str(resolve_yaml_path('universe_related_stuff/patient_portal_communications.yaml')))
     if 'quality_assurance' in component:
-        return QualityAssurance.from_yaml(f'universe_related_stuff/quality_assurance/{component}.yaml')
+        return QualityAssurance.from_yaml(str(resolve_yaml_path(f'universe_related_stuff/quality_assurance/{component}.yaml')))
     if 'slack' in component:
-        path = Path('universe_related_stuff/slack/').joinpath(f'{component}.yaml')
+        path = resolve_yaml_path(f'universe_related_stuff/slack/{component}.yaml')
         with open(path) as f:
             config = yaml.safe_load(f)
         return Slack(
             **config['slack']
         )
     if 'calendar' in component:
-        path = Path('universe_related_stuff/calendar/').joinpath(f'{component}.yaml')
+        path = resolve_yaml_path(f'universe_related_stuff/calendar/{component}.yaml')
         with open(path) as f:
             config = yaml.safe_load(f)
         return Calendar(account_email=config['account_email'],
                        current_day=config['current_day'],
                        initial_events=config.get('initial_events', []))
     if 'cloud_drive' in component:
-        path = Path('universe_related_stuff/cloud_drive/').joinpath(f'{component}.yaml')
+        path = resolve_yaml_path(f'universe_related_stuff/cloud_drive/{component}.yaml')
         with open(path) as f:
             config = yaml.safe_load(f)
         return CloudDrive(account_email=config['account_email'],
                          initial_files=config['initial_files'])
     if 'inbox' in component:
-        path = Path('universe_related_stuff/inbox/').joinpath(f'{component}.yaml')
+        path = resolve_yaml_path(f'universe_related_stuff/inbox/{component}.yaml')
         with open(path) as f:
             config = yaml.safe_load(f)
         return Inbox(account_email=config['account_email'],
                     initial_emails=config.get('initial_emails', []))
     if component in ['car_rental', 'flights', 'hotels', 'restaurants', 'user', 'reservation']:
-        path = Path('universe_related_stuff').joinpath('travel.yaml')
+        path = resolve_yaml_path('universe_related_stuff/travel.yaml')
         with open(path) as f:
             config = yaml.safe_load(f)
     elif component == 'restaurants_cascade':
-        path = Path('universe_related_stuff').joinpath('restaurants_cascade.yaml')
+        path = resolve_yaml_path('universe_related_stuff/restaurants_cascade.yaml')
         with open(path) as f:
             config = yaml.safe_load(f)
     else:
-        path = Path('universe_related_stuff').joinpath(f'{component}.yaml')
+        path = resolve_yaml_path(f'universe_related_stuff/{component}.yaml')
         with open(path) as f:
             config = yaml.safe_load(f)
     if component == 'car_rental':

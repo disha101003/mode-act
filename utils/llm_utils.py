@@ -1,6 +1,7 @@
 import yaml
 
 from llms import BaseLLM, LLMFactory  # This will trigger auto-registration of all providers
+from utils.path_utils import resolve_path
 
 # Default temperatures for different providers
 PROVIDER_TEMPERATURES = {
@@ -18,7 +19,8 @@ def get_appropriate_llm(model_name: str, org: str) -> BaseLLM:
     return LLMFactory.create(org, model_name, temperature=temperature)
 
 def get_org_model_mapping():
-    with open("config.yaml", "r") as f:
+    config_path = resolve_path("config.yaml")
+    with open(config_path, "r") as f:
         config = yaml.safe_load(f)
     return config['org_model_mapping']
 

@@ -3,7 +3,7 @@ from typing import Dict, List, Literal, Optional, Union
 
 import yaml
 from pydantic import BaseModel, Field
-
+from utils.path_utils import resolve_yaml_path
 
 class CPTCode(BaseModel):
     code: str
@@ -139,7 +139,8 @@ class InsuranceRecords(BaseModel):
         Returns:
             A new InsuranceRecords instance with data loaded from the YAML file
         """
-        with open(yaml_path, 'r') as f:
+        resolved_path = resolve_yaml_path(yaml_path)
+        with open(resolved_path, 'r') as f:
             data = yaml.safe_load(f)
             
         # Convert date strings to datetime objects

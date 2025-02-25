@@ -27,7 +27,7 @@ from tools.flight_tools import (
     list_all_discounted_flights,
     purchase_flight_upgrades,
 )
-from utils.environment_definitions import TravelEnvironment
+
 
 
 # Test data

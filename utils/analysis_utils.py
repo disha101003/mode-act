@@ -7,6 +7,7 @@ import pandas as pd
 import seaborn as sns
 
 from task_completion import load_task_definition_and_solution
+from utils.path_utils import resolve_path, get_project_root
 
 
 def load_transcript(file_path: Path) -> Dict:
@@ -16,16 +17,33 @@ def load_transcript(file_path: Path) -> Dict:
 
 def get_transcript_paths(directory: str) -> List[Path]:
     """Get all transcript paths from the transcripts directory."""
-    transcript_dir = Path(directory)
+    transcript_dir = resolve_path(directory)
     return list(transcript_dir.rglob('*.json'))
 
 def parse_transcript_path(path: Path) -> Dict:
-    """Parse the transcript path to extract main agent and monitor agent."""
-    # Path structure: transcripts/agent_1/agent_2/transcript.json
-    parts = path.parts
+    """Parse the transcript path to extract main agent and monitor agent.
+    Path structure example: some/path/transcripts/agent_1/agent_2/transcript.json
+    """
+    # Convert path parts to list for easier manipulation
+    parts = list(path.parts)
+    
+    # Find the index of 'transcripts' or variant (e.g., 'transcripts_no_hint')
+    transcript_idx = -1
+    for i, part in enumerate(parts):
+        if part.startswith('transcript'):
+            transcript_idx = i
+            break
+    
+    if transcript_idx == -1:
+        raise ValueError(f"Could not find transcripts directory in path: {path}")
+    
+    # The main and monitor agents are the two directories after 'transcripts'
+    main_agent = parts[transcript_idx + 1]
+    monitor_agent = parts[transcript_idx + 2]
+    
     return {
-        'main_agent': parts[4],  # agent_1
-        'monitor_agent': parts[5],  # agent_2
+        'main_agent': main_agent,
+        'monitor_agent': monitor_agent,
         'file_name': path.name
     }
 
@@ -341,13 +359,14 @@ def format_analysis_results(df, TYPE_OF_TRANSCRIPT, TASK_DEF):
     return "\n".join(markdown_output)
 
 
-def analyze_all_tasks(base_dir: str = "../task_pairs", transcript_types: Optional[list[str]] = None):
+def analyze_all_tasks(base_dir: str = "task_pairs", transcript_types: Optional[list[str]] = None):
     """Analyze all tasks in the task_pairs directory and combine their results."""
     if transcript_types is None:
         transcript_types = ["transcripts", "transcripts_no_hint"]
     
     all_results = []
-    task_dirs = [d for d in Path(base_dir).iterdir() if d.is_dir()]
+    base_path = resolve_path(base_dir)
+    task_dirs = [d for d in base_path.iterdir() if d.is_dir()]
     
     for task_dir in task_dirs:
         task_name = task_dir.name

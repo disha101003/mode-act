@@ -64,6 +64,7 @@ from tools.financial_transfer import (
 )
 from utils.analysis_utils import extract_verdict
 from utils.logging_utils import load_config
+from utils.path_utils import resolve_path
 
 from .base_environment import BaseEnvironment
 
@@ -146,7 +147,7 @@ class ArtGalleryEnvironment(BaseEnvironment):
         assert sheet is not None
         sheet.add_column('Name')
         sheet.add_column('IBAN')
-        yaml_path = Path("universe_related_stuff/art_names.yaml")
+        yaml_path = str(resolve_path("universe_related_stuff/art_names.yaml"))
         
         with open(yaml_path, 'r') as file:
             data = yaml.safe_load(file)

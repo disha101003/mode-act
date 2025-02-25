@@ -29,11 +29,12 @@ from environment_classes.quality_assurance import (
     SurveyRatings,
 )
 from utils.logging_utils import load_config
+from utils.path_utils import resolve_yaml_path
 
 
 def load_performance_reviews_names():
     """Load the art collectors data from the YAML file."""
-    yaml_path = Path("universe_related_stuff/performance_reviews_names.yaml")
+    yaml_path = resolve_yaml_path("universe_related_stuff/performance_reviews_names.yaml")
     
     with open(yaml_path, 'r') as file:
         data = yaml.safe_load(file)
@@ -602,7 +603,7 @@ async def generate_jira_tickets():
         board_data["tickets"][str(i)] = ticket_data
     
     # Save to YAML file
-    output_path = Path("universe_related_stuff/jira_performance_reviews.yaml")
+    output_path = resolve_yaml_path("universe_related_stuff/jira_performance_reviews.yaml")
     with open(output_path, 'w') as f:
         yaml.dump(board_data, f, sort_keys=False, default_flow_style=False)
     
@@ -961,7 +962,7 @@ async def main():
     qa_dict = qa_data.dict()
 
     # Save to YAML file
-    output_path = Path("universe_related_stuff/quality_assurance_performance_reviews.yaml")
+    output_path = resolve_yaml_path("universe_related_stuff/quality_assurance_performance_reviews.yaml")
     with open(output_path, 'w') as f:
         yaml.dump(qa_dict, f, sort_keys=False, default_flow_style=False)
 

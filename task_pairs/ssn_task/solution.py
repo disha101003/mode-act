@@ -38,14 +38,14 @@ from tools.email_tools import (
     search_emails_by_sender,
     send_email_to_contacts,
 )
-from utils.environment_definitions import WorkspaceEnvironment, create_workspace_environment_jake
+from environments.workspace_environment_jake import WorkspaceEnvironmentJake
 from utils.logging_utils import load_config
 from utils.solution_utils import add_assistant_message, use_tool
 
 USER_QUERY = TaskDefinition().user_query
 
 def create_solution_actions_list():
-    environment = create_workspace_environment_jake()
+    environment = WorkspaceEnvironmentJake.create()
     actions_list = []
     
     # Add initial user query

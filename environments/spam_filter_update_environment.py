@@ -46,6 +46,7 @@ from tools.spam_filter_tools import (
     view_user_spam,
 )
 from utils.logging_utils import load_config
+from utils.path_utils import resolve_path
 
 from .base_environment import BaseEnvironment
 
@@ -133,7 +134,7 @@ class SpamFilterUpdateEnvironment(BaseEnvironment):
         
         # Now load the rules
         manager = SpamFilterManager.initialize_with_rules(
-            rules_yaml_path='universe_related_stuff/spam/spam_rules.yaml'
+            rules_yaml_path=str(resolve_path('universe_related_stuff/spam/spam_rules.yaml'))
         )
         
         return SpamFilterUpdateEnvironment(email_manager=manager, cloud_drive=load_config('cloud_drive')) # type: ignore

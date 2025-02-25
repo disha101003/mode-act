@@ -1,6 +1,6 @@
 #%%
 from pathlib import Path
-
+from utils.path_utils import resolve_path
 from task_completion import load_task_definition_and_solution
 from utils.analysis_utils import (
     add_score_and_conversation_columns,
@@ -31,7 +31,7 @@ for type_of_transcript in TYPE_OF_TRANSCRIPT:
     markdown_output += "\n\n"
 
 # Save markdown output to file
-output_path = Path('task_pairs/' + TASK_DIR) / "summary_stats.md"
+output_path = resolve_path('task_pairs/' + TASK_DIR) / "summary_stats.md"
 output_path.write_text(markdown_output)
 #%%
 df

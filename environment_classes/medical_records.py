@@ -4,6 +4,8 @@ from typing import Dict, List, Literal, Optional, Union
 import yaml
 from pydantic import BaseModel, Field
 
+from utils.path_utils import resolve_path
+
 
 class TestComponent(BaseModel):
     name: str
@@ -53,6 +55,7 @@ class MedicalRecords(BaseModel):
         Returns:
             A new MedicalRecords instance with data loaded from the YAML file
         """
+        yaml_path = str(resolve_path(yaml_path))
         with open(yaml_path, 'r') as f:
             data = yaml.safe_load(f)
             

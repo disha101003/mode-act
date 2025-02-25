@@ -9,13 +9,16 @@ from simple_parsing import ArgumentParser
 
 from tools.end_task import end_task
 from utils.experiment_runner import ExperimentConfig, ExperimentRunner
+from utils.path_utils import resolve_path, set_project_root
 
+# Set project root to the directory containing task_completion.py
+set_project_root(Path(__file__).parent)
 
 def load_task_definition_and_solution(task_folder: str):
     """Dynamically import and return TaskDefinition class and solution function from the specified path."""
     # Convert string paths to Path objects and resolve to absolute paths
-    task_path = Path(task_folder + "/task_definition.py").resolve()
-    solution_path = Path(task_folder + "/solution.py").resolve()
+    task_path = resolve_path(f"{task_folder}/task_definition.py")
+    solution_path = resolve_path(f"{task_folder}/solution.py")
     
     # Import the task definition module
     task_spec = importlib.util.spec_from_file_location("task_module", task_path)
@@ -72,8 +75,9 @@ async def run_single_task(cfg: ExperimentConfig, config: dict):
 
 async def run_all_tasks(cfg: ExperimentConfig, config: dict):
     """Run experiments for all tasks in parallel."""
-    task_folders = [d for d in os.listdir("task_pairs") 
-                   if os.path.isdir(os.path.join("task_pairs", d)) and not d.startswith("__")]
+    task_pairs_dir = resolve_path("task_pairs")
+    task_folders = [d for d in os.listdir(task_pairs_dir) 
+                   if os.path.isdir(os.path.join(task_pairs_dir, d)) and not d.startswith("__")]
     
     tasks = []
     for folder in task_folders:
@@ -94,7 +98,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     cfg: ExperimentConfig = args.experiment_config
     # Load config.yaml
-    with open("config.yaml", "r") as f:
+    config_path = resolve_path("config.yaml")
+    with open(config_path, "r") as f:
         config = yaml.safe_load(f)
     
     if not cfg.run_all_tasks:

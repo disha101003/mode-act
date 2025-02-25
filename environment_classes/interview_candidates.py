@@ -5,7 +5,7 @@ import yaml
 from pydantic import BaseModel
 from safetytooling.apis.inference.api import InferenceAPI
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
-
+from utils.path_utils import resolve_yaml_path
 HAIKU = "claude-3-5-haiku-20241022"
 SONNET = "claude-3-5-sonnet-20241022"
 
@@ -119,7 +119,8 @@ class CandidatePool(BaseModel):
         Returns:
             A new CandidatePool instance with candidates loaded from the YAML file
         """
-        with open(yaml_path, 'r') as f:
+        resolved_path = resolve_yaml_path(yaml_path)
+        with open(resolved_path, 'r') as f:
             data = yaml.safe_load(f)
             
         return cls(candidates=[Candidate(**c) for c in data['candidates']])

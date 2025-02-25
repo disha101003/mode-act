@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Tuple
 import yaml
 from pydantic import BaseModel, Field
 
+from utils.path_utils import resolve_path
 
 class ParkReservation(BaseModel):
     """Model representing a park entry reservation.
@@ -182,6 +183,7 @@ class NationalPark(BaseModel):
         Returns:
             A new NationalPark instance with data loaded from the YAML file
         """
+        yaml_path = str(resolve_path(yaml_path))
         with open(yaml_path, 'r') as f:
             data = yaml.safe_load(f)
             

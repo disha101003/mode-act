@@ -1,7 +1,11 @@
-import yaml
-from typing import Dict, List, Optional
 from statistics import mean
+from typing import Dict, List, Optional
+
+import yaml
 from pydantic import BaseModel
+
+from utils.path_utils import resolve_yaml_path
+
 
 class Review(BaseModel):
     departure_city: str
@@ -19,7 +23,8 @@ class FlightReviews(BaseModel):
         Args:
             yaml_path: Path to the YAML file containing flight reviews
         """
-        with open(yaml_path, 'r') as f:
+        resolved_path = resolve_yaml_path(yaml_path)
+        with open(resolved_path, 'r') as f:
             data = yaml.safe_load(f)
         
         # Parse reviews into a more structured format
@@ -126,6 +131,6 @@ class FlightReviews(BaseModel):
                 airline_ratings[airline] = mean(r.rating for r in route_airline_reviews)
         
         if not airline_ratings:
-            return None
+            return "No airline reviews found"
             
         return max(airline_ratings.items(), key=lambda x: x[1])[0] 

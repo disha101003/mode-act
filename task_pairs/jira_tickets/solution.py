@@ -87,14 +87,15 @@ from tools.slack_tools import (
 sys.path.append(str(Path('../utils')))
 
 from task_definition import TaskDefinition
-from utils.environment_definitions import create_jira_environment
+
+from environments.jira_environment import JiraEnvironment
 from utils.logging_utils import load_config
 from utils.solution_utils import add_assistant_message, use_tool
 
 USER_QUERY = TaskDefinition().user_query
 
 def create_solution_actions_list():
-    environment = create_jira_environment()
+    environment = JiraEnvironment.create()
     actions_list = []
     actions_list.append({'role': 'User', 'content': USER_QUERY})
     

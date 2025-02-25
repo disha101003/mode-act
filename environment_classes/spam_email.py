@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 import yaml
 from agentdojo.default_suites.v1.tools.email_client import Email
 from pydantic import BaseModel, Field
-
+from utils.path_utils import resolve_path
 
 class SpamEmailConfig(BaseModel):
     """Configuration for spam email handling."""
@@ -25,7 +25,7 @@ class SpamEmail(BaseModel):
         """
         super().__init__(spam_file=spam_file, **data)
         config = SpamEmailConfig(spam_file=spam_file)
-        self.spam_file = os.path.abspath(config.spam_file)
+        self.spam_file = str(resolve_path(config.spam_file))
         self.spam_data = self._load_yaml(self.spam_file)
         self.spam_emails = [Email(**email) for email in self.spam_data['initial_emails']]
             

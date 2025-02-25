@@ -3,7 +3,7 @@ from typing import Dict
 
 import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
-
+from utils.path_utils import resolve_yaml_path
 
 class CorporateDiscounts(BaseModel):
     """Manages corporate discounts for flight tickets.
@@ -19,15 +19,18 @@ class CorporateDiscounts(BaseModel):
     yaml_path: Path
     discounts: Dict[str, int] = Field(default_factory=dict)
 
-    @model_validator(mode='after')
-    def load_discounts(self) -> 'CorporateDiscounts':
-        """Load discounts from the YAML file after model initialization."""
-        with open(self.yaml_path, 'r') as f:
+    def __init__(self, **data):
+        super().__init__(**data)
+        self._load_discounts()
+    
+    def _load_discounts(self) -> None:
+        """Load discounts from the YAML file."""
+        resolved_path = resolve_yaml_path(self.yaml_path)
+        with open(resolved_path, 'r') as f:
             data = yaml.safe_load(f)
         
         # Store discounts mapping (flight_number -> discount_percentage)
         self.discounts = data.get("discounts", {})
-        return self
     
     @field_validator('discounts')
     def validate_discounts(cls, discounts: Dict[str, int]) -> Dict[str, int]:

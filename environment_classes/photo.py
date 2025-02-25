@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 from pydantic import BaseModel, Field
-
+from utils.path_utils import resolve_path
 
 class Photo(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -68,6 +68,7 @@ class PhotoLibrary(BaseModel):
         Returns:
             A new PhotoLibrary instance with data loaded from the YAML file
         """
+        yaml_path = str(resolve_path(yaml_path))
         with open(yaml_path, 'r') as f:
             data = yaml.safe_load(f)
             

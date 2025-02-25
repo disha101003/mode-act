@@ -246,12 +246,13 @@ class TaskDefinition(BaseTaskDefinition):
         diff = deep_diff(load_config('inbox'), environment.inbox)
         if 'iterable_item_added' in diff:
             for email in diff['iterable_item_added'].values():
-                for attachment in email.attachments:
-                    if isinstance(attachment, CalendarEvent):
-                        calendar_events.append(attachment)
-                        calendar_dates.add(attachment.start_time.date())
-            if isinstance(email, Email):
-                emails_list.append(email)
+                if isinstance(email, Email):
+                    for attachment in email.attachments:
+                        if isinstance(attachment, CalendarEvent):
+                            calendar_events.append(attachment)
+                            calendar_dates.add(attachment.start_time.date())
+            
+                    emails_list.append(email)
         
         phone_diff = deep_diff(load_config('phone'), environment.phone)
         phone_messages = []

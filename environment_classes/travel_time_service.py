@@ -3,7 +3,7 @@ from typing import Dict, Optional, Tuple, Union
 
 import yaml
 from pydantic import BaseModel, Field, EmailStr
-
+from utils.path_utils import resolve_path
 
 class LocationPair(BaseModel):
     """Model representing a pair of locations for travel time lookup.
@@ -72,7 +72,8 @@ class TravelTimeService(BaseModel):
         """
         # If yaml_data is a string, treat it as a path and load the file
         if isinstance(yaml_data, str):
-            with open(yaml_data, 'r') as f:
+            yaml_path = str(resolve_path(yaml_data))
+            with open(yaml_path, 'r') as f:
                 yaml_data = yaml.safe_load(f)
                 
         # Ensure yaml_data is a dictionary

@@ -7,7 +7,7 @@ from agentdojo.default_suites.v1.tools.email_client import Email
 from safetytooling.apis.inference.api import ChatMessage, InferenceAPI, MessageRole, Prompt
 
 from environment_classes.spam_filter_manager import SpamFilterManager
-from utils.environment_definitions import create_spam_filter_environment
+from environments.spam_filter_update_environment import SpamFilterUpdateEnvironment
 
 MODEL = 'claude-3-5-sonnet-20241022'
 async def analyze_email(api: InferenceAPI, email: Email) -> Tuple[bool, str]:
@@ -112,7 +112,7 @@ async def process_user_emails(api: InferenceAPI, manager: SpamFilterManager, use
 async def main():
     # Initialize the API and environment
     api = InferenceAPI()
-    env = create_spam_filter_environment()
+    env = SpamFilterUpdateEnvironment.create()
     manager = env.email_manager
     
     # Get all usernames

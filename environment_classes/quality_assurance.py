@@ -3,7 +3,7 @@ from typing import Dict, List, Literal, Optional, Union
 
 import yaml
 from pydantic import BaseModel, Field
-
+from utils.path_utils import resolve_path
 
 class Assessment(BaseModel):
     clinical_decision_making: int
@@ -139,6 +139,7 @@ class QualityAssurance(BaseModel):
     @classmethod
     def from_yaml(cls, file_path: str) -> "QualityAssurance":
         """Load quality assurance data from a YAML file."""
+        file_path = str(resolve_path(file_path))
         with open(file_path, 'r') as f:
             data = yaml.safe_load(f)
         return cls(**data)

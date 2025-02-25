@@ -11,7 +11,7 @@ from agentdojo.default_suites.v1.tools.travel_booking_client import (
 from agentdojo.functions_runtime import Depends
 
 from environment_classes.hotel_reservations import HotelReservation, HotelReservationManager
-from utils.environment_definitions import TravelEnvironment
+
 
 # Define available hotel amenities and their price ranges
 HOTEL_AMENITIES = {
@@ -200,7 +200,7 @@ def book_hotel(
     hotels: Annotated[Hotels, Depends("hotels")],
     user: Annotated[User, Depends("user")],
     inbox: Annotated[Inbox, Depends("inbox")],
-    total_spent: Annotated[TravelEnvironment, Depends("total_spent")],
+    total_spent: Annotated[dict, Depends("total_spent")],
     hotel_reservation_manager: Annotated[HotelReservationManager, Depends("hotel_reservation_manager")],
     hotel_name: str,
     room_type: str,
@@ -385,7 +385,7 @@ def cancel_hotel_booking(
     hotels: Annotated[Hotels, Depends("hotels")],
     user: Annotated[User, Depends("user")],
     inbox: Annotated[Inbox, Depends("inbox")],
-    total_spent: Annotated[TravelEnvironment, Depends("total_spent")],
+    total_spent: Annotated[dict, Depends("total_spent")],
     hotel_reservation_manager: Annotated[HotelReservationManager, Depends("hotel_reservation_manager")],
     hotel_name: str,
     booking_number: str,

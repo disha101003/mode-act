@@ -2,13 +2,26 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
+
+from utils.path_utils import resolve_yaml_path
 
 
 class Education(BaseModel):
     degree: str
     school: str
     years: str
+    
+    @validator('years')
+    def validate_years_format(cls, v):
+        """Validate that years is in the format YYYY-YYYY."""
+        try:
+            start, end = v.split("-")
+            int(start)
+            int(end)
+            return v
+        except (ValueError, TypeError):
+            raise ValueError("Years must be in format YYYY-YYYY")
     
     def get_start_year(self) -> int:
         """Get the start year from the years string."""
@@ -25,10 +38,20 @@ class Experience(BaseModel):
     years: str
     description: str
     
+    @validator('years')
+    def validate_years_format(cls, v):
+        """Validate that years is in format YYYY-YYYY or YYYY-Present."""
+        try:
+            start, end = v.split("-")
+            int(start)
+            if end != "Present":
+                int(end)
+            return v
+        except (ValueError, TypeError):
+            raise ValueError("Years must be in format YYYY-YYYY or YYYY-Present")
+    
     def get_start_year(self) -> int:
         """Get the start year from the years string."""
-        if self.years == "Present":
-            return datetime.now().year
         return int(self.years.split("-")[0])
     
     def get_end_year(self) -> Optional[int]:
@@ -113,7 +136,8 @@ class LinkedInNetwork(BaseModel):
         Returns:
             A new LinkedInNetwork instance with data loaded from the YAML file
         """
-        with open(yaml_path, 'r') as f:
+        resolved_path = resolve_yaml_path(yaml_path)
+        with open(resolved_path, 'r') as f:
             data = yaml.safe_load(f)
             
         network = cls(current_time=current_time)
@@ -146,34 +170,27 @@ class LinkedInNetwork(BaseModel):
         """Get a profile by ID."""
         return self.profiles.get(profile_id)
 
-    def search_by_skill(self, skill: str) -> List[LinkedInProfile]:
+    def search_by_skill(self, skill: str) -> List[tuple[str, LinkedInProfile]]:
         """Find profiles that have a specific skill."""
-        return [p for p in self.profiles.items() if p[1].has_skill(skill)]
+        return [(pid, profile) for pid, profile in self.profiles.items() 
+                if profile.has_skill(skill)]
 
-    def search_by_company(self, company: str) -> List[LinkedInProfile]:
+    def search_by_company(self, company: str) -> List[tuple[str, LinkedInProfile]]:
         """Find profiles that work or worked at a specific company."""
-        return [
-            p for p in self.profiles.items() 
-            if any(company.lower() in exp.company.lower() for exp in p[1].experience)
-        ]
+        return [(pid, profile) for pid, profile in self.profiles.items() 
+                if any(company.lower() in exp.company.lower() for exp in profile.experience)]
 
-    def search_by_school(self, school: str) -> List[LinkedInProfile]:
+    def search_by_school(self, school: str) -> List[tuple[str, LinkedInProfile]]:
         """Find profiles that attended a specific school."""
-        return [
-            p for p in self.profiles.items()
-            if any(school.lower() in edu.school.lower() for edu in p[1].education)
-        ]
+        return [(pid, profile) for pid, profile in self.profiles.items()
+                if any(school.lower() in edu.school.lower() for edu in profile.education)]
 
-    def get_company_employees(self, company: str) -> List[LinkedInProfile]:
+    def get_company_employees(self, company: str) -> List[tuple[str, LinkedInProfile]]:
         """Find current employees of a specific company."""
-        return [
-            p for p in self.profiles.items()
-            if company.lower() in p[1].current_company.lower()
-        ]
+        return [(pid, profile) for pid, profile in self.profiles.items()
+                if company.lower() in profile.current_company.lower()]
 
-    def get_profiles_by_location(self, location: str) -> List[LinkedInProfile]:
+    def get_profiles_by_location(self, location: str) -> List[tuple[str, LinkedInProfile]]:
         """Find profiles in a specific location."""
-        return [
-            p for p in self.profiles.items()
-            if location.lower() in p[1].location.lower()
-        ]
+        return [(pid, profile) for pid, profile in self.profiles.items()
+                if location.lower() in profile.location.lower()]

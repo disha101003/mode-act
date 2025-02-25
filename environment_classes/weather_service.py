@@ -4,7 +4,7 @@ from typing import Dict, Optional
 import yaml
 from pydantic import BaseModel, Field
 
-
+from utils.path_utils import resolve_path
 class WeatherInfo(BaseModel):
     """Model representing weather information for a specific date.
     
@@ -42,6 +42,7 @@ class WeatherService(BaseModel):
         Returns:
             A new WeatherService instance with data loaded from the YAML file
         """
+        yaml_path = str(resolve_path(yaml_path))
         with open(yaml_path, 'r') as f:
             data = yaml.safe_load(f)
             

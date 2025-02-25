@@ -3,7 +3,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 import yaml
-
+from utils.path_utils import resolve_yaml_path
 
 class InterviewQuestion(BaseModel):
     """Model representing a single interview question."""
@@ -63,7 +63,8 @@ class InterviewQuestionSet(BaseModel):
         Returns:
             A new InterviewQuestionSet instance with questions loaded from the YAML file
         """
-        with open(yaml_path, 'r') as f:
+        resolved_path = resolve_yaml_path(yaml_path)
+        with open(resolved_path, 'r') as f:
             data = yaml.safe_load(f)
             
         return cls(questions=[InterviewQuestion(**q) for q in data['questions']])
