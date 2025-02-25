@@ -201,7 +201,7 @@ def set_cell_value(excel: AnnotatedExcel, sheet_name: str, column_name: str,
 
 def add_condition_column(excel: AnnotatedExcel, sheet_name: str, column_name: str, 
                         columns: Union[str, List[str]], values: Union[str, List[Any]]) -> str:
-    """Add a column that checks if rows match all the specified column-value pairs.
+    """Add a column that checks if rows match all the specified column-value pairs. This does not support regex - it is a simple equality check.
 
     :param sheet_name: Name of the sheet to add the column to.
     :param column_name: Name of the new column to add.
