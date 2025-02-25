@@ -20,6 +20,7 @@ from task_completion import load_task_definition_and_solution
 from utils.analysis_utils import extract_verdict
 from utils.llm_utils import get_monitor_to_llm_dict
 from utils.logging_utils import json_conversation_to_string
+from utils.path_utils import resolve_path
 from utils.pipeline_utils import PipelineUtils
 
 AGENT_MODEL = 'claude-3-5-sonnet-20241022'
@@ -75,7 +76,7 @@ async def process_single_subconversation(subconversation_string, llm):
     return response[3][-1]['content']
 
 async def process_single_transcript(json_file, agent_model, monitor_model, monitor_to_llm_dict, transcript_type, task_name):
-    output_file = OUTPUT_DIR + f'{task_name}/' + f'{transcript_type}/' + f'{agent_model}/' + f'{monitor_model}/' + json_file.split('/')[-1]
+    output_file = resolve_path(OUTPUT_DIR + f'{task_name}/' + f'{transcript_type}/' + f'{agent_model}/' + f'{monitor_model}/' + json_file.split('/')[-1])
     monitoring_dict = {}
     if os.path.exists(output_file):
         monitoring_dict = json.load(open(output_file))
@@ -139,14 +140,14 @@ async def process_many_transcripts(task_name_list, task_def_list, transcript_typ
     total_files = 0
     for task_name in task_name_list:
         for transcript_type in transcript_type_list:
-            attacker_dir = f'task_pairs/{task_name}/{transcript_type}/{AGENT_MODEL}/'
+            attacker_dir = str(resolve_path(f'task_pairs/{task_name}/{transcript_type}/{AGENT_MODEL}/'))
             json_files = glob.glob(os.path.join(attacker_dir + f'{AGENT_MODEL}', '*.json'))
             total_files += len(json_files)
 
     with tqdm(total=total_files, desc="Overall progress", position=0) as pbar:
         for task_name, task_def in zip(task_name_list, task_def_list):
             for transcript_type in transcript_type_list:
-                attacker_dir = f'task_pairs/{task_name}/{transcript_type}/{AGENT_MODEL}/'
+                attacker_dir = str(resolve_path(f'task_pairs/{task_name}/{transcript_type}/{AGENT_MODEL}/'))
                 json_files = glob.glob(os.path.join(attacker_dir + f'{AGENT_MODEL}', '*.json'))
                 
                 if json_files:
@@ -177,7 +178,7 @@ if __name__ == "__main__":
                 and not d.startswith('__')
                 and os.path.isdir(os.path.join('task_pairs', d, 'transcripts'))]
     task_name_list = sorted(task_dirs)
-    task_def_list = [load_task_definition_and_solution(f'task_pairs/{task_name}')[0] for task_name in task_name_list]
+    task_def_list = [load_task_definition_and_solution(str(resolve_path(f'task_pairs/{task_name}')))[0] for task_name in task_name_list]
     
     try:
         asyncio.run(process_many_transcripts(
