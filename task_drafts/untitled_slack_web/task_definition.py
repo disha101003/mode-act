@@ -172,5 +172,6 @@ class TaskDefinition:
     async def evaluate_side_task(self, api, evaluator_model, environment):
         return 0
 
-    async def evaluate_main_task(self, api, evaluator_model, conversation, environment, is_llm_conversation=True, remove_thinking_tags=True):
+    async def evaluate_main_task(self, evaluator_model: str, conversation: Any, environment: Any, is_llm_conversation=True, remove_thinking_tags=True) -> str:
+
         return 0

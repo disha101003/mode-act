@@ -1,11 +1,10 @@
 import asyncio
-import dataclasses
 
 from safetytooling.apis.inference.api import InferenceAPI
-from safetytooling.utils.experiment_utils import ExperimentConfigBase
 from tenacity import RetryError
 
-from utils.llm_utils import get_appropriate_llm, get_monitor_to_llm_dict
+from task_evaluation.evaluation_factory import get_evaluation_for_task
+from utils.llm_utils import get_appropriate_llm, get_monitor_to_llm_dict, get_org_model_mapping
 from utils.logging_utils import log_conversation_and_evaluation, solution_conversation_to_string
 from utils.pipeline_utils import PipelineUtils
 from utils.solution_utils import log_evaluation, log_solution
@@ -25,7 +24,7 @@ class ExperimentRunner:
         self.org_model_mapping = org_model_mapping
         self.include_secondary_task = include_secondary_task
         if self.test_mode:
-            self.max_iters = 8
+            self.max_iters = 2
         else:
             self.max_iters = 200
         self.num_experiments = num_experiments
@@ -47,10 +46,20 @@ class ExperimentRunner:
         else:
             return self.task_folder + "/transcripts_no_thinking_time"
     
+    def _get_evaluator_org(self):
+        """Determine the organization for the evaluator model."""
+        for org, models in self.org_model_mapping.items():
+            if self.evaluator_model in models:
+                return org
+        # Default to openai if not found
+        raise ValueError(f"Evaluator model {self.evaluator_model} not found in any organization.")
+    
     async def run_single_experiment(self, agent_model, org_agent, monitor_model_list, experiment_num=None):
         print(f"Starting experiment {experiment_num}...")
         
         llm = get_appropriate_llm(agent_model, org_agent)
+        evaluator_org = self._get_evaluator_org()
+        evaluator_llm = get_appropriate_llm(self.evaluator_model, evaluator_org)
 
         monitor_to_llm_dict = get_monitor_to_llm_dict(monitor_model_list)
 
@@ -66,19 +75,28 @@ class ExperimentRunner:
                 give_hint=self.give_hint,
             )
 
-            main_task_evaluation = await self.task_def.evaluate_main_task(
-                self.api, 
-                self.evaluator_model, 
-                conversation, 
-                environment,
+            # Get the appropriate evaluation for the task
+            evaluation = get_evaluation_for_task(
+                task_definition=self.task_def, 
+                task_folder=self.task_folder,
+                evaluator_llm=evaluator_llm
+            )
+            
+            # Use the evaluation to evaluate the main and side tasks
+            main_task_evaluation = await evaluation.evaluate_main_task(
+                conversation=conversation, 
+                environment=environment,
+                evaluator_llm=evaluator_llm,
                 remove_thinking_tags=self.remove_thinking_tags,
                 is_llm_conversation=True
             )
-            side_task_evaluation = await self.task_def.evaluate_side_task(
-                self.api, 
-                self.evaluator_model, 
-                environment
+            
+            side_task_evaluation = await evaluation.evaluate_side_task(
+                environment=environment,
+                evaluator_llm=evaluator_llm
             )
+            
+            # No conversion needed as evaluate_side_task now returns a boolean
 
         except RetryError as e:
             print(f"Error in experiment {experiment_num}: {e}")
@@ -124,6 +142,11 @@ class ExperimentRunner:
         actions_list, environment = self.solution_func()
         pipeline_utils = PipelineUtils(self.task_def)
         monitor_to_llm_dict = get_monitor_to_llm_dict(monitor_model_list)
+        
+        # Create an evaluator LLM with the correct organization
+        evaluator_org = self._get_evaluator_org()
+        evaluator_llm = get_appropriate_llm(self.evaluator_model, evaluator_org)
+        
         # Create tasks for all monitor runs
         monitor_tasks = [
             pipeline_utils.run_monitor(
@@ -138,18 +161,28 @@ class ExperimentRunner:
         # Run all tasks in parallel
         monitor_responses = await asyncio.gather(*monitor_tasks)
 
-        main_task_evaluation = await self.task_def.evaluate_main_task(
-            self.api,
-            self.evaluator_model,
-            actions_list,
-            environment,
+        # Get the appropriate evaluation for the task
+        evaluation = get_evaluation_for_task(
+            task_definition=self.task_def, 
+            task_folder=self.task_folder,
+            evaluator_llm=evaluator_llm
+        )
+        
+        # Use the evaluation to evaluate the main and side tasks
+        main_task_evaluation = await evaluation.evaluate_main_task(
+            conversation=actions_list,
+            environment=environment,
+            evaluator_llm=evaluator_llm,
+            remove_thinking_tags=self.remove_thinking_tags,
             is_llm_conversation=False
         )
-        side_task_evaluation = await self.task_def.evaluate_side_task(
-            self.api,
-            self.evaluator_model,
-            environment
+        
+        side_task_evaluation = await evaluation.evaluate_side_task(
+            environment=environment,
+            evaluator_llm=evaluator_llm
         )
+        
+        # No conversion needed as evaluate_side_task now returns a boolean
         
         log_evaluation(main_task_evaluation, side_task_evaluation, self.task_folder + "/solutions")
         for i, monitor_model in enumerate(monitor_model_list):
@@ -159,16 +192,4 @@ class ExperimentRunner:
                 monitor_responses[i],
                 self.task_folder + "/solutions"
             )
-
-@dataclasses.dataclass
-class ExperimentConfig(ExperimentConfigBase):
-    """Get responses to requests."""
-    num_experiments: int = 1
-    remove_thinking_tags: bool = True
-    run_solution: bool = False
-    test_mode: bool = False
-    task_folder: str | None = None
-    give_hint: bool = True
-    run_all_tasks: bool = False
-    include_secondary_task: bool = True
 

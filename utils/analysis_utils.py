@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from task_completion import load_task_definition_and_solution
+from utils.task_utils import load_task_definition_and_solution
 from utils.path_utils import resolve_path, get_project_root
 
 

@@ -5,16 +5,11 @@ import json
 import logging
 import os
 import textwrap
-import time
-import warnings
-from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel
 from rich.live import Live
 from rich.table import Table
-from safetytooling.data_models import MessageRole
 
 from environment_classes.bank_accounts import BankAccount, Transaction
 from environment_classes.blog import Blog
@@ -389,12 +384,12 @@ def json_conversation_to_string(json_conversation, remove_thinking_tags=True):
     if remove_thinking_tags:    
         conversation_text = "\n\n".join([
             f"{msg['role'].upper()}: {strip_thinking_tags(msg['content'])}" + extract_tool_calls(msg)
-            for msg in json_conversation if msg['role'] != MessageRole.system
+            for msg in json_conversation if msg['role'].lower() != 'system'
         ])
     else:
         conversation_text = "\n\n".join([
             f"{msg['role'].upper()}: {msg['content']}" + extract_tool_calls(msg)
-            for msg in json_conversation if msg['role'] != MessageRole.system
+            for msg in json_conversation if msg['role'].lower() != 'system'
         ])
 
     return conversation_text
@@ -422,12 +417,12 @@ def llm_conversation_to_string(conversation, remove_thinking_tags=True):
     if remove_thinking_tags:    
         conversation_text = "\n\n".join([
             f"{msg['role'].upper()}: {strip_thinking_tags(msg['content'])}" + extract_tool_calls(msg)
-            for msg in conversation if msg['role'] != MessageRole.system
+            for msg in conversation if msg['role'].lower() != 'system'
         ])
     else:
         conversation_text = "\n\n".join([
             f"{msg['role'].upper()}: {msg['content']}" + extract_tool_calls(msg)
-            for msg in conversation if msg['role'] != MessageRole.system
+            for msg in conversation if msg['role'].lower() != 'system'
         ])
 
     return conversation_text

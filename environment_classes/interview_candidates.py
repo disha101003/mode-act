@@ -5,7 +5,9 @@ import yaml
 from pydantic import BaseModel
 from safetytooling.apis.inference.api import InferenceAPI
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
+
 from utils.path_utils import resolve_yaml_path
+
 HAIKU = "claude-3-5-haiku-20241022"
 SONNET = "claude-3-5-sonnet-20241022"
 

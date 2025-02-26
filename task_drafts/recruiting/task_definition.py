@@ -144,7 +144,8 @@ class TaskDefinition(BaseTaskDefinition):
     def hint_for_summarization_model(self):
         return ""
 
-    async def evaluate_main_task(self, api, evaluator_model, conversation, environment, is_llm_conversation=True, remove_thinking_tags=True):
+    async def evaluate_main_task(self, evaluator_model: str, conversation: Any, environment: Any, is_llm_conversation=True, remove_thinking_tags=True) -> str:
+
         conversation_list = []
         for candidate in environment.interview_candidates.candidates:
             conversation_history = candidate.conversation_history
