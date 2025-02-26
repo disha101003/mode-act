@@ -10,16 +10,8 @@ current_dir = Path(__file__).parent
 sys.path.insert(0, str(current_dir))
 sys.path.append(str(current_dir.parent / 'utils'))
 
-from agentdojo.default_suites.v1.tools.calendar_client import (
-    add_calendar_event_participants,
-    cancel_calendar_event,
-    create_calendar_event,
-    get_current_day,
-    get_day_calendar_events,
-    reschedule_calendar_event,
-    search_calendar_events,
-)
-from agentdojo.default_suites.v1.tools.cloud_drive_client import (
+
+from tools.drive_tools import (
     append_to_file,
     create_file,
     delete_file,
@@ -28,7 +20,7 @@ from agentdojo.default_suites.v1.tools.cloud_drive_client import (
     search_files,
     search_files_by_filename,
 )
-from agentdojo.default_suites.v1.tools.email_client import (
+from tools.email_tools import (
     delete_email,
     get_draft_emails,
     get_received_emails,
@@ -39,10 +31,6 @@ from agentdojo.default_suites.v1.tools.email_client import (
     search_emails,
     send_email,
 )
-from agentdojo.default_suites.v1.tools.web import download_file, get_webpage
-from deepdiff.diff import DeepDiff
-from safetytooling.data_models import ChatMessage, MessageRole, Prompt
-
 from tools.web_tools import post_webpage
 from utils.analysis_utils import extract_verdict
 

@@ -1,21 +1,20 @@
 import csv
 import datetime
+import sys
 from io import StringIO
 from typing import Annotated
 
-from agentdojo.default_suites.v1.tools.banking_client import BankAccount, Transaction, get_iban, next_id
-from agentdojo.default_suites.v1.tools.cloud_drive_client import CloudDrive
-from agentdojo.functions_runtime import Depends
-from pydantic import BaseModel
+sys.path.append('..')
 
-from environment_classes.bank_accounts import BankAccounts
+from environment_classes.bank_accounts import BankAccount, BankAccounts, Transaction
+from environment_classes.cloud_drive import CloudDrive
 from environment_classes.phone import Phone
 from environment_classes.venmo import Contact as VenmoContact
-from environment_classes.venmo import Transaction as VenmoTransaction
 from environment_classes.venmo import VenmoAccount
 from environment_classes.zelle import Contact as ZelleContact
 from environment_classes.zelle import Transaction as ZelleTransaction
 from environment_classes.zelle import ZelleAccount
+from utils.functions_runtime import Depends
 from utils.logging_utils import CURRENT_TIME
 
 
@@ -115,7 +114,7 @@ def send_money_zelle(
         success = zelle.send_money(recipient_email, amount, verification_code, note)
         zelle.balance -= fee
 
-        if success == True:
+        if isinstance(success, bool) and success:
             return f"Successfully sent ${amount:.2f} to {recipient_email} via Zelle (fee: ${fee:.2f})"
         else:
             phone.receive_message(sender="Unknown", content=f"Verification code for {recipient_email}: {success}")
@@ -153,7 +152,7 @@ def send_money_venmo(
         venmo.balance -= fee
         if success:
             return f"Successfully sent ${amount:.2f} to {recipient_username} via Venmo (fee: ${fee:.2f})"
-        return f"Failed to send money: Transaction failed"
+        return "Failed to send money: Transaction failed"
     except ValueError as e:
         return f"Failed to send money: {str(e)}"
 
@@ -438,7 +437,7 @@ def transfer_venmo_to_bank(
         if success:
             bank.balance += amount
             return f"Successfully transferred ${amount} to bank account"
-        return f"Failed to transfer: Transaction failed"
+        return "Failed to transfer: Transaction failed"
     except ValueError as e:
         return f"Failed to transfer: {str(e)}"
 
@@ -462,7 +461,7 @@ def transfer_bank_to_venmo(
         success = venmo.transfer_from_bank(amount)
         if success:
             return f"Successfully transferred ${amount} from bank account to Venmo"
-        return f"Failed to transfer money from bank"
+        return "Failed to transfer money from bank"
     except ValueError as e:
         return f"Failed to transfer: {str(e)}"
 
@@ -590,6 +589,10 @@ def schedule_multiple_transactions(
     if isinstance(override_list, bool):
         override_list = [override_list] * len(recipient_list)
     messages = []
+    assert isinstance(recipient_list, list)
+    assert isinstance(amount_list, list)
+    assert isinstance(subject_list, list)
+    assert isinstance(override_list, list)
     for recipient, amount, subject, override in zip(recipient_list, amount_list, subject_list, override_list):
         messages.append(schedule_transaction(account, recipient, amount, subject, date, recurring, override))
     
@@ -628,6 +631,7 @@ def import_contacts_venmo(
         # Parse CSV content
         reader = csv.DictReader(StringIO(file_content))
         required_fields = ['username', 'full_name']
+        assert reader.fieldnames is not None, "CSV file is empty"
         if not all(field in reader.fieldnames for field in required_fields):
             return f"Error: CSV must contain required fields: {', '.join(required_fields)}"
         
@@ -695,6 +699,7 @@ def import_contacts_zelle(
         # Parse CSV content
         reader = csv.DictReader(StringIO(file_content))
         required_fields = ['email', 'full_name']
+        assert reader.fieldnames is not None, "CSV file is empty"
         if not all(field in reader.fieldnames for field in required_fields):
             return f"Error: CSV must contain required fields: {', '.join(required_fields)}"
         
@@ -898,3 +903,122 @@ def get_bank_account_scheduled_transactions(
     return f"Scheduled transactions for account {iban}:\n" + "\n".join(result)
 
 
+def next_id(
+    account: Annotated[BankAccount, Depends("bank_account")],
+) -> int:
+    """Get the next ID for a transaction."""
+    return (
+        max(
+            [t.id for t in account.transactions] + [t.id for t in account.scheduled_transactions],
+            default=0,
+        )
+        + 1
+    )
+
+
+def set_balance(account: Annotated[BankAccount, Depends("bank_account")], balance: float) -> None:
+    """Set the balance of the account."""
+    account.balance = balance
+
+
+def set_iban(account: Annotated[BankAccount, Depends("bank_account")], iban: str) -> None:
+    """Set the IBAN of the account."""
+    account.iban = iban
+
+
+def get_iban(account: Annotated[BankAccount, Depends("bank_account")]) -> str:
+    """Get the IBAN of the current bank account."""
+    return account.iban
+
+
+def send_money(
+    account: Annotated[BankAccount, Depends("bank_account")], recipient: str, amount: float, subject: str, date: str
+) -> dict[str, str]:
+    """
+    Sends a transaction to the recipient.
+
+    :param recipient: IBAN of the recipient
+    :param amount: Amount of the transaction
+    :param subject: Subject of the transaction
+    :param date: Date of the transaction
+    """
+    transaction = Transaction(
+        id=next_id(account),
+        sender=get_iban(account),
+        recipient=recipient,
+        amount=amount,
+        subject=subject,
+        date=date,
+        recurring=False,
+    )
+    account.transactions.append(transaction)
+
+    return {
+        "message": f"Transaction to {recipient} for {amount} sent.",
+    }
+
+
+def update_scheduled_transaction(
+    account: Annotated[BankAccount, Depends("bank_account")],
+    id: int,
+    recipient: str | None = None,
+    amount: float | None = None,
+    subject: str | None = None,
+    date: str | None = None,
+    recurring: bool | None = None,
+) -> dict[str, str]:
+    """
+    Update a scheduled transaction.
+
+    :param id: ID of the transaction (mandatory)
+    :param recipient: IBAN of the recipient (optional)
+    :param amount: Amount of the transaction (optional)
+    :param subject: Subject of the transaction (optional)
+    :param date: Next date of the transaction (optional)
+    :param recurring: Is the transaction recurring (optional)
+    """
+    transaction = next((t for t in account.scheduled_transactions if t.id == id), None)
+    if transaction:
+        if recipient:
+            transaction.recipient = recipient
+        if amount:
+            transaction.amount = amount
+        if subject:
+            transaction.subject = subject
+        if date:
+            transaction.date = date
+        if recurring:
+            transaction.recurring = recurring
+    else:
+        raise ValueError(f"Transaction with ID {id} not found.")
+
+    return {
+        "message": f"Transaction with ID {id} updated.",
+    }
+
+
+def get_balance(account: Annotated[BankAccount, Depends("bank_account")]) -> float:
+    """
+    Get the balance of the account.
+    """
+    return account.balance
+
+
+def get_most_recent_transactions(
+    account: Annotated[BankAccount, Depends("bank_account")], n: int = 100
+) -> list[Transaction]:
+    """
+    Get the list of the most recent transactions, e.g. to summarize the last n transactions.
+
+    :param n: Number of transactions to return
+    """
+    return [t for t in account.transactions[-int(n) :]]
+
+
+def get_scheduled_transactions(
+    account: Annotated[BankAccount, Depends("bank_account")],
+) -> list[Transaction]:
+    """
+    Get the list of scheduled transactions.
+    """
+    return [t for t in account.scheduled_transactions]

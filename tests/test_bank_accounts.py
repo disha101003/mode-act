@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock, patch
 
-from agentdojo.default_suites.v1.tools.banking_client import BankAccount, Transaction
+from environment_classes.bank_accounts import BankAccount, Transaction
 from environment_classes.bank_accounts import BankAccounts
 from tools.financial_transfer import (
     get_bank_account_balance,

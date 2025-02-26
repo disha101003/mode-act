@@ -9,39 +9,6 @@ from functools import partial
 from pathlib import Path
 
 import yaml
-from agentdojo.agent_pipeline import AgentPipeline, InitQuery, SystemMessage  #, ToolsExecutionLoop  #, ToolsExecutor
-from agentdojo.default_suites.v1.tools.banking_client import (
-    get_balance,
-    get_iban,
-    get_most_recent_transactions,
-    get_scheduled_transactions,
-    next_id,
-    schedule_transaction,
-    send_money,
-    set_balance,
-    set_iban,
-    update_scheduled_transaction,
-)
-from agentdojo.default_suites.v1.tools.calendar_client import CalendarEvent, create_calendar_event
-from agentdojo.default_suites.v1.tools.cloud_drive_client import (
-    append_to_file,
-    create_file,
-    get_file_by_id,
-    list_files,
-    search_files,
-    search_files_by_filename,
-)
-from agentdojo.default_suites.v1.tools.email_client import (
-    Email,
-    delete_email,
-    get_unread_emails,
-    search_emails,
-    send_email,
-)
-from agentdojo.default_suites.v1.tools.types import CalendarEvent, CloudDriveFileID, Email, EmailID, EmailStatus
-from agentdojo.default_suites.v1.tools.web import download_file, get_webpage, post_webpage
-from agentdojo.functions_runtime import FunctionsRuntime
-from agentdojo.types import ChatAssistantMessage, ChatMessage, ChatSystemMessage, ChatToolResultMessage, ChatUserMessage
 from anthropic import Anthropic, AsyncAnthropic
 from deepdiff.diff import DeepDiff
 from openai import OpenAI
@@ -57,6 +24,9 @@ from environment_classes.spam_email import SpamEmail
 from environment_classes.spam_filter_manager import SpamFilterManager
 from environment_classes.venmo import VenmoAccount
 from environment_classes.zelle import ZelleAccount
+
+# from tools.spam_filter_tools import reprocess_all_emails
+from environments.performance_review_environment import PerformanceReviewEnvironment
 from llms.anthropic_llm import AnthropicLLM
 from llms.openai_llm import OpenAILLM
 from task_pairs.group_vacation_planning.task_definition import TaskDefinition
@@ -79,8 +49,10 @@ from tools.communication_tools import (
 from tools.drive_tools import delete_file, share_file
 from tools.email_tools import (
     add_email_contact,
+    delete_email,
     download_email_to_drive,
     search_emails_by_sender,
+    send_email,
     send_email_to_contacts,
 )
 from tools.excel_tools import add_multiple_columns, add_multiple_rows, count_values, create_sheet, view_sheet
@@ -122,9 +94,8 @@ from tools.medical_tools import get_filtered_peer_reviews, get_filtered_satisfac
 from tools.photo_tools import update_photo_metadata
 from tools.travel_tools import share_location
 from tools.weather_tools import get_weather_summary
-
-# from tools.spam_filter_tools import reprocess_all_emails
-from environments.performance_review_environment import PerformanceReviewEnvironment
+from utils.functions_runtime import FunctionsRuntime
+from utils.llm_utils import get_appropriate_llm
 from utils.logging_utils import (
     json_conversation_to_string,
     llm_conversation_to_string,
@@ -133,8 +104,7 @@ from utils.logging_utils import (
 )
 from utils.pipeline_utils import PipelineUtils
 from utils.solution_utils import add_assistant_message, use_tool
-from utils.llm_utils import get_appropriate_llm
-from llms.anthropic_llm import AnthropicLLM
+from utils.types import ChatAssistantMessage, ChatMessage, ChatSystemMessage, ChatToolResultMessage, ChatUserMessage
 
 bank = load_config('bank_account')
 

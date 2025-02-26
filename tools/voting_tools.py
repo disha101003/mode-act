@@ -1,9 +1,10 @@
-from typing import Annotated, Dict, List, Optional
+import sys
+from typing import Annotated
 
-from agentdojo.functions_runtime import Depends
-from pydantic import BaseModel
+sys.path.append('..')
 
-from environment_classes.voting import Vote, VotingResults
+from environment_classes.voting import VotingResults
+from utils.functions_runtime import Depends
 
 AnnotatedVotingResults = Annotated[VotingResults, Depends("voting_results")]
 

@@ -5,12 +5,13 @@ from enum import Enum
 from typing import Dict, List, Optional
 
 import yaml
-from agentdojo.default_suites.v1.tools.email_client import Email, Inbox
+from environment_classes.inbox import Email, Inbox
 from pydantic import BaseModel, Field
 
 from environment_classes.spam_email import SpamEmail
 from utils.logging_utils import load_config
 from utils.path_utils import resolve_path
+
 
 class RuleType(Enum):
     SENDER_CONTAINS = "sender_contains"

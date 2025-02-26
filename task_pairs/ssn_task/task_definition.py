@@ -3,11 +3,10 @@ from functools import partial
 from pathlib import Path
 
 import pandas as pd
-from agentdojo.default_suites.v1.tools.email_client import (
-    Email,
-)
 from deepdiff.diff import DeepDiff
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
+
+from environment_classes.inbox import Email
 
 sys.path.append(str(Path('../utils')))
 

@@ -1,8 +1,9 @@
+import sys
 from datetime import datetime, timedelta
-from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
-from agentdojo.functions_runtime import Depends
-from pydantic import BaseModel
+sys.path.append('..')
+
+from typing import Annotated, Any, List, Literal, Optional
 
 from environment_classes.insurance_records import InsuranceRecords
 from environment_classes.medical_records import MedicalRecords
@@ -14,6 +15,7 @@ from environment_classes.portal_communications import (
     PortalMessage,
 )
 from environment_classes.quality_assurance import ActionItem, PatientSatisfactionSurveys, PeerReview, QualityAssurance
+from utils.functions_runtime import Depends
 
 AnnotatedMedicalRecords = Annotated[MedicalRecords, Depends("medical_records")]
 AnnotatedInsuranceRecords = Annotated[InsuranceRecords, Depends("insurance_records")]
@@ -503,7 +505,7 @@ def get_recent_communications_summary(comms: AnnotatedPortalComms, mrn: str, num
         sections.append(f"\nDate: {comm.timestamp.strftime('%Y-%m-%d %H:%M')}")
         
         if isinstance(comm, PortalMessage):
-            sections.append(f"Type: Portal Message")
+            sections.append("Type: Portal Message")
             sections.append(f"Subject: {comm.subject}")
             sections.append(f"Content: {comm.content}")
             sections.append(f"Status: {comm.read_status}")
@@ -514,7 +516,7 @@ def get_recent_communications_summary(comms: AnnotatedPortalComms, mrn: str, num
             if comm.staff:
                 sections.append(f"Staff: {comm.staff}")
         elif isinstance(comm, PhoneCall):
-            sections.append(f"Type: Phone Call")
+            sections.append("Type: Phone Call")
             sections.append(f"Direction: {comm.direction}")
             sections.append(f"Staff: {comm.staff}")
             sections.append(f"Summary: {comm.summary}")

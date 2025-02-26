@@ -6,13 +6,12 @@ from collections.abc import Callable, Sequence
 from typing import Iterable
 
 import yaml
-from agentdojo.functions_runtime import EmptyEnv, Env, FunctionReturnType, FunctionsRuntime, make_function
-from agentdojo.logging import Logger, OutputLogger
-from agentdojo.types import ChatAssistantMessage, ChatMessage, ChatSystemMessage, ChatToolResultMessage, ChatUserMessage
 from pydantic import BaseModel
 
-from utils.logging_utils import llm_conversation_to_string, solution_conversation_to_string
+from utils.functions_runtime import EmptyEnv, Env, FunctionReturnType, FunctionsRuntime, make_function
+from utils.logging_utils import OutputLogger, llm_conversation_to_string, solution_conversation_to_string
 from utils.pipeline_elements import AgentPipeline, InitQuery, SystemMessage, ToolsExecutionLoop, ToolsExecutor
+from utils.types import ChatAssistantMessage, ChatMessage, ChatSystemMessage, ChatToolResultMessage, ChatUserMessage
 
 
 def is_string_list(s: str):

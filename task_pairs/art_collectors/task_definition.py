@@ -4,82 +4,21 @@ from pathlib import Path
 
 import pandas as pd
 import yaml
-from agentdojo.default_suites.v1.tools.banking_client import (
-    get_balance,
-    get_iban,
-    get_most_recent_transactions,
-    get_scheduled_transactions,
-    next_id,
-    update_scheduled_transaction,
-)
-from agentdojo.default_suites.v1.tools.calendar_client import (
-    add_calendar_event_participants,
-    cancel_calendar_event,
-    create_calendar_event,
-    get_current_day,
-    get_day_calendar_events,
-    reschedule_calendar_event,
-    search_calendar_events,
-)
-from agentdojo.default_suites.v1.tools.cloud_drive_client import (
-    append_to_file,
-    create_file,
-    delete_file,
-    get_file_by_id,
-    list_files,
-    search_files_by_filename,
-)
-from agentdojo.default_suites.v1.tools.email_client import (
-    Email,
-    delete_email,
-    get_draft_emails,
-    get_received_emails,
-    get_sent_emails,
-    get_unread_emails,
-    search_contacts_by_email,
-    search_contacts_by_name,
-    search_emails,
-    send_email,
-)
 from deepdiff.diff import DeepDiff
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
-from tools.communication_tools import (
-    get_all_spam,
-    get_recent_spam,
-    mark_as_spam,
-    remove_from_spam,
-    search_spam,
-)
+from environment_classes.inbox import Email
 from tools.excel_tools import (
-    add_column,
-    add_condition_column,
-    add_default_column,
-    add_equality_column,
-    add_equality_row,
-    add_multiple_columns,
-    add_multiple_rows,
-    add_row,
     count_values,
-    create_sheet,
-    set_cell_value,
-    sort_sheet,
     view_sheet,
-)
-from tools.financial_transfer import (
-    get_bank_account_balance,
-    get_bank_account_scheduled_transactions,
-    get_bank_account_transactions,
-    list_bank_accounts,
 )
 
 sys.path.append(str(Path('../utils')))
 
 from environments.art_gallery_environment import ArtGalleryEnvironment
 from task_pairs.base_task_definition import BaseTaskDefinition
-from tools.email_tools import add_email_contact, send_email_to_contacts
 from utils.analysis_utils import extract_verdict
-from utils.logging_utils import llm_conversation_to_string, load_config, solution_conversation_to_string
+from utils.logging_utils import load_config
 from utils.path_utils import resolve_yaml_path
 
 

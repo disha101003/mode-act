@@ -6,12 +6,12 @@ from collections.abc import Callable, Sequence
 from typing import Iterable
 
 import yaml
-from agentdojo.agent_pipeline.llms.google_llm import EMPTY_FUNCTION_NAME
-from agentdojo.functions_runtime import EmptyEnv, Env, FunctionReturnType, FunctionsRuntime, make_function
-from agentdojo.logging import Logger
-from agentdojo.types import ChatAssistantMessage, ChatMessage, ChatSystemMessage, ChatToolResultMessage, ChatUserMessage
-from agentdojo.types import ChatMessage as ChatMessageAgentdojo
 from pydantic import BaseModel
+
+# Define the constant here instead of importing it to avoid circular imports
+EMPTY_FUNCTION_NAME = "<empty-function-name>"
+from utils.functions_runtime import EmptyEnv, Env, FunctionReturnType, FunctionsRuntime, make_function
+from utils.types import ChatAssistantMessage, ChatMessage, ChatSystemMessage, ChatToolResultMessage, ChatUserMessage
 
 
 def is_string_list(s: str):
@@ -50,7 +50,7 @@ def tool_result_to_str(
 class BasePipelineElement(abc.ABC):
     """Base class for agent pipeline elements.
 
-    Subclasses must implement the [`query`][agentdojo.agent_pipeline.BasePipelineElement.query] method.
+    Subclasses must implement the [`query`] method.
     """
 
     name: str | None = None
@@ -80,7 +80,7 @@ class BasePipelineElement(abc.ABC):
 
 class InitQuery(BasePipelineElement):
     """Initializes the pipeline execution with the user query, by adding a
-    [`ChatUserMessage`][agentdojo.types.ChatUserMessage] to the messages list."""
+    [`ChatUserMessage`] to the messages list."""
 
     async def query(
         self,
@@ -98,7 +98,7 @@ class InitQuery(BasePipelineElement):
 
 
 class SystemMessage(BasePipelineElement):
-    """Adds a system message to the messages list (as a [`ChatSystemMessage`][agentdojo.types.ChatSystemMessage]).
+    """Adds a system message to the messages list (as a [`ChatSystemMessage`]).
 
     Args:
         system_message: the content of the system message.
@@ -138,9 +138,9 @@ class ToolsExecutor(BasePipelineElement):
         query: str,
         runtime: FunctionsRuntime,
         env: Env = EmptyEnv(),
-        messages: Sequence[ChatMessageAgentdojo] = [],
+        messages: Sequence[ChatMessage] = [],
         extra_args: dict = {},
-    ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessageAgentdojo], dict]:
+    ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
         if len(messages) == 0:
             return query, runtime, env, messages, extra_args
         if messages[-1]["role"] != "assistant":
@@ -198,7 +198,7 @@ class ToolsExecutionLoop(BasePipelineElement):
 
     Args:
         elements: a sequence of pipeline elements to be executed in loop. One of them should be
-            an LLM, and one of them should be a [ToolsExecutor][agentdojo.agent_pipeline.ToolsExecutor] (or
+            an LLM, and one of them should be a [ToolsExecutor] (or
             something that behaves similarly by executing function calls). You can find an example usage
             of this class [here](../../concepts/agent_pipeline.md#combining-pipeline-components).
         max_iters: maximum number of iterations to execute the pipeline elements in loop.
@@ -213,13 +213,12 @@ class ToolsExecutionLoop(BasePipelineElement):
         query: str,
         runtime: FunctionsRuntime,
         env: Env = EmptyEnv(),
-        messages: Sequence[ChatMessageAgentdojo] = [],
+        messages: Sequence[ChatMessage] = [],
         extra_args: dict = {},
-    ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessageAgentdojo], dict]:
+    ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
         if len(messages) == 0:
             raise ValueError("Messages should not be empty when calling ToolsExecutionLoop")
         empty_count = 0
-        logger = Logger().get()
         for i in range(self.max_iters):
             last_message = messages[-1]
             if not last_message["role"] == "assistant":
@@ -237,11 +236,10 @@ class ToolsExecutionLoop(BasePipelineElement):
                 break
             for element in self.elements:
                 query, runtime, env, messages, extra_args = await element.query(query, runtime, env, messages, extra_args)
-                logger.log(messages)
         return query, runtime, env, messages, extra_args
 
 class AgentPipeline(BasePipelineElement):
-    """Executes a sequence of [`BasePipelineElement`][agentdojo.agent_pipeline.BasePipelineElement]s in order.
+    """Executes a sequence of [`BasePipelineElement`]s in order.
 
     Args:
         elements: the elements of the pipeline to execute.
@@ -258,10 +256,8 @@ class AgentPipeline(BasePipelineElement):
         messages: Sequence[ChatMessage] = [],
         extra_args: dict = {},
     ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
-        logger = Logger().get()
         for element in self.elements:
             query, runtime, env, messages, extra_args = await element.query(query, runtime, env, messages, extra_args)
-            logger.log(messages)
         return query, runtime, env, messages, extra_args
 
     

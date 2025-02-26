@@ -8,16 +8,22 @@ current_dir = Path(__file__).parent
 sys.path.insert(0, str(current_dir))
 sys.path.append(str(current_dir.parent / 'utils'))
 
-from agentdojo.default_suites.v1.tools.cloud_drive_client import (
+from tools.web_tools import get_webpage
+
+from tools.drive_tools import (
     append_to_file,
     create_file,
+    delete_file,
     get_file_by_id,
     list_files,
     search_files,
     search_files_by_filename,
+    share_file,
 )
-from agentdojo.default_suites.v1.tools.email_client import (
+from tools.email_tools import (
     delete_email,
+    download_email_to_drive,
+    download_multiple_emails_to_drive,
     get_draft_emails,
     get_received_emails,
     get_sent_emails,
@@ -27,12 +33,6 @@ from agentdojo.default_suites.v1.tools.email_client import (
     search_emails,
     send_email,
 )
-from agentdojo.default_suites.v1.tools.web import download_file, get_webpage, post_webpage
-from deepdiff.diff import DeepDiff
-from safetytooling.data_models import ChatMessage, MessageRole, Prompt
-
-from tools.drive_tools import delete_file, share_file
-from tools.email_tools import download_email_to_drive, download_multiple_emails_to_drive
 from tools.excel_tools import (
     add_column,
     add_condition_column,

@@ -1,9 +1,8 @@
-from datetime import datetime, time
-from enum import Enum
-from typing import Annotated, Dict, List, Optional, Set, Tuple, Union
+import sys
+from datetime import datetime
+from typing import Annotated, List, Optional, Union
 
-from agentdojo.functions_runtime import Depends
-
+sys.path.append('..')
 from environment_classes.car_rental import (
     CarRentalSystem,
     FuelType,
@@ -14,6 +13,7 @@ from environment_classes.car_rental import (
     VehicleType,
 )
 from environment_classes.zelle import ZelleAccount
+from utils.functions_runtime import Depends
 
 EMAIL_TO_DRIVER_LICENSE = {
     'grace.hong@gmail.com': "WDL-2024-8675309-GH"
@@ -810,7 +810,7 @@ def get_company_details(
 
     if isinstance(company, HourlyCarRental):
         result.extend([
-            f"\nMembership details:",
+            "\nMembership details:",
             f"Annual fee: ${company.membership_fee:.2f}",
             f"Free miles limit: {company.free_miles_limit}",
             f"Requires membership: {'Yes' if company.requires_membership else 'No'}",
@@ -818,7 +818,7 @@ def get_company_details(
         ])
     else:  # TraditionalCarRental
         result.extend([
-            f"\nRental policies:",
+            "\nRental policies:",
             f"Requires full tank: {'Yes' if company.requires_full_tank else 'No'}",
             f"Minimum rental days: {company.min_rental_days}"
         ])

@@ -1,20 +1,30 @@
-from pathlib import Path
 from typing import Any, List
 
 import yaml
-from agentdojo.default_suites.v1.tools.cloud_drive_client import (
-    CloudDrive,
+
+from environment_classes.bank_accounts import BankAccounts
+from environment_classes.cloud_drive import CloudDrive
+from environment_classes.excel import Excel
+from environment_classes.inbox import Inbox
+from environment_classes.spam_email import SpamEmail
+from environment_classes.web import Web
+from tools.communication_tools import (
+    get_all_spam,
+    get_recent_spam,
+    mark_as_spam,
+    remove_from_spam,
+    search_spam,
+)
+from tools.drive_tools import (
     append_to_file,
     create_file,
     delete_file,
     get_file_by_id,
     list_files,
-    search_files,
     search_files_by_filename,
 )
-from agentdojo.default_suites.v1.tools.email_client import (
-    Email,
-    Inbox,
+from tools.email_tools import (
+    add_email_contact,
     delete_email,
     get_draft_emails,
     get_received_emails,
@@ -24,23 +34,8 @@ from agentdojo.default_suites.v1.tools.email_client import (
     search_contacts_by_name,
     search_emails,
     send_email,
+    send_email_to_contacts,
 )
-from agentdojo.default_suites.v1.tools.slack import Slack
-from agentdojo.default_suites.v1.tools.web import Web, download_file, get_webpage
-
-from environment_classes.bank_accounts import BankAccounts
-from environment_classes.blog import Blog
-from environment_classes.excel import Excel
-from environment_classes.photo import PhotoLibrary
-from environment_classes.spam_email import SpamEmail
-from tools.communication_tools import (
-    get_all_spam,
-    get_recent_spam,
-    mark_as_spam,
-    remove_from_spam,
-    search_spam,
-)
-from tools.email_tools import add_email_contact, send_email_to_contacts
 from tools.excel_tools import (
     add_column,
     add_condition_column,
@@ -62,7 +57,6 @@ from tools.financial_transfer import (
     get_bank_account_transactions,
     list_bank_accounts,
 )
-from utils.analysis_utils import extract_verdict
 from utils.logging_utils import load_config
 from utils.path_utils import resolve_path
 

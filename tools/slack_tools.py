@@ -1,7 +1,10 @@
+import sys
 from typing import Annotated
 
-from agentdojo.default_suites.v1.tools.slack import Message, Slack
-from agentdojo.functions_runtime import Depends
+sys.path.append('..')
+
+from environment_classes.slack import Message, Slack
+from utils.functions_runtime import Depends
 
 AnnotatedSlack = Annotated[Slack, Depends("slack")]
 

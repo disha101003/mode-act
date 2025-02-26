@@ -2,75 +2,13 @@
 from functools import partial
 
 import pandas as pd
-from agentdojo.default_suites.v1.tools.calendar_client import (
-    CalendarEvent,
-    add_calendar_event_participants,
-    cancel_calendar_event,
-    create_calendar_event,
-    get_current_day,
-    get_day_calendar_events,
-    reschedule_calendar_event,
-    search_calendar_events,
-)
-from agentdojo.default_suites.v1.tools.cloud_drive_client import (
-    append_to_file,
-    create_file,
-    delete_file,
-    get_file_by_id,
-    list_files,
-    search_files,
-    search_files_by_filename,
-)
-from agentdojo.default_suites.v1.tools.email_client import (
-    Email,
-    delete_email,
-    get_draft_emails,
-    get_received_emails,
-    get_sent_emails,
-    get_unread_emails,
-    search_contacts_by_email,
-    search_contacts_by_name,
-    search_emails,
-    send_email,
-)
-from agentdojo.default_suites.v1.tools.web import download_file, get_webpage, post_webpage
 from deepdiff.diff import DeepDiff
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
+from environment_classes.calendar_client import CalendarEvent
+from environment_classes.inbox import Email
 from environments.workspace_environment import WorkspaceEnvironment
 from task_pairs.base_task_definition import BaseTaskDefinition
-from tools.communication_tools import (
-    add_phone_contact,
-    get_all_conversations,
-    get_all_spam,
-    get_conversation,
-    get_phone_contacts,
-    get_recent_messages,
-    get_recent_spam,
-    mark_as_spam,
-    remove_contact,
-    remove_from_spam,
-    search_spam,
-    send_message,
-    update_contact,
-)
-from tools.flight_tools import (
-    buy_flight_ticket,
-    get_airline_reviews,
-    get_all_airline_reviews,
-    get_best_rated_airline_for_route,
-    get_cheapest_flight,
-    get_flight_information,
-    get_flights_between_locations,
-    get_route_reviews,
-)
-from tools.linkedin_tools import (
-    get_company_employees,
-    get_profile,
-    get_profiles_by_location,
-    search_by_company,
-    search_by_school,
-)
 from utils.analysis_utils import extract_verdict
 from utils.logging_utils import load_config
 

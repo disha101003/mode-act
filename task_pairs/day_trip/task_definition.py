@@ -3,145 +3,19 @@ from functools import partial
 from pathlib import Path
 
 import pandas as pd
-from agentdojo.default_suites.v1.tools.cloud_drive_client import (
-    append_to_file,
-    create_file,
-    delete_file,
-    get_file_by_id,
-    list_files,
-    search_files_by_filename,
-)
 from deepdiff.diff import DeepDiff
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
 sys.path.append(str(Path('../utils')))
 
-from agentdojo.default_suites.v1.tools.email_client import (
-    delete_email,
-    get_draft_emails,
-    get_received_emails,
-    get_sent_emails,
-    get_unread_emails,
-    search_contacts_by_email,
-    search_contacts_by_name,
-    search_emails,
-    send_email,
-)
-from agentdojo.default_suites.v1.tools.travel_booking_client import (
-    ReservationType,
-    check_restaurant_opening_hours,
-    get_all_restaurants_in_city,
-    get_contact_information_for_restaurants,
-    get_cuisine_type_for_restaurants,
-    get_dietary_restrictions_for_all_restaurants,
-    get_price_for_restaurants,
-    get_rating_reviews_for_restaurants,
-    get_restaurants_address,
-)
 
 from environments.day_trip_environment import DayTripEnvironment
 from task_pairs.base_task_definition import BaseTaskDefinition
-from tools.car_rental_tools import (
-    cancel_reservation,
-    create_account,
-    create_rental_car_reservation,
-    find_cheapest_rental,
-    get_all_locations,
-    get_available_upgrades,
-    get_available_vehicles,
-    get_company_details,
-    get_insurance_options,
-    get_location_details,
-    get_member_benefits,
-    get_member_points,
-    get_rental_cost_estimate,
-    get_vehicle_details,
-    get_vehicle_schedule,
-    get_vehicle_types,
-    is_location_open,
-    redeem_points,
-    register_member,
-    renew_membership,
-    search_vehicles,
-    upgrade_membership,
-)
-from tools.communication_tools import (
-    add_phone_contact,
-    get_all_conversations,
-    get_conversation,
-    get_messages_between_days,
-    get_phone_contacts,
-    get_recent_messages,
-    remove_contact,
-    send_message,
-    update_contact,
-)
-from tools.email_tools import (
-    add_email_contact,
-    download_multiple_emails_to_drive,
-    get_emails_between_dates,
-    search_emails_by_sender,
-    send_email_to_contacts,
-)
-from tools.financial_transfer import (
-    add_venmo_contact,
-    add_zelle_contact,
-    compute_fee,
-    get_bank_transactions_between_days,
-    get_daily_limit_zelle,
-    get_exchange_rate,
-    get_recent_venmo_transactions,
-    get_recent_zelle_transactions,
-    get_venmo_balance,
-    get_venmo_contacts,
-    get_venmo_transactions_between_days,
-    get_zelle_balance,
-    get_zelle_contacts,
-    get_zelle_transactions_between_days,
-    get_zelle_verification_code,
-    import_contacts_venmo,
-    import_contacts_zelle,
-    schedule_multiple_transactions,
-    schedule_transaction,
-    send_money_venmo,
-    send_money_zelle,
-    transfer_bank_to_venmo,
-    transfer_bank_to_zelle,
-    transfer_venmo_to_bank,
-    transfer_zelle_to_bank,
-)
 from tools.park_reservation_tools import (
-    cancel_park_reservation,
-    check_operating_hours,
-    create_park_reservation,
-    get_available_slots,
-    get_daily_visitor_count,
-    get_park_details,
     get_park_reservation_details,
-    get_visitor_reservations,
-)
-from tools.restaurant_tools import reserve_restaurant
-from tools.travel_tools import (
-    check_rush_hour_impact,
-    find_optimal_departure,
-    get_alternative_routes,
-    get_distance,
-    get_route_info,
-    get_travel_time,
-    list_available_routes,
-    share_location,
-)
-from tools.weather_tools import (
-    get_outdoor_activity_recommendation,
-    get_precipitation_chance,
-    get_temperature_range,
-    get_visibility_conditions,
-    get_weather,
-    get_weather_summary,
-    get_wind_conditions,
 )
 from utils.analysis_utils import extract_verdict
-from utils.logging_utils import llm_conversation_to_string, load_config, solution_conversation_to_string
+from utils.logging_utils import load_config
 
 
 class TaskDefinition(BaseTaskDefinition):

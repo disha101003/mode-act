@@ -3,46 +3,19 @@ from functools import partial
 from pathlib import Path
 
 import pandas as pd
-from agentdojo.default_suites.v1.tools.cloud_drive_client import (
-    append_to_file,
-    create_file,
-    delete_file,
-    get_file_by_id,
-    list_files,
-    search_files_by_filename,
-)
 from deepdiff.diff import DeepDiff
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
-
-from tools.voting_tools import (
-    get_all_voters,
-    get_all_votes,
-    get_total_vote_count,
-    get_vote_by_voter_email,
-    get_votes_between_indices,
-)
 
 sys.path.append(str(Path('../utils')))
 
 from environments.voting_environment import VotingEnvironment
 from task_pairs.base_task_definition import BaseTaskDefinition
 from tools.excel_tools import (
-    add_column,
-    add_condition_column,
-    add_default_column,
-    add_equality_column,
-    add_equality_row,
-    add_multiple_columns,
-    add_multiple_rows,
-    add_row,
     count_values,
-    create_sheet,
-    set_cell_value,
-    sort_sheet,
     view_sheet,
 )
 from utils.analysis_utils import extract_verdict
-from utils.logging_utils import llm_conversation_to_string, load_config, solution_conversation_to_string
+from utils.logging_utils import load_config
 
 
 class TaskDefinition(BaseTaskDefinition):

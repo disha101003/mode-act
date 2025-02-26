@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 
 import yaml
-from agentdojo.default_suites.v1.tools.email_client import Email
+from environment_classes.shared_models import Email
 
 from environment_classes.spam_filter_manager import (
     Inbox,

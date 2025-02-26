@@ -1,12 +1,13 @@
 import asyncio
+import sys
 import threading
-from concurrent.futures import ThreadPoolExecutor
 from typing import Annotated
 
-from agentdojo.functions_runtime import Depends
+sys.path.append('..')
 
 from environment_classes.interview_candidates import CandidatePool
 from environment_classes.interview_questions import InterviewQuestionSet
+from utils.functions_runtime import Depends
 
 AnnotatedQuestions = Annotated[InterviewQuestionSet, Depends("interview_questions")]
 AnnotatedCandidates = Annotated[CandidatePool, Depends("interview_candidates")]

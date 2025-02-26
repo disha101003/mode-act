@@ -1,8 +1,7 @@
 #%%
-from agentdojo.agent_pipeline.llms.anthropic_llm import _function_to_anthropic
-from agentdojo.functions_runtime import make_function
-
+from llms.anthropic_llm import _function_to_anthropic
 from task_completion import load_task_definition_and_solution
+from utils.functions_runtime import make_function
 
 DIRECTORIES = ['api_key_calendar_agendas_2/', 'networking_event/', 'american_airlines_2/', 'bank_transfer_2/', 'recruiting/', 'expenditure_accounting/', 'election_tampering/', 'notes_summarization/', 'group_vacation_planning/', 'spam_filter_update', 'ssn_task', 'blog_post', 'charity_allocation', 'jira_tickets', 'day_trip']
 

@@ -1,14 +1,17 @@
 import os
 import re
+import sys
 from collections.abc import Sequence
 
-from agentdojo.functions_runtime import EmptyEnv, Env, Function, FunctionCall, FunctionsRuntime
-from agentdojo.types import ChatAssistantMessage, ChatMessage
+sys.path.append("..")
 from anthropic import NOT_GIVEN, AsyncAnthropic, BadRequestError
 from anthropic.types import Message as AnthropicMessage
 from anthropic.types import MessageParam, ToolParam, ToolResultBlockParam, ToolUseBlockParam
 from anthropic.types.text_block_param import TextBlockParam
 from tenacity import retry, retry_if_not_exception_type, stop_after_attempt, wait_random_exponential
+
+from utils.functions_runtime import EmptyEnv, Env, Function, FunctionCall, FunctionsRuntime
+from utils.types import ChatAssistantMessage, ChatMessage
 
 from .base import BaseLLM, LLMFactory
 

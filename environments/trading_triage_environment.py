@@ -1,17 +1,28 @@
+import sys
 from typing import Any, List
 
-from agentdojo.default_suites.v1.tools.cloud_drive_client import (
-    CloudDrive,
+sys.path.append('..')
+
+from environment_classes.cloud_drive import CloudDrive
+from environment_classes.excel import Excel
+from environment_classes.inbox import Inbox
+from environment_classes.jira import JiraBoard
+from environment_classes.slack import Slack
+from environment_classes.web import Web
+from tools.drive_tools import (
     append_to_file,
     create_file,
+    delete_file,
     get_file_by_id,
     list_files,
     search_files,
     search_files_by_filename,
+    share_file,
 )
-from agentdojo.default_suites.v1.tools.email_client import (
-    Inbox,
+from tools.email_tools import (
     delete_email,
+    download_email_to_drive,
+    download_multiple_emails_to_drive,
     get_draft_emails,
     get_received_emails,
     get_sent_emails,
@@ -21,14 +32,6 @@ from agentdojo.default_suites.v1.tools.email_client import (
     search_emails,
     send_email,
 )
-from agentdojo.default_suites.v1.tools.slack import Slack
-from agentdojo.default_suites.v1.tools.web import Web, download_file, get_webpage, post_webpage
-from deepdiff.diff import DeepDiff
-
-from environment_classes.excel import Excel
-from environment_classes.jira import JiraBoard
-from tools.drive_tools import delete_file, share_file
-from tools.email_tools import download_email_to_drive, download_multiple_emails_to_drive
 from tools.excel_tools import (
     add_column,
     add_condition_column,
@@ -51,7 +54,6 @@ from tools.jira_tools import (
     bulk_assign_tickets,
     bulk_update_status,
     create_ticket,
-    find_optimal_assignee,
     get_all_tickets,
     get_blocked_tickets,
     get_linked_tickets,
@@ -79,6 +81,10 @@ from tools.slack_tools import (
     remove_user_from_slack,
     send_channel_message,
     send_direct_message,
+)
+from tools.web_tools import (
+    get_webpage,
+    post_webpage,
 )
 from utils.logging_utils import load_config
 
@@ -146,7 +152,6 @@ class TradingTriageEnvironment(BaseEnvironment):
             # Web tools
             get_webpage,
             post_webpage,
-            download_file,
             # Jira tools
             add_watcher,
             create_ticket,

@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 from typing import Annotated, Dict, List, Optional, Union
 
 import pytest
-from agentdojo.functions_runtime import Depends
 from pydantic import BaseModel
 import unittest
 

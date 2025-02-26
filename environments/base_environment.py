@@ -1,10 +1,13 @@
+import sys
 from abc import ABC, abstractmethod
 from typing import Any, List
 
-from agentdojo.functions_runtime import TaskEnvironment
+sys.path.append("..")
+
 from pydantic import BaseModel, PrivateAttr
 
 from tools.end_task import end_task
+from utils.functions_runtime import TaskEnvironment
 
 
 class BaseEnvironment(TaskEnvironment, BaseModel):

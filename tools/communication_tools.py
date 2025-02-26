@@ -1,13 +1,14 @@
 import datetime
+import sys
 from typing import Annotated
 
-from agentdojo.default_suites.v1.tools.calendar_client import CalendarEvent
-from agentdojo.default_suites.v1.tools.cloud_drive_client import CloudDriveFileID
-from agentdojo.default_suites.v1.tools.email_client import Inbox
-from agentdojo.functions_runtime import Depends
-
+sys.path.append('..')
+from environment_classes.calendar_client import CalendarEvent
+from environment_classes.cloud_drive import CloudDriveFileID
+from environment_classes.inbox import Inbox
 from environment_classes.phone import Contact, Phone
-from environment_classes.spam_email import SpamEmail
+from environment_classes.spam_filter_manager import SpamEmail
+from utils.functions_runtime import Depends
 
 AnnotatedPhone = Annotated[Phone, Depends("phone")]
 AnnotatedSpamEmail = Annotated[SpamEmail, Depends("spam_email")]

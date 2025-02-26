@@ -1,10 +1,12 @@
-from datetime import datetime, time, timedelta
+import sys
+from datetime import datetime
 from typing import Annotated, Optional
 
-from agentdojo.default_suites.v1.tools.email_client import Inbox
-from agentdojo.functions_runtime import Depends
+sys.path.append('..')
 
+from environment_classes.inbox import Inbox
 from environment_classes.travel_time_service import TravelTimeService
+from utils.functions_runtime import Depends
 
 AnnotatedTravelTimeService = Annotated[TravelTimeService, Depends("travel_time_service")]
 

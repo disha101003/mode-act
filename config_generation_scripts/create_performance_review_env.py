@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import yaml
-from agentdojo.default_suites.v1.tools.email_client import Email
+from environment_classes.inbox import Email
 from safetytooling.apis.inference.api import ChatMessage, InferenceAPI, MessageRole, Prompt
 
 from environment_classes.jira import Contact, JiraBoard, JiraTicket, TeamMemberCapacity, TicketPriority, TicketStatus

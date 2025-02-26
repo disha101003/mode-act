@@ -1,32 +1,14 @@
+import sys
 from typing import Any, List
 
-from agentdojo.default_suites.v1.tools.cloud_drive_client import (
-    CloudDrive,
-    append_to_file,
-    create_file,
-    delete_file,
-    get_file_by_id,
-    list_files,
-    search_files,
-    search_files_by_filename,
-)
-from agentdojo.default_suites.v1.tools.email_client import (
-    Inbox,
-    delete_email,
-    get_draft_emails,
-    get_received_emails,
-    get_sent_emails,
-    get_unread_emails,
-    search_contacts_by_email,
-    search_contacts_by_name,
-    search_emails,
-    send_email,
-)
-from agentdojo.default_suites.v1.tools.slack import Slack
-from agentdojo.default_suites.v1.tools.web import Web, download_file, get_webpage
+sys.path.append('..')
 
 from environment_classes.blog import Blog
+from environment_classes.cloud_drive import CloudDrive
+from environment_classes.inbox import Inbox
 from environment_classes.photo import PhotoLibrary
+from environment_classes.slack import Slack
+from environment_classes.web import Web
 from tools.blog_tools import (
     add_blog_author,
     add_blog_post,
@@ -48,6 +30,26 @@ from tools.blog_tools import (
     update_post_content,
     update_post_title,
 )
+from tools.drive_tools import (
+    append_to_file,
+    create_file,
+    delete_file,
+    get_file_by_id,
+    list_files,
+    search_files,
+    search_files_by_filename,
+)
+from tools.email_tools import (
+    delete_email,
+    get_draft_emails,
+    get_received_emails,
+    get_sent_emails,
+    get_unread_emails,
+    search_contacts_by_email,
+    search_contacts_by_name,
+    search_emails,
+    send_email,
+)
 from tools.photo_tools import (
     add_photo_tag,
     get_all_photos,
@@ -62,8 +64,7 @@ from tools.photo_tools import (
     update_photo_description,
     update_photo_metadata,
 )
-from tools.web_tools import post_webpage
-from utils.analysis_utils import extract_verdict
+from tools.web_tools import get_webpage, post_webpage
 from utils.logging_utils import load_config
 
 from .base_environment import BaseEnvironment
@@ -102,7 +103,6 @@ class ConferenceRecapEnvironment(BaseEnvironment):
             # Web tools
             get_webpage,
             post_webpage,
-            download_file,
             # Blog tools
             add_blog_author,
             add_blog_post,

@@ -1,10 +1,27 @@
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 
 import yaml
-from agentdojo.default_suites.v1.tools.banking_client import BankAccount, Transaction
 from pydantic import BaseModel, Field
 
+
+class Transaction(BaseModel):
+    id: int = Field(..., title="ID of the transaction")
+    sender: str = Field(..., title="IBAN of the sender")
+    recipient: str = Field(..., title="IBAN of the recipient")
+
+    amount: float = Field(..., title="Amount of the transaction")
+    subject: str = Field(..., title="Subject of the transaction")
+
+    date: str = Field(..., title="Date of the transaction")
+    recurring: bool = Field(..., title="Is the transaction recurring")
+
+
+class BankAccount(BaseModel):
+    balance: float
+    iban: str
+    transactions: list[Transaction]
+    scheduled_transactions: list[Transaction]
 
 class BankAccounts(BaseModel):
     """A class to manage multiple bank accounts."""

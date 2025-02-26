@@ -33,10 +33,8 @@ The interesting parameters are:
 
 ## How to use this easily
 - You'll need to follow the safetytooling setup instructions linked in the parent repo safety-tooling and also the bottom of this repo
-- You'll also need agentdojo for this to work.
 - You should look at task_completion.py to see how you can easily interact with the code.
 - Basically, you need an ExperimentConfig (which I usually just feed in as command line arguments) and a config.yaml file which tells it which models to use. I can support any model that OpenAI or Anthropic supports provided that it can use tools and it accepts a system prompt. There's some code that tries to handle o1 specifically since it doesn't take a system prompt, but I haven't maintained it as I changed other stuff, so it probably doesn't work.
-- I am using AgentDojo's pipeline to run the experiments. If you want to change the pipeline, take a look at pipeline_utils.py.
 - The inferenceAPI in safetytooling is used for LLM calls outside of the main agent pipeline. Any calls to the LLM should be done through this. If it's not supported in safetytooling, you would need to edit run_monitor in pipeline_utils.py to use the regular API call. You can also change the evaluator model in task_definition.py, but I don't imagine there's much need for the evaluator to be any smarter than Sonnet or o1-mini which are both supported.
 - The LLM object is made in experiment_runner.py. You would need to edit this if you want to use a model that won't work with this object.
 

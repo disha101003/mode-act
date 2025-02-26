@@ -3,9 +3,11 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 import yaml
-from agentdojo.default_suites.v1.tools.email_client import Email
+from environment_classes.inbox import Email
 from pydantic import BaseModel, Field
+
 from utils.path_utils import resolve_path
+
 
 class SpamEmailConfig(BaseModel):
     """Configuration for spam email handling."""

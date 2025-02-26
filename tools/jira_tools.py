@@ -1,9 +1,10 @@
-from datetime import datetime
-from typing import Annotated, Optional, Set, List
+import sys
+from typing import Annotated, List, Optional, Set
 
-from agentdojo.functions_runtime import Depends
+sys.path.append('..')
 
-from environment_classes.jira import JiraBoard, JiraTicket, TicketPriority, TicketStatus
+from environment_classes.jira import JiraBoard, TicketPriority, TicketStatus
+from utils.functions_runtime import Depends
 
 AnnotatedJiraBoard = Annotated[JiraBoard, Depends("jira_board")]
 

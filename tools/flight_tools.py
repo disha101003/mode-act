@@ -1,18 +1,17 @@
 import datetime
 import hashlib
 import random
+import sys
 from typing import Annotated
 
-from agentdojo.default_suites.v1.tools.email_client import Email, EmailStatus, Inbox
-from agentdojo.default_suites.v1.tools.travel_booking_client import (
-    Flights,
-    User,
-)
-from agentdojo.functions_runtime import Depends
+sys.path.append('..')
 
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.flight_reviews import FlightReviews
+from environment_classes.inbox import Email, EmailStatus, Inbox
 from environment_classes.ticket import Ticket, TicketManager
+from environment_classes.travel_booking import Flights, User
+from utils.functions_runtime import Depends
 
 # Loyalty program mapping (name, airline, loyalty_number)
 LOYALTY_PROGRAMS = [

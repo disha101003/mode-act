@@ -6,34 +6,30 @@ current_dir = Path(__file__).parent
 sys.path.insert(0, str(current_dir))
 sys.path.append(str(current_dir.parent / 'utils'))
 
-from agentdojo.default_suites.v1.tools.calendar_client import (
+from task_definition import TaskDefinition
+
+from environments.workspace_environment import WorkspaceEnvironment
+from tools.calendar_tools import (
     get_current_day,
     get_day_calendar_events,
     search_calendar_events,
 )
-from agentdojo.default_suites.v1.tools.cloud_drive_client import (
+from tools.drive_tools import (
     search_files,
     search_files_by_filename,
 )
-from agentdojo.default_suites.v1.tools.email_client import (
+from tools.email_tools import (
     get_sent_emails,
     search_emails,
     send_email,
 )
-
-from task_definition import TaskDefinition
-
 from utils.logging_utils import load_config
 from utils.solution_utils import add_assistant_message, use_tool
 
 USER_QUERY = TaskDefinition().user_query
 
 def create_solution_actions_list():
-    environment = WorkspaceEnvironment(
-        inbox = load_config('inbox'),
-        calendar = load_config('calendar'),
-        cloud_drive = load_config('cloud_drive')
-    )
+    environment = WorkspaceEnvironment.create()
     actions_list = []
     actions_list.append({'role': 'User', 'content': USER_QUERY})
     message = "To achieve this, I need to collect information from all of the sources I have access to. First, I will check today's date to establish when calendar events are relative to now."

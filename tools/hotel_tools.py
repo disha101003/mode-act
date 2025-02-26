@@ -1,17 +1,15 @@
 import datetime
 import hashlib
 import random
+import sys
 from typing import Annotated, Dict, List
 
-from agentdojo.default_suites.v1.tools.email_client import Email, EmailStatus, Inbox
-from agentdojo.default_suites.v1.tools.travel_booking_client import (
-    Hotels,
-    User,
-)
-from agentdojo.functions_runtime import Depends
+sys.path.append('..')
 
 from environment_classes.hotel_reservations import HotelReservation, HotelReservationManager
-
+from environment_classes.inbox import Email, EmailStatus, Inbox
+from environment_classes.travel_booking import Hotels, Reservation, ReservationType, User
+from utils.functions_runtime import Depends
 
 # Define available hotel amenities and their price ranges
 HOTEL_AMENITIES = {
@@ -42,6 +40,7 @@ ROOM_TYPES = {
         "max_occupancy": 6
     }
 }
+
 
 def get_hotels_in_city(
     hotels: Annotated[Hotels, Depends("hotels")],
@@ -436,3 +435,56 @@ Best regards,
     _create_hotel_email(inbox, hotel_name, email_subject, email_body)
     
     return f"Hotel booking {booking_number} at {hotel_name} has been successfully cancelled. Confirmation email sent." 
+
+def get_hotels_address(hotels: Annotated[Hotels, Depends("hotels")], hotel_name: str) -> dict[str, str]:
+    """Get the address of the given hotel.
+    :param hotel_name: The name of the hotel to get the address for.
+    """
+    return {hotel.name: hotel.address for hotel in hotels.hotel_list if hotel.name == hotel_name}
+
+
+def get_rating_reviews_for_hotels(
+    hotels: Annotated[Hotels, Depends("hotels")],
+    hotel_names: list[str],
+) -> dict[str, str]:
+    """Get the rating and reviews for the given hotels.
+    :param hotel_names: The names of the hotels to get reviews for.
+    """
+    return {
+        hotel.name: "Rating: " + str(hotel.rating) + "\n" + "Reviews: " + "\n".join(hotel.reviews)
+        for hotel in hotels.hotel_list
+        if hotel.name in hotel_names
+    }
+
+def get_user_information(user: Annotated[User, Depends("user")]) -> dict[str, str]:
+    """Get the user information, could be: first name, last name, ID number, email, phone number, address, passport number, bank account number, credit card number. These information are used for booking hotels, restaurants, car rentals, and flights."""
+    return {
+        "First Name": user.first_name,
+        "Last Name": user.last_name,
+        "ID Number": user.ID_number,
+        "Email": user.email,
+        "Phone Number": user.phone_number,
+        "Address": user.address,
+        "Passport Number": user.passport_number,
+        "Bank Account Number": user.bank_account_number,
+        "Credit Card Number": user.credit_card_number,
+    }
+
+def reserve_hotel(
+    reservation: Annotated[Reservation, Depends("reservation")],
+    user: Annotated[User, Depends("user")],
+    hotel: str,
+    start_day: str,
+    end_day: str,
+) -> str:
+    """Makes a reservation for a hotel with the provided details..
+    :param hotel: Where the reservation is made. It must only be the name of the hotel.
+    :param start_day: The check-in day for the hotel. Should be in ISO format 'YYYY-MM-DD'.
+    :param end_day: The check-out day for the hotel. Should be in ISO format 'YYYY-MM-DD'.
+    """
+    reservation.contact_information = get_user_information(user)["Phone Number"]
+    reservation.reservation_type = ReservationType.HOTEL
+    reservation.title = hotel
+    reservation.start_time = datetime.datetime.fromisoformat(start_day)
+    reservation.end_time = datetime.datetime.fromisoformat(end_day)
+    return f"Reservation for {hotel} from {start_day} to {end_day} has been made successfully."

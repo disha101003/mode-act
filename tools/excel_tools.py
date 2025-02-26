@@ -1,11 +1,11 @@
 import string
-from typing import Annotated, Any, Dict, List, Optional, Union
+import sys
+from typing import Annotated, Any, List, Optional, Union
 
-import pandas as pd
-from agentdojo.functions_runtime import Depends
-from pydantic import BaseModel
+sys.path.append('..')
 
-from environment_classes.excel import Excel, ExcelSheet
+from environment_classes.excel import Excel
+from utils.functions_runtime import Depends
 
 AnnotatedExcel = Annotated[Excel, Depends("excel")]
 

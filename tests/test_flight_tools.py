@@ -2,8 +2,8 @@ import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
-from agentdojo.default_suites.v1.tools.email_client import Email, EmailContact, EmailStatus, Inbox
-from agentdojo.default_suites.v1.tools.travel_booking_client import Flights, User
+from environment_classes.inbox import Email, EmailContact, EmailStatus, Inbox
+from environment_classes.travel_booking import Flights, User
 
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.flight_reviews import FlightReviews

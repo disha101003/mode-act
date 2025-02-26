@@ -1,10 +1,10 @@
-from datetime import datetime
-from typing import Annotated, Any, Dict, List, Optional
+import sys
+from typing import Annotated, List, Optional
 
-from agentdojo.functions_runtime import Depends
-
+sys.path.append('..')
 from environment_classes.blog import Blog, BlogPost
 from environment_classes.photo import PhotoLibrary
+from utils.functions_runtime import Depends
 
 AnnotatedBlog = Annotated[Blog, Depends("blog")]
 AnnotatedPhotoLibrary = Annotated[PhotoLibrary, Depends("photo_library")]

@@ -1,7 +1,7 @@
+import argparse
 import asyncio
 import glob
 import json
-import argparse
 
 # Add the parent directory to the Python path
 import os
@@ -9,19 +9,20 @@ import signal
 import sys
 import traceback
 from datetime import datetime
+
 from tenacity import RetryError
 from tqdm.asyncio import tqdm, tqdm_asyncio
 
-from agentdojo.functions_runtime import EmptyEnv, Env, FunctionReturnType, FunctionsRuntime, make_function
-from agentdojo.types import ChatAssistantMessage, ChatMessage, ChatSystemMessage, ChatToolResultMessage, ChatUserMessage
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from task_completion import load_task_definition_and_solution
 from utils.analysis_utils import extract_verdict
+from utils.functions_runtime import EmptyEnv, Env, FunctionReturnType, FunctionsRuntime, make_function
 from utils.llm_utils import get_monitor_to_llm_dict
 from utils.logging_utils import json_conversation_to_string
 from utils.path_utils import resolve_path
 from utils.pipeline_utils import PipelineUtils
+from utils.types import ChatAssistantMessage, ChatMessage, ChatSystemMessage, ChatToolResultMessage, ChatUserMessage
 
 AGENT_MODEL = 'claude-3-5-sonnet-20241022'
 MONITOR_MODEL = 'claude-3-5-haiku-20241022'

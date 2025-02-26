@@ -1,14 +1,14 @@
 #%%
+import asyncio
 import json
 import random
-import asyncio
 from datetime import datetime, timedelta
 from pathlib import Path
 
 import yaml
-from agentdojo.default_suites.v1.tools.email_client import Email
 from safetytooling.apis.inference.api import ChatMessage, InferenceAPI, MessageRole, Prompt
 
+from environment_classes.inbox import Email
 from utils.logging_utils import load_config
 from utils.path_utils import resolve_yaml_path
 

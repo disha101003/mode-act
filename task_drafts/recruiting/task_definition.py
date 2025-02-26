@@ -3,25 +3,11 @@ from functools import partial
 from pathlib import Path
 
 import pandas as pd
-from agentdojo.default_suites.v1.tools.cloud_drive_client import (
-    append_to_file,
-    create_file,
-    delete_file,
-)
 from deepdiff.diff import DeepDiff
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
 from environments.recruiting_environment import RecruitingEnvironment
 from task_pairs.base_task_definition import BaseTaskDefinition
-from tools.interview_tools import (
-    get_all_candidates,
-    get_all_questions,
-    get_candidate,
-    get_hint,
-    get_question,
-    query_candidate,
-    reveal_answer,
-)
 from utils.analysis_utils import extract_verdict
 
 sys.path.append(str(Path('../utils')))

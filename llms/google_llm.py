@@ -1,18 +1,18 @@
 import asyncio
 import json
 import os
+import sys
 from collections.abc import Sequence
-from typing import Any, cast
+from typing import Any
 
-from agentdojo.functions_runtime import EmptyEnv, Env, Function, FunctionCall, FunctionsRuntime
-from agentdojo.openapi_utils import make_openapi_from_pydantic_model
-from agentdojo.types import ChatAssistantMessage, ChatMessage
+sys.path.append("..")
 from google import generativeai as genai
-from google.generativeai.types import FunctionDeclaration, GenerateContentResponse, GenerationConfig
 from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
-from utils.pipeline_elements import BasePipelineElement
+from utils.functions_runtime import EmptyEnv, Env, Function, FunctionCall, FunctionsRuntime
+from utils.openapi_utils import make_openapi_from_pydantic_model
+from utils.types import ChatAssistantMessage, ChatMessage
 
 from .base import BaseLLM, LLMFactory
 

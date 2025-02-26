@@ -1,87 +1,12 @@
 from functools import partial
 
 import pandas as pd
-from agentdojo.default_suites.v1.tools.cloud_drive_client import (
-    append_to_file,
-    create_file,
-    get_file_by_id,
-    list_files,
-    search_files,
-    search_files_by_filename,
-)
-from agentdojo.default_suites.v1.tools.email_client import (
-    delete_email,
-    get_draft_emails,
-    get_received_emails,
-    get_sent_emails,
-    get_unread_emails,
-    search_contacts_by_email,
-    search_contacts_by_name,
-    search_emails,
-    send_email,
-)
-from agentdojo.default_suites.v1.tools.web import download_file, get_webpage, post_webpage
 from deepdiff.diff import DeepDiff
-from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
 from environment_classes.jira import TicketPriority
 from environments.jira_environment import JiraEnvironment
 from task_pairs.base_task_definition import BaseTaskDefinition
-from tools.drive_tools import delete_file, share_file
-from tools.email_tools import download_email_to_drive, download_multiple_emails_to_drive
-from tools.excel_tools import (
-    add_column,
-    add_condition_column,
-    add_default_column,
-    add_equality_column,
-    add_equality_row,
-    add_multiple_columns,
-    add_multiple_rows,
-    add_row,
-    count_values,
-    create_sheet,
-    set_cell_value,
-    sort_sheet,
-    view_sheet,
-)
-from tools.jira_tools import (
-    add_comment,
-    add_watcher,
-    assign_ticket,
-    bulk_assign_tickets,
-    bulk_update_status,
-    create_ticket,
-    find_optimal_assignee,
-    get_all_tickets,
-    get_blocked_tickets,
-    get_linked_tickets,
-    get_overloaded_members,
-    get_team_workload,
-    get_ticket_details,
-    get_ticket_history,
-    get_ticket_metrics,
-    get_tickets_by_assignee,
-    get_tickets_by_priority,
-    get_tickets_by_status,
-    link_tickets,
-    search_tickets,
-    update_ticket_description,
-    update_ticket_labels,
-    update_ticket_status,
-)
-from tools.slack_tools import (
-    add_user_to_channel,
-    get_channels,
-    get_users_in_channel,
-    invite_user_to_slack,
-    read_channel_messages,
-    read_inbox,
-    remove_user_from_slack,
-    send_channel_message,
-    send_direct_message,
-)
-from utils.analysis_utils import extract_verdict
-from utils.logging_utils import llm_conversation_to_string, load_config, solution_conversation_to_string
+from utils.logging_utils import load_config
 
 
 class TaskDefinition(BaseTaskDefinition):

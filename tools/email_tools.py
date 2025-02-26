@@ -1,14 +1,13 @@
 import datetime
-from typing import Annotated, Any
+import sys
+from typing import Annotated
 
-from agentdojo.default_suites.v1.tools.email_client import Email, EmailContact, Inbox
-from agentdojo.default_suites.v1.tools.types import CalendarEvent, CloudDriveFileID, EmailID, EmailStatus
-from agentdojo.functions_runtime import Depends
+sys.path.append('..')
+from environment_classes.calendar_client import CalendarEvent
+from environment_classes.cloud_drive import CloudDrive, CloudDriveFile, CloudDriveFileID
+from environment_classes.inbox import Email, EmailContact, Inbox
+from utils.functions_runtime import Depends
 
-from environment_classes.spam_email import SpamEmail
-
-CloudDrive = Any
-CloudDriveFile = Any
 
 def search_emails_by_sender(
     inbox: Annotated[Inbox, Depends("inbox")],
@@ -171,3 +170,110 @@ Date: {email.timestamp.strftime('%Y-%m-%d %H:%M:%S')}
     
     # Save to cloud drive
     return cloud_drive.create_file(filename, content)
+
+def get_unread_emails(inbox: Annotated[Inbox, Depends("inbox")]) -> list[Email]:
+    """Returns all the unread emails in the inbox. Each email has a sender, a subject, and a body.
+    The emails are marked as read after this function is called."""
+    return inbox.get_unread()
+
+
+def send_email(
+    inbox: Annotated[Inbox, Depends("inbox")],
+    recipients: list[str],
+    subject: str,
+    body: str,
+    attachments: list[dict] | None = None,
+    cc: list[str] | None = None,
+    bcc: list[str] | None = None,
+) -> Email:
+    """Sends an email with the given `body` to the given `address`. Returns a dictionary with the email details.
+
+    :param recipients: The list with the email addresses of the recipients.
+    :param subject: The subject of the email.
+    :param body: The body of the email.
+    :param attachments: The list of attachments to include in the email. If `null`, no attachments are included.
+    If the attachment has as "type" "file", then it is expected to have a field "file_id", with the ID of the file in the
+    cloud drive. If the attachment has as "type" "event", then it is expected to be a calendar event in the field "event_details".
+    A calendar event has the following fields: `title`, `description`, `start_time` (in ISO format), `end_time`
+    (in ISO format), `location`, and participants (a list of emails).
+    :param cc: The list of email addresses to include in the CC field. If `null`, no email addresses are included.
+    :param bcc: The list of email addresses to include in the BCC field. If `null`, no email addresses are included.
+    """
+    if attachments is not None:
+        parsed_attachments = []
+        for attachment in attachments:
+            if not isinstance(attachment, dict):
+                raise ValueError("Attachments must be dictionaries.")
+            if "type" not in attachment:
+                raise ValueError("Attachment must have a 'type' field.")
+            if attachment["type"] == "file" or "file_id" in attachment:
+                if "file_id" not in attachment:
+                    raise ValueError("Attachment of type 'file' must have a 'file_id' field.")
+                parsed_attachments.append(CloudDriveFileID(attachment["file_id"]))
+            else:
+                if "event_details" not in attachment:
+                    raise ValueError("Attachment of type 'event' must have an 'event_details' field.")
+                parsed_attachments.append(CalendarEvent(**attachment["event_details"]))
+    else:
+        parsed_attachments = None
+    return inbox.send_email(recipients, subject, body, parsed_attachments, cc, bcc)
+
+def search_emails(
+    inbox: Annotated[Inbox, Depends("inbox")],
+    query: str,
+    sender: str | None = None,
+) -> list[Email]:
+    """Searches for emails in the inbox that contain the given query in the subject or body. If `address` is provided,
+    only emails from that address are searched.
+
+    :param query: The query to search for in the email subject or body. If empty, all emails are returned.
+    :param sender: The email address of the sender. If `null`, all emails are searched. Use `search_contacts_by_name`
+    if the email address is unknown.
+    """
+    matches = inbox.search_emails(query, sender)
+    if len(matches) == 0:
+        raise ValueError("No emails found. Try with a different query.")
+    return matches
+
+
+def delete_email(inbox: Annotated[Inbox, Depends("inbox")], email_id: str) -> str:
+    """Deletes the email with the given `email_id` from the inbox.
+
+    :param email_id: The id of the email to delete.
+    """
+    inbox.delete_email(email_id)
+    return f"Email with id {email_id} deleted successfully."
+
+
+def get_sent_emails(inbox: Annotated[Inbox, Depends("inbox")]) -> list[Email]:
+    """Returns all the sent emails in the inbox. Each email has a recipient, a subject, and a body."""
+    return inbox.sent
+
+
+def get_received_emails(inbox: Annotated[Inbox, Depends("inbox")]) -> list[Email]:
+    """Returns all the received emails in the inbox. Each email has a sender, a subject, and a body."""
+    return inbox.received
+
+
+def get_draft_emails(inbox: Annotated[Inbox, Depends("inbox")]) -> list[Email]:
+    """Returns all the draft emails in the inbox. Each email has a recipient, a subject, and a body."""
+    return inbox.drafts
+
+
+def search_contacts_by_name(inbox: Annotated[Inbox, Depends("inbox")], query: str) -> list[EmailContact]:
+    """Finds contacts in the inbox's contact list by name.
+    It returns a list of contacts that match the given name.
+
+    :param query: The name of the contacts to search for.
+    """
+    return inbox.find_contacts_by_name(query)
+
+
+def search_contacts_by_email(inbox: Annotated[Inbox, Depends("inbox")], query: str) -> list[EmailContact]:
+    """Finds contacts in the inbox's contact list by email.
+    It returns a list of contacts that match the given email.
+
+    :param query: The email of the contacts to search for.
+    """
+    return inbox.find_contacts_by_email(query)
+

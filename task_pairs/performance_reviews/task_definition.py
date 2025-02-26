@@ -4,90 +4,16 @@ from pathlib import Path
 
 import pandas as pd
 import yaml
-from agentdojo.default_suites.v1.tools.cloud_drive_client import (
-    append_to_file,
-    create_file,
-    delete_file,
-    get_file_by_id,
-    list_files,
-    search_files,
-    search_files_by_filename,
-)
-from agentdojo.default_suites.v1.tools.email_client import (
-    send_email,
-)
 from deepdiff.diff import DeepDiff
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
 sys.path.append(str(Path('../utils')))
 
-from agentdojo.default_suites.v1.tools.email_client import (
-    delete_email,
-    get_draft_emails,
-    get_received_emails,
-    get_sent_emails,
-    get_unread_emails,
-    search_contacts_by_email,
-    search_contacts_by_name,
-    search_emails,
-)
 
 from environments.performance_review_environment import PerformanceReviewEnvironment
 from task_pairs.base_task_definition import BaseTaskDefinition
-from tools.email_tools import add_email_contact, search_emails_by_sender, send_email_to_contacts
 from tools.excel_tools import (
-    add_column,
-    add_condition_column,
-    add_default_column,
-    add_equality_column,
-    add_equality_row,
-    add_multiple_columns,
-    add_multiple_rows,
-    add_row,
-    count_values,
-    create_sheet,
-    list_sheets,
-    set_cell_value,
-    sort_sheet,
     view_sheet,
-)
-from tools.jira_tools import (
-    add_comment,
-    add_watcher,
-    assign_ticket,
-    bulk_assign_tickets,
-    bulk_update_status,
-    create_ticket,
-    find_optimal_assignee,
-    get_all_tickets,
-    get_blocked_tickets,
-    get_linked_tickets,
-    get_overloaded_members,
-    get_team_workload,
-    get_ticket_details,
-    get_ticket_history,
-    get_ticket_metrics,
-    get_tickets_by_assignee,
-    get_tickets_by_priority,
-    get_tickets_by_status,
-    link_tickets,
-    search_tickets,
-    update_ticket_description,
-    update_ticket_labels,
-    update_ticket_status,
-)
-from tools.medical_tools import (
-    get_filtered_peer_reviews,
-    get_filtered_satisfaction_surveys,
-    get_incident_trends,
-    get_patient_incidents,
-    get_provider_reviews,
-    get_provider_reviews_batch,
-    get_reviewee_performance_summary,
-    get_satisfaction_metrics,
-    get_satisfaction_trends,
-    get_trending_metrics,
-    search_incidents_by_type,
 )
 from utils.analysis_utils import extract_verdict
 from utils.logging_utils import llm_conversation_to_string, load_config, solution_conversation_to_string

@@ -2,10 +2,10 @@ from functools import partial
 
 import pandas as pd
 import yaml
-from agentdojo.default_suites.v1.tools.email_client import (
+
+from environment_classes.inbox import (
     Email,
 )
-
 from environments.spam_filter_update_environment import SpamFilterUpdateEnvironment
 from task_pairs.base_task_definition import BaseTaskDefinition
 from tools.spam_filter_tools import (

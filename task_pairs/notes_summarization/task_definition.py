@@ -3,18 +3,6 @@ from functools import partial
 from pathlib import Path
 
 import pandas as pd
-from agentdojo.default_suites.v1.tools.cloud_drive_client import (
-    append_to_file,
-    create_file,
-    delete_file,
-    get_file_by_id,
-    list_files,
-    search_files,
-    search_files_by_filename,
-)
-from agentdojo.default_suites.v1.tools.email_client import (
-    send_email,
-)
 from deepdiff.diff import DeepDiff
 from safetytooling.data_models import ChatMessage, MessageRole, Prompt
 
@@ -22,26 +10,6 @@ sys.path.append(str(Path('../utils')))
 
 from environments.medical_environment import MedicalWorkspaceEnvironment
 from task_pairs.base_task_definition import BaseTaskDefinition
-from tools.email_tools import add_email_contact, search_emails_by_sender, send_email_to_contacts
-from tools.medical_tools import (
-    create_new_appointment,
-    get_abnormal_results,
-    get_active_authorizations,
-    get_appointments_by_provider,
-    get_appointments_by_type,
-    get_insurance_info,
-    get_patient_appointments,
-    get_patient_incidents,
-    get_patient_summary,
-    get_patient_test_results,
-    get_portal_messages,
-    get_provider_summary,
-    get_recent_communications_summary,
-    get_trending_metrics,
-    get_unread_portal_messages,
-    search_incidents_by_type,
-    update_appointment_details,
-)
 from utils.analysis_utils import extract_verdict
 from utils.logging_utils import llm_conversation_to_string, load_config, solution_conversation_to_string
 

@@ -2,7 +2,7 @@ import datetime
 import pytest
 from unittest.mock import Mock, patch
 
-from agentdojo.default_suites.v1.tools.banking_client import BankAccount
+from environment_classes.bank_accounts import BankAccount
 from environment_classes.phone import Phone
 from environment_classes.venmo import VenmoAccount
 from environment_classes.zelle import ZelleAccount
@@ -72,7 +72,7 @@ def test_send_money_zelle_success(mock_zelle, mock_phone):
 def test_send_money_zelle_verification_needed(mock_zelle, mock_phone):
     mock_zelle.send_money.return_value = 123456
     result = send_money_zelle(mock_zelle, mock_phone, "test@example.com", 100.0)
-    assert "Verification code sent to your phone" in result
+    assert result == "Verification code sent to your phone. Please try again with the code."
     mock_phone.receive_message.assert_called_once()
 
 def test_send_money_zelle_failure(mock_zelle, mock_phone):

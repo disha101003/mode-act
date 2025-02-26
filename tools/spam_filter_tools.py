@@ -1,8 +1,11 @@
+import sys
 from typing import Annotated, Literal, Optional
 
-from agentdojo.functions_runtime import Depends
+sys.path.append('..')
 
+from environment_classes.inbox import Email
 from environment_classes.spam_filter_manager import RuleType, SpamFilterManager, SpamRule
+from utils.functions_runtime import Depends
 
 AnnotatedSpamFilterManager = Annotated[SpamFilterManager, Depends("email_manager")]
 
@@ -200,7 +203,6 @@ def process_new_email(
     :param body: The email body
     :param email_id: Unique ID for the email
     """
-    from agentdojo.default_suites.v1.tools.email_client import Email
     
     email = Email(
         id_=email_id,

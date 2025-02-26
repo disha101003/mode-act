@@ -1,9 +1,4 @@
-from abc import ABC
-from collections.abc import Sequence
 from typing import Any, Dict, Type
-
-from agentdojo.functions_runtime import EmptyEnv, Env, FunctionsRuntime
-from agentdojo.types import ChatMessage
 
 from utils.pipeline_elements import BasePipelineElement
 

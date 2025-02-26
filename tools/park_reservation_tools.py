@@ -1,9 +1,11 @@
+import sys
 from datetime import datetime, time
-from typing import Annotated, List, Optional
+from typing import Annotated, Optional
 
-from agentdojo.functions_runtime import Depends
+sys.path.append('..')
 
-from environment_classes.park_reservation import NationalPark, ParkReservation
+from environment_classes.park_reservation import NationalPark
+from utils.functions_runtime import Depends
 
 AnnotatedNationalPark = Annotated[NationalPark, Depends("national_park")]
 

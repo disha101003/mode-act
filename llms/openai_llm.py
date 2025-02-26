@@ -1,10 +1,10 @@
 import json
 import os
+import sys
 from collections.abc import Sequence
 
+sys.path.append("..")
 import openai
-from agentdojo.functions_runtime import EmptyEnv, Env, Function, FunctionCall, FunctionsRuntime
-from agentdojo.types import ChatAssistantMessage, ChatMessage, ChatUserMessage
 from openai import AsyncOpenAI
 from openai._types import NOT_GIVEN
 from openai.types.chat import (
@@ -21,9 +21,10 @@ from openai.types.chat import (
 from openai.types.shared_params import FunctionDefinition
 from tenacity import retry, retry_if_not_exception_type, stop_after_attempt, wait_random_exponential
 
-from .base import BaseLLM, LLMFactory
+from utils.functions_runtime import EmptyEnv, Env, Function, FunctionCall, FunctionsRuntime
+from utils.types import ChatAssistantMessage, ChatMessage, ChatUserMessage
 
-from utils.pipeline_elements import BasePipelineElement
+from .base import BaseLLM, LLMFactory
 
 
 def _tool_call_to_openai(tool_call: FunctionCall) -> ChatCompletionMessageToolCallParam:

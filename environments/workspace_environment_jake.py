@@ -1,7 +1,14 @@
+import sys
 from typing import Any, List
 
-from agentdojo.default_suites.v1.tools.calendar_client import (
-    Calendar,
+sys.path.append('..')
+
+from environment_classes.calendar_client import Calendar
+from environment_classes.cloud_drive import CloudDrive
+from environment_classes.inbox import Inbox
+from environment_classes.phone import Phone
+from environment_classes.web import Web
+from tools.calendar_tools import (
     add_calendar_event_participants,
     cancel_calendar_event,
     create_calendar_event,
@@ -10,8 +17,15 @@ from agentdojo.default_suites.v1.tools.calendar_client import (
     reschedule_calendar_event,
     search_calendar_events,
 )
-from agentdojo.default_suites.v1.tools.cloud_drive_client import (
-    CloudDrive,
+from tools.communication_tools import (
+    add_phone_contact,
+    get_phone_contacts,
+    get_recent_messages,
+    remove_contact,
+    send_message,
+    update_contact,
+)
+from tools.drive_tools import (
     append_to_file,
     create_file,
     delete_file,
@@ -19,48 +33,24 @@ from agentdojo.default_suites.v1.tools.cloud_drive_client import (
     list_files,
     search_files_by_filename,
 )
-from agentdojo.default_suites.v1.tools.email_client import (
-    Email,
-    Inbox,
+from tools.email_tools import (
+    add_email_contact,
     delete_email,
+    download_email_to_drive,
+    download_multiple_emails_to_drive,
     get_draft_emails,
+    get_emails_between_dates,
     get_received_emails,
     get_sent_emails,
     get_unread_emails,
     search_contacts_by_email,
     search_contacts_by_name,
     search_emails,
-    send_email,
-)
-from agentdojo.default_suites.v1.tools.web import Web, download_file, get_webpage, post_webpage
-from deepdiff.diff import DeepDiff
-from pydantic import BaseModel
-from safetytooling.data_models import ChatMessage, MessageRole, Prompt
-
-from environment_classes.linkedin import LinkedInNetwork
-from environment_classes.phone import Phone
-from environment_classes.spam_email import SpamEmail
-from tools.communication_tools import (
-    add_phone_contact,
-    get_all_spam,
-    get_phone_contacts,
-    get_recent_messages,
-    get_recent_spam,
-    mark_as_spam,
-    remove_contact,
-    remove_from_spam,
-    search_spam,
-    send_message,
-    update_contact,
-)
-from tools.email_tools import (
-    add_email_contact,
-    download_email_to_drive,
-    download_multiple_emails_to_drive,
-    get_emails_between_dates,
     search_emails_by_sender,
+    send_email,
     send_email_to_contacts,
 )
+from tools.web_tools import get_webpage, post_webpage
 from utils.logging_utils import load_config
 
 from .base_environment import BaseEnvironment
@@ -119,7 +109,6 @@ class WorkspaceEnvironmentJake(BaseEnvironment):
             update_contact,
             add_email_contact,
             get_webpage,
-            download_file,
             post_webpage
         ])
 

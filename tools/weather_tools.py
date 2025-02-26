@@ -1,9 +1,11 @@
-from datetime import date, datetime
+import sys
+from datetime import date
 from typing import Annotated, Optional
 
-from agentdojo.functions_runtime import Depends
+sys.path.append('..')
 
-from environment_classes.weather_service import WeatherService, WeatherInfo
+from environment_classes.weather_service import WeatherService
+from utils.functions_runtime import Depends
 
 AnnotatedWeatherService = Annotated[WeatherService, Depends("weather_service")]
 

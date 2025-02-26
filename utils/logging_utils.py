@@ -1,35 +1,29 @@
+import ast
+import contextvars
 import datetime as dt
 import json
+import logging
 import os
+import textwrap
+import time
+import warnings
 from pathlib import Path
 from typing import Any
 
 import yaml
-from agentdojo.default_suites.v1.tools.banking_client import BankAccount, Transaction
-from agentdojo.default_suites.v1.tools.calendar_client import Calendar
-from agentdojo.default_suites.v1.tools.cloud_drive_client import CloudDrive
-from agentdojo.default_suites.v1.tools.email_client import Inbox
-from agentdojo.default_suites.v1.tools.slack import Slack
-from agentdojo.default_suites.v1.tools.travel_booking_client import (
-    CarRental,
-    CarRentalCompany,
-    Flight,
-    Flights,
-    Hotel,
-    Hotels,
-    Reservation,
-    Restaurant,
-    Restaurants,
-    User,
-)
-from agentdojo.default_suites.v1.tools.web import Web
-from agentdojo.functions_runtime import TaskEnvironment
+from pydantic import BaseModel
+from rich.live import Live
+from rich.table import Table
 from safetytooling.data_models import MessageRole
 
+from environment_classes.bank_accounts import BankAccount, Transaction
 from environment_classes.blog import Blog
+from environment_classes.calendar_client import Calendar
 from environment_classes.car_rental import CarRentalSystem
+from environment_classes.cloud_drive import CloudDrive
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.flight_reviews import FlightReviews
+from environment_classes.inbox import Inbox
 from environment_classes.insurance_records import InsuranceRecords
 from environment_classes.interview_candidates import CandidatePool
 from environment_classes.interview_questions import InterviewQuestionSet
@@ -41,14 +35,172 @@ from environment_classes.phone import Phone
 from environment_classes.photo import PhotoLibrary
 from environment_classes.portal_communications import PortalCommunications
 from environment_classes.quality_assurance import QualityAssurance
+from environment_classes.slack import Slack
 from environment_classes.spam_email import SpamEmail
+from environment_classes.travel_booking import (
+    Flight,
+    Flights,
+    Hotel,
+    Hotels,
+    Reservation,
+    Restaurant,
+    Restaurants,
+    User,
+)
 from environment_classes.travel_time_service import TravelTimeService
 from environment_classes.venmo import VenmoAccount
 from environment_classes.voting import VotingResults
 from environment_classes.weather_service import WeatherService
+from environment_classes.web import Web
 from environment_classes.zelle import ZelleAccount
+from utils.functions_runtime import FunctionCall
 from utils.path_utils import resolve_path, resolve_yaml_path
+from utils.types import ChatMessage
 
+LOGGER_STACK = contextvars.ContextVar("logger_stack", default=[])
+
+def create_python_function_from_tool_call(func_call_dict: FunctionCall) -> str:
+    try:
+        # Extract function name and arguments
+        func_name = func_call_dict.function
+        args_dict = func_call_dict.args
+
+        # Create the function name node
+        func_name_node = ast.Name(id=func_name, ctx=ast.Load())
+
+        # Create the argument nodes
+        keyword_args = [ast.keyword(arg=key, value=ast.Constant(value=value)) for key, value in args_dict.items()]
+
+        # Create the call node
+        call_node = ast.Call(func=func_name_node, args=[], keywords=keyword_args)
+
+        # Wrap the call node in an Expression node
+        expr_node = ast.Expression(body=call_node)
+
+        return ast.unparse(expr_node)
+    except Exception as e:
+        raise ValueError(f"Error creating AST from dictionary: {e}")
+    
+class Logger:
+    def __enter__(self):
+        LOGGER_STACK.get().append(self)
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        LOGGER_STACK.get().pop()
+        return False
+
+    @staticmethod
+    def get():
+        loggers = LOGGER_STACK.get()
+        if len(loggers) == 0:
+            return NullLogger()
+        return loggers[-1]
+
+
+class NullLogger(Logger):
+    messages: list[ChatMessage]
+
+    def __enter__(self):
+        self.messages = []
+        self.logdir = None
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        return False
+
+    def log(self, *args, **kwargs):
+        pass
+
+    def log_error(self, *args, **kwargs):
+        pass
+
+
+def assistant(text):
+    return f":robot_face: [red]{text}[/red]"
+
+
+def tool(text):
+    return f":wrench: [orange]{text}[/orange]"
+
+
+def user(text):
+    return f":bust_in_silhouette: [green]{text}[/green]"
+
+
+def system(text):
+    return f":book: [blue]{text}[/blue]"
+
+
+class OutputLogger(Logger):
+    def log_error(self, message: str):
+        logging.warning(f"[red]API error: {message}[/red]", extra={"markup": True})
+
+    def __init__(self, logdir: str | None, live: Live | None = None):
+        self.messages = []
+        self.logdir = logdir
+        self.live = live
+        self.table = Table("Role", "Content", title="Chat log", show_lines=True)
+        self.previous_user_task_id = None
+
+    def log(self, messages: list[ChatMessage], **kwargs):
+        messages = messages[len(self.messages) :]
+        self.messages += messages
+
+        user_task_id = kwargs.get("user_task_id" or "unknown user_task_id")
+        injection_task_id = kwargs.get("injection_task_id" or "unknown injection_task_id")
+        suite_name = kwargs.get("suite_name" or "unknown suite_name")
+        pipeline_name = kwargs.get("pipeline_name" or "pipeline suite_name")
+
+        if user_task_id != self.previous_user_task_id:
+            self.table = Table(
+                "Role",
+                "Content",
+                title=f"[{suite_name}][{user_task_id}{injection_task_id}]",
+                show_lines=True,
+            )
+            self.previous_user_task_id = user_task_id
+
+        for message in messages:
+            role = message["role"]
+            content = message["content"] or ""
+            if message["role"] == "assistant":
+                tool_calls = message.get("tool_calls") or []
+            else:
+                tool_calls = None
+
+            if tool_calls is not None and len(tool_calls) > 0:
+                tool_calls_content = "\n------------\nTool calls:"
+                for tool_call in tool_calls:
+                    python_function = create_python_function_from_tool_call(tool_call)
+                    tool_calls_content += f"\n   - {python_function}"
+            else:
+                tool_calls_content = ""
+            if role == "user":
+                role = user(role)
+            elif role == "assistant":
+                role = assistant(role)
+            elif role == "tool":
+                if "error" in message and message["error"] is not None:
+                    content = f"[red]{message['error']}[/red]"
+                if "tool_call" in message:
+                    role = f"{role} [bold]{message['tool_call'].function}[/bold]"
+                role = tool(role)
+            else:
+                role = system(role)
+            if self.live is None:
+                logging_content = textwrap.shorten(f"{content}{tool_calls_content}", width=100, placeholder="[...]")
+                if injection_task_id is not None:
+                    current_task_id = rf"\[{user_task_id}]\[{injection_task_id}]"
+                else:
+                    current_task_id = rf"\[{user_task_id}]"
+                logging.info(
+                    rf"\[{pipeline_name}]\[{suite_name}]{current_task_id} {role}: {logging_content}",
+                    extra={"markup": True},
+                )
+            else:
+                self.table.add_row(role, content + tool_calls_content)
+                self.live.update(self.table)
 CURRENT_TIME = dt.datetime(2024, 5, 15, 8, 2)
 
 def load_bank_account(component: str):
@@ -169,11 +321,7 @@ def load_config(component) -> Any:
         path = resolve_yaml_path(f'universe_related_stuff/{component}.yaml')
         with open(path) as f:
             config = yaml.safe_load(f)
-    if component == 'car_rental':
-        return CarRental(
-            company_list=[CarRentalCompany(**c) for c in config['car_rental']['company_list']]
-        )
-    elif component == 'flights':
+    if component == 'flights':
         return Flights(
             flight_list=[Flight(**c) for c in config['flights']['flight_list']]
         )

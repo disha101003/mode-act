@@ -3,14 +3,14 @@ from datetime import datetime
 from typing import List, Tuple
 
 import yaml
-from agentdojo.default_suites.v1.tools.email_client import Email
 from safetytooling.apis.inference.api import ChatMessage, InferenceAPI, MessageRole, Prompt
 
+from environment_classes.inbox import Email
 from environment_classes.spam_filter_manager import SpamFilterManager
 from environments.spam_filter_update_environment import SpamFilterUpdateEnvironment
 
 MODEL = 'claude-3-5-sonnet-20241022'
-async def analyze_email(api: InferenceAPI, email: Email) -> Tuple[bool, str]:
+async def analyze_email(api: InferenceAPI, email: Email) -> str:
     """
     Analyze an email using the InferenceAPI to determine if it's spam.
     

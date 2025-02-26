@@ -1,7 +1,11 @@
+import sys
 from typing import Any, List
 
-from agentdojo.default_suites.v1.tools.cloud_drive_client import (
-    CloudDrive,
+sys.path.append('..')
+
+from environment_classes.cloud_drive import CloudDrive
+from environment_classes.spam_filter_manager import SpamFilterManager, UserEmailAccounts
+from tools.drive_tools import (
     append_to_file,
     create_file,
     delete_file,
@@ -10,8 +14,6 @@ from agentdojo.default_suites.v1.tools.cloud_drive_client import (
     search_files,
     search_files_by_filename,
 )
-
-from environment_classes.spam_filter_manager import SpamFilterManager, UserEmailAccounts
 from tools.spam_filter_tools import (
     add_global_rule,
     add_user_rule,

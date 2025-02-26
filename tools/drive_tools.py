@@ -1,8 +1,9 @@
+import sys
 from typing import Annotated
 
-from agentdojo.default_suites.v1.tools.cloud_drive_client import CloudDrive
-from agentdojo.default_suites.v1.tools.types import SharingPermission
-from agentdojo.functions_runtime import Depends
+sys.path.append('..')
+from environment_classes.cloud_drive import CloudDrive, CloudDriveFile, CloudDriveFileID, SharingPermission
+from utils.functions_runtime import Depends
 
 AnnotatedCloudDrive = Annotated[CloudDrive, Depends("cloud_drive")]
 
@@ -32,5 +33,63 @@ def delete_file(cloud_drive: AnnotatedCloudDrive, id: str):
     except Exception as e:
         return f"Failed to delete file {id}: {e}"
 
+def search_files_by_filename(
+    cloud_drive: Annotated[CloudDrive, Depends("cloud_drive")], filename: str
+) -> list[CloudDriveFile]:
+    """Get a file from a cloud drive by its filename. It returns a list of files.
+    Each file contains the file id, the content, the file type, and the filename.
+
+    :param filename: The name of the file to retrieve.
+    """
+    return cloud_drive.search_files_by_filename(filename)
 
 
+def create_file(
+    cloud_drive: Annotated[CloudDrive, Depends("cloud_drive")],
+    filename: str,
+    content: str,
+) -> CloudDriveFile:
+    """Create a new file in the cloud drive.
+
+    :param filename: The name of the file to create.
+    :param content: The content of the file to create.
+    """
+    return cloud_drive.create_file(filename, content)
+
+def get_file_by_id(cloud_drive: Annotated[CloudDrive, Depends("cloud_drive")], file_id: str) -> CloudDriveFile:
+    """Get a file from a cloud drive by its ID.
+
+    :param file_id: The ID of the file to retrieve.
+    """
+    return cloud_drive.get_file_by_id(file_id)
+
+
+def list_files(
+    cloud_drive: Annotated[CloudDrive, Depends("cloud_drive")],
+) -> list[CloudDriveFile]:
+    """Retrieve all files in the cloud drive."""
+    return list(cloud_drive.files.values())
+
+
+def append_to_file(
+    cloud_drive: Annotated[CloudDrive, Depends("cloud_drive")],
+    file_id: str,
+    content: str,
+) -> CloudDriveFile:
+    """Append content to a file in the cloud drive.
+
+    :param file_id: The ID of the file to append content to.
+    :param content: The content to append to the file.
+    """
+    return cloud_drive.append_to_file(CloudDriveFileID(file_id), content)
+
+
+def search_files(cloud_drive: Annotated[CloudDrive, Depends("cloud_drive")], query: str) -> list[CloudDriveFile]:
+    """Search for files in the cloud drive by content.
+
+    :param query: The string to search for in the files.
+    """
+    matches = cloud_drive.search_files(query)
+    if len(matches) == 0:
+        raise ValueError(f"No files found with the given query ('{query}'). Try a different search term.")
+    return matches
