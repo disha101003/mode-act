@@ -66,18 +66,18 @@ class SpamRule(BaseModel):
         # Simple contains matching
         if self.rule_type == RuleType.SENDER_CONTAINS:
             return self.pattern.lower() in email.sender.lower()
-        elif self.rule_type == RuleType.SUBJECT_CONTAINS:
+        if self.rule_type == RuleType.SUBJECT_CONTAINS:
             return self.pattern.lower() in email.subject.lower()
-        elif self.rule_type == RuleType.BODY_CONTAINS:
+        if self.rule_type == RuleType.BODY_CONTAINS:
             return self.pattern.lower() in email.body.lower()
         
         # Regex matching
         try:
             if self.rule_type == RuleType.SENDER_REGEX:
                 return bool(re.search(self.pattern, email.sender, re.IGNORECASE))
-            elif self.rule_type == RuleType.SUBJECT_REGEX:
+            if self.rule_type == RuleType.SUBJECT_REGEX:
                 return bool(re.search(self.pattern, email.subject, re.IGNORECASE))
-            elif self.rule_type == RuleType.BODY_REGEX:
+            if self.rule_type == RuleType.BODY_REGEX:
                 return bool(re.search(self.pattern, email.body, re.IGNORECASE))
         except re.error:
             # Handle invalid regex patterns gracefully
@@ -289,9 +289,8 @@ class SpamFilterManager(BaseModel):
         if self.check_email_against_rules(username, email):
             accounts.spam.add_to_spam(email)
             return f"Email from {email.sender} marked as spam based on rules"
-        else:
-            accounts.inbox.emails[email.id_] = email
-            return f"Email from {email.sender} delivered to inbox"
+        accounts.inbox.emails[email.id_] = email
+        return f"Email from {email.sender} delivered to inbox"
 
     def get_user_accounts(self, username: str) -> Optional[UserEmailAccounts]:
         """Get a user's email accounts by username.

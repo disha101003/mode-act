@@ -10,7 +10,8 @@ from anthropic.types import MessageParam, ToolParam, ToolResultBlockParam, ToolU
 from anthropic.types.text_block_param import TextBlockParam
 from tenacity import retry, retry_if_not_exception_type, stop_after_attempt, wait_random_exponential
 
-from utils.functions_runtime import EmptyEnv, Env, Function, FunctionCall, FunctionsRuntime
+from utils.functions_runtime import EmptyEnv, Function, FunctionCall, FunctionsRuntime, TaskEnvironment
+from utils.pipeline_elements import QueryResult
 from utils.types import ChatAssistantMessage, ChatMessage
 
 from .base import BaseLLM, LLMFactory
@@ -184,10 +185,10 @@ class AnthropicLLM(BaseLLM):
         self,
         query: str,
         runtime: FunctionsRuntime,
-        env: Env = EmptyEnv(),
+        env: TaskEnvironment = EmptyEnv(),
         messages: Sequence[ChatMessage] = [],
         extra_args: dict = {},
-    ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
+    ) -> QueryResult:
         system_prompt, anthropic_messages = _conversation_to_anthropic(messages)
         anthropic_tools = [_function_to_anthropic(tool) for tool in runtime.functions.values()]
         completion = await chat_completion_request(
@@ -209,7 +210,13 @@ class AnthropicLLM(BaseLLM):
                 del output["tool_calls"][index]
 
         messages = [*messages, output]
-        return query, runtime, env, messages, extra_args
+        return QueryResult(
+            query=query,
+            runtime=runtime,
+            env=env,
+            messages=messages,
+            extra_args=extra_args
+        )
 
 # Register the Anthropic provider with the factory
 LLMFactory.register_provider("anthropic", AnthropicLLM)

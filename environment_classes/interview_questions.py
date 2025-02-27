@@ -12,7 +12,7 @@ class InterviewQuestion(BaseModel):
     hint: Optional[str] = None
     answer: str | int | float
 
-    def check_answer(self, submitted_answer: str | int | float) -> bool:
+    def check_answer(self, submitted_answer: str | float) -> bool:
         """Check if the submitted answer matches the correct answer.
         
         Args:

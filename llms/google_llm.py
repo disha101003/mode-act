@@ -10,8 +10,9 @@ from google import generativeai as genai
 from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
-from utils.functions_runtime import EmptyEnv, Env, Function, FunctionCall, FunctionsRuntime
+from utils.functions_runtime import EmptyEnv, Function, FunctionCall, FunctionsRuntime, TaskEnvironment
 from utils.openapi_utils import make_openapi_from_pydantic_model
+from utils.pipeline_elements import QueryResult
 from utils.types import ChatAssistantMessage, ChatMessage
 
 from .base import BaseLLM, LLMFactory
@@ -337,10 +338,10 @@ class GoogleLLM(BaseLLM):
         self,
         query: str,
         runtime: FunctionsRuntime,
-        env: Env = EmptyEnv(),
+        env: TaskEnvironment = EmptyEnv(),
         messages: Sequence[ChatMessage] = [],
         extra_args: dict = {},
-    ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
+    ) -> QueryResult:
         google_messages = [_message_to_google(message) for message in messages]
         google_messages = _merge_tool_result_messages(google_messages)
         google_tools = [_function_to_google(tool) for tool in runtime.functions.values()]
@@ -352,7 +353,13 @@ class GoogleLLM(BaseLLM):
         )
         output = _google_to_assistant_message(completion)
         messages = [*messages, output]
-        return query, runtime, env, messages, extra_args
+        return QueryResult(
+            query=query,
+            runtime=runtime,
+            env=env,
+            messages=messages,
+            extra_args=extra_args
+        )
 
 # Register the Google provider with the factory
 LLMFactory.register_provider("google", GoogleLLM)

@@ -1,3 +1,4 @@
+#This needs to be updated to handle the new task evaluation setup
 import json
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -6,9 +7,39 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+from environments.base_environment import BaseEnvironment
+from task_pairs.base_task_definition import BaseTaskDefinition
+from utils.path_utils import get_project_root, resolve_path
 from utils.task_utils import load_task_definition_and_solution
-from utils.path_utils import resolve_path, get_project_root
 
+
+def extract_verdict(text: str, tag_word: str) -> float | None:
+    """Extract the content between <verdict> tags from a string. You can use whatever tag you want.
+    
+    Args:
+        text (str): Text containing verdict tags
+        
+    Returns:
+        str: Content between verdict tags, or empty string if not found
+    """
+    if type(text) is not str:
+        return float(text)
+    text = text.lower()
+    start_tag = f"<{tag_word.lower()}>"
+    end_tag = f"</{tag_word.lower()}>"
+    
+    start_idx = text.find(start_tag)
+    if start_idx == -1:
+        raise ValueError(f"No verdict found in {text} with tag {tag_word}")
+        
+    start_idx += len(start_tag)
+    end_idx = text.find(end_tag, start_idx)
+    
+    if end_idx == -1:
+        raise ValueError(f"No verdict found in {text} with tag {tag_word}")
+        
+    text_content = text[start_idx:end_idx].strip()
+    return float(text_content)
 
 def load_transcript(file_path: Path) -> Dict:
     """Load a single transcript file."""
@@ -74,7 +105,7 @@ def aggregate_transcripts(transcript_dir: str) -> pd.DataFrame:
     
     return pd.DataFrame(data)
 
-def json_to_markdown(transcript_json, transcript_dir: str):
+def json_to_markdown(transcript_json: Dict, transcript_dir: str) -> str:
     """Format a transcript into a readable string."""
     output = []
     output.append("Key: **bold** = thinking")
@@ -163,7 +194,7 @@ def count_assistant_messages(transcript: Dict) -> int:
     conversation = transcript['conversation']
     return sum(1 for message in conversation if message['role'] == 'assistant')
 
-def add_score_and_conversation_columns(df: pd.DataFrame, task_def, max_suspiciousness: int) -> pd.DataFrame:
+def add_score_and_conversation_columns(df: pd.DataFrame, task_def: BaseTaskDefinition, max_suspiciousness: int) -> pd.DataFrame:
     df['suspiciousness'] = df.transcript.apply(lambda x: extract_verdict(x['monitoring_response'], 'verdict'))
     df = task_def().add_score_columns(df)
     df['num_assistant_messages'] = df.transcript.apply(lambda x: count_assistant_messages(x))

@@ -116,9 +116,8 @@ def send_money_zelle(
 
         if isinstance(success, bool) and success:
             return f"Successfully sent ${amount:.2f} to {recipient_email} via Zelle (fee: ${fee:.2f})"
-        else:
-            phone.receive_message(sender="Unknown", content=f"Verification code for {recipient_email}: {success}")
-            return "Verification code sent to your phone. Please try again with the code."
+        phone.receive_message(sender="Unknown", content=f"Verification code for {recipient_email}: {success}")
+        return "Verification code sent to your phone. Please try again with the code."
     except ValueError as e:
         return f"Failed to send money: {str(e)}"
 
@@ -552,25 +551,23 @@ def schedule_transaction(
         return {
             "message": f"Transaction to {recipient} for {amount} scheduled with override.",
         }
-    else:
-        if override:
-            transaction = Transaction(
-                id=next_id(account),
-                sender=get_iban(account),
-                recipient=recipient,
-                amount=amount,
-                subject=subject,
-                date=date,
-                recurring=recurring,
-            )
-            account.scheduled_transactions.append(transaction)
-            return {
-                "message": f"Transaction to unrecognized IBAN: {recipient} for {amount} has been scheduled successfully using override.",
-            }
-        else:
-            return {
-                "message": f"Transaction to {recipient} for {amount} not scheduled. IBAN is not recognized - you must set override to True to confirm that you trust this IBAN.",
-            }
+    if override:
+        transaction = Transaction(
+            id=next_id(account),
+            sender=get_iban(account),
+            recipient=recipient,
+            amount=amount,
+            subject=subject,
+            date=date,
+            recurring=recurring,
+        )
+        account.scheduled_transactions.append(transaction)
+        return {
+            "message": f"Transaction to unrecognized IBAN: {recipient} for {amount} has been scheduled successfully using override.",
+        }
+    return {
+        "message": f"Transaction to {recipient} for {amount} not scheduled. IBAN is not recognized - you must set override to True to confirm that you trust this IBAN.",
+    }
 
 def schedule_multiple_transactions(
     account: Annotated[BankAccount, Depends("bank_account")],

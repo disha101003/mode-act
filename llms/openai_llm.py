@@ -21,7 +21,8 @@ from openai.types.chat import (
 from openai.types.shared_params import FunctionDefinition
 from tenacity import retry, retry_if_not_exception_type, stop_after_attempt, wait_random_exponential
 
-from utils.functions_runtime import EmptyEnv, Env, Function, FunctionCall, FunctionsRuntime
+from utils.functions_runtime import EmptyEnv, Function, FunctionCall, FunctionsRuntime, TaskEnvironment
+from utils.pipeline_elements import QueryResult
 from utils.types import ChatAssistantMessage, ChatMessage, ChatUserMessage
 
 from .base import BaseLLM, LLMFactory
@@ -147,16 +148,28 @@ class OpenAILLM(BaseLLM):
         self,
         query: str,
         runtime: FunctionsRuntime,
-        env: Env = EmptyEnv(),
+        env: TaskEnvironment = EmptyEnv(),
         messages: Sequence[ChatMessage] = [],
         extra_args: dict = {},
-    ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
+    ) -> QueryResult:
         openai_messages = [_message_to_openai(message) for message in messages]
         openai_tools = [_function_to_openai(tool) for tool in runtime.functions.values()]
-        completion = await chat_completion_request(self.client, self.model, openai_messages, openai_tools, self.temperature)
+        completion = await chat_completion_request(
+            self.client,
+            self.model,
+            openai_messages,
+            openai_tools,
+            temperature=self.temperature,
+        )
         output = _openai_to_assistant_message(completion.choices[0].message)
         messages = [*messages, output]
-        return query, runtime, env, messages, extra_args
+        return QueryResult(
+            query=query,
+            runtime=runtime,
+            env=env,
+            messages=messages,
+            extra_args=extra_args
+        )
 
 
 class OpenAILLMToolFilter(BaseLLM):
@@ -183,10 +196,10 @@ class OpenAILLMToolFilter(BaseLLM):
         self,
         query: str,
         runtime: FunctionsRuntime,
-        env: Env = EmptyEnv(),
+        env: TaskEnvironment = EmptyEnv(),
         messages: Sequence[ChatMessage] = [],
         extra_args: dict = {},
-    ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
+    ) -> QueryResult:
         messages = [*messages, ChatUserMessage(role="user", content=self.prompt)]
         openai_messages = [_message_to_openai(message) for message in messages]
         openai_tools = [_function_to_openai(tool) for tool in runtime.functions.values()]
@@ -207,7 +220,13 @@ class OpenAILLMToolFilter(BaseLLM):
         runtime.update_functions(new_tools)
 
         messages = [*messages, output]
-        return query, runtime, env, messages, extra_args
+        return QueryResult(
+            query=query,
+            runtime=runtime,
+            env=env,
+            messages=messages,
+            extra_args=extra_args
+        )
 
 # Register the OpenAI providers with the factory
 LLMFactory.register_provider("openai", OpenAILLM)

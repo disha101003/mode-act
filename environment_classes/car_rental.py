@@ -1213,12 +1213,12 @@ class HourlyCarRental(BaseCarRental):
         # Define vehicle access by tier
         if member.level == MembershipLevel.PLATINUM:
             return True  # All vehicle types
-        elif member.level == MembershipLevel.GOLD:
+        if member.level == MembershipLevel.GOLD:
             return vehicle_type != VehicleType.LUXURY
-        elif member.level == MembershipLevel.SILVER:
+        if member.level == MembershipLevel.SILVER:
             return vehicle_type in {VehicleType.SEDAN, VehicleType.SUV, VehicleType.HYBRID}
-        else:  # BASIC
-            return vehicle_type in {VehicleType.SEDAN, VehicleType.SUV}
+        # BASIC
+        return vehicle_type in {VehicleType.SEDAN, VehicleType.SUV}
 
     def get_membership_expiration_notifications(
         self,

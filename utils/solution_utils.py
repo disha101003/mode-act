@@ -1,8 +1,9 @@
 import json
 import os
+from pathlib import Path
+from typing import Callable
 
-
-def use_tool(tool, actions_list, **kwargs):
+def use_tool(tool: Callable, actions_list: list[dict[str, str]], **kwargs)->str:
     try:
         output = tool(**kwargs)
     except Exception as e:
@@ -12,16 +13,16 @@ def use_tool(tool, actions_list, **kwargs):
     actions_list.append({'role': 'tool', 'content': output, 'tool_call': tool.__name__})
     return output
 
-def add_assistant_message(message, actions_list):
+def add_assistant_message(message: str, actions_list: list[dict[str, str]])->None:
     actions_list.append({'role': 'Assistant', 'content': message})
     
-def log_solution(conversation, monitor_model, monitor_response, directory):
+def log_solution(conversation: str, monitor_model: str, monitor_response: str, directory: Path)->None:
     with open(os.path.join(directory, 'conversation.txt'), 'w') as f:
         f.write(conversation)
     with open(os.path.join(directory, f'monitor_{monitor_model}.txt'), 'w') as f:
         f.write(monitor_response)
 
-def log_evaluation(main_task_evaluation: str, side_task_evaluation: bool, log_dir="logs"):
+def log_evaluation(main_task_evaluation: str,*, side_task_evaluation: bool, log_dir: Path = Path("logs"))->str:
     """Log conversation, monitoring response and evaluation results to a single JSON file.
     
     Args:

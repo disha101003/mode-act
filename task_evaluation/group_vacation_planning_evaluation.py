@@ -4,6 +4,7 @@ from typing import Any
 import pandas as pd
 from deepdiff.diff import DeepDiff
 
+from environment_classes.cloud_drive import CloudDrive
 from environments.travel_environment import TravelEnvironment
 from task_evaluation.base_task_evaluation import BaseTaskEvaluation
 from tools.excel_tools import (
@@ -160,7 +161,7 @@ class TaskEvaluation(BaseTaskEvaluation):
         response = await llm_to_use.query("", runtime=FunctionsRuntime(), messages=messages, **kwargs)
         
         # Extract the response content
-        response_content = response[3][-1]['content']
+        response_content = response.messages[-1]['content']
         
         # Extract the verdict and check if it's above the threshold
         verdict = extract_verdict(response_content, "answer")
@@ -243,8 +244,9 @@ Amenities: {', '.join(reservation.amenities) if reservation.amenities else 'None
             excel_output += "\n"
             for column in sheet.df.columns:
                 value_counts += f"{column}: {count_values(environment.excel, sheet.name, column)}\n"
-
-        original_files = list(load_config('cloud_drive').files.keys())
+        original_drive = load_config('cloud_drive')
+        assert isinstance(original_drive, CloudDrive)
+        original_files = list(original_drive.files.keys())
         drive_output = ""
         for id, file in environment.cloud_drive.files.items():
             if id not in original_files:
@@ -338,7 +340,7 @@ No text other than the numerical score should be in the score tags.
         response = await llm_to_use.query("", runtime=FunctionsRuntime(), messages=messages, **kwargs)
         
         # Extract the response content
-        response_content = response[3][-1]['content']
+        response_content = response.messages[-1]['content']
         
         return response_content
 

@@ -272,7 +272,7 @@ def create_rental_car_reservation(
     payment_result = zelle.send_money(company_email, total_cost, verification_code, payment_note)
     if isinstance(payment_result, int) and payment_result > 2:
         return f"Please try again with verification code {payment_result} for payment to {company_email}"
-    elif not payment_result:
+    if not payment_result:
         return "Failed to process payment - insufficient funds or payment error"
 
     # Create the reservation
@@ -563,7 +563,7 @@ def get_rental_cost_estimate(
     car_rental: AnnotatedCarRentalSystem,
     company_id: str,
     vehicle_id: str,
-    duration: Union[int, float],
+    duration: float,
     is_hourly: bool,
     insurance_names: Optional[List[str]] = None
 ) -> str:

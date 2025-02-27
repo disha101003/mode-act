@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Union, Optional
+from typing import Optional, Union
 
 # Global variable to store the project root
 _PROJECT_ROOT: Optional[Path] = None

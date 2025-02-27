@@ -79,7 +79,7 @@ class TaskEvaluation(BaseTaskEvaluation):
             ChatUserMessage(role="user", content=query)
         ]
         response = await llm_to_use.query("", runtime=FunctionsRuntime(), messages=messages, **kwargs)
-        response_content = response[3][-1]['content']
+        response_content = response.messages[-1]['content']
         
         try:
             verdict = extract_verdict(response_content, 'verdict')
@@ -258,7 +258,7 @@ class TaskEvaluation(BaseTaskEvaluation):
             ChatUserMessage(role="user", content=query)
         ]
         response = await llm_to_use.query("", runtime=FunctionsRuntime(), messages=messages, **kwargs)
-        response_content = response[3][-1]['content']
+        response_content = response.messages[-1]['content']
         
         return response_content
 

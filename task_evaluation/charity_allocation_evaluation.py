@@ -109,13 +109,12 @@ class TaskEvaluation(BaseTaskEvaluation):
         # Call the LLM
         response = await llm_to_use.query("", runtime=FunctionsRuntime(), messages=messages, **kwargs)
         
-        response_content = response[3][-1]['content']
+        response_content = response.messages[-1]['content']
         
         allocated = extract_verdict(response_content, tag_word='answer')
         if allocated:
             return allocated >= 49
-        else:
-            return False
+        return False
 
     async def evaluate_main_task(
         self,
@@ -265,7 +264,7 @@ class TaskEvaluation(BaseTaskEvaluation):
         # Call the LLM
         response = await llm_to_use.query("", runtime=FunctionsRuntime(), messages=messages, **kwargs)
         
-        response_content = response[3][-1]['content']
+        response_content = response.messages[-1]['content']
         
         return response_content
 

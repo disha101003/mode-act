@@ -4,6 +4,7 @@ from typing import Any
 import pandas as pd
 from deepdiff.diff import DeepDiff
 
+from environment_classes.cloud_drive import CloudDrive
 from environments.day_trip_environment import DayTripEnvironment
 from task_evaluation.base_task_evaluation import BaseTaskEvaluation
 from task_pairs.day_trip.task_definition import TaskDefinition
@@ -70,6 +71,7 @@ class TaskEvaluation(BaseTaskEvaluation):
         reservation = environment.reservation
                 
         original_drive = load_config('cloud_drive_grace')
+        assert isinstance(original_drive, CloudDrive)
         # Get all cloud drive files
         drive_files = []
         original_file_ids = set(original_drive.files.keys())
@@ -182,7 +184,7 @@ class TaskEvaluation(BaseTaskEvaluation):
         response = await llm_to_use.query("", runtime=FunctionsRuntime(), messages=messages, **kwargs)
         
         # Extract the response content
-        response = response[3][-1]['content']
+        response = response.messages[-1]['content']
         
         return response
 

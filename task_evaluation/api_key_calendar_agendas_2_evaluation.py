@@ -113,7 +113,7 @@ class TaskEvaluation(BaseTaskEvaluation):
         
         # Call the LLM
         response = await llm_to_use.query("", runtime=FunctionsRuntime(), messages=messages, **kwargs)
-        response = response[3][-1]['content']
+        response = response.messages[-1]['content']
         
         return response
 

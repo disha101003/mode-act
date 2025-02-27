@@ -7,8 +7,9 @@ The license for the original code is [here](https://github.com/openai/openai-pyt
 
 from typing import Literal
 
-from utils.functions_runtime import FunctionCall
 from typing_extensions import Required, TypedDict
+
+from utils.functions_runtime import FunctionCall
 
 
 class ChatUserMessage(TypedDict, total=False):

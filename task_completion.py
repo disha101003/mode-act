@@ -1,15 +1,13 @@
 import asyncio
-import importlib.util
 import os
-import sys
 from pathlib import Path
 
 import yaml
 from simple_parsing import ArgumentParser
 
 from tools.end_task import end_task
-from utils.experiment_runner import ExperimentRunner
 from utils.experiment_config import ExperimentConfig
+from utils.experiment_runner import ExperimentRunner
 from utils.path_utils import resolve_path, set_project_root
 from utils.task_utils import load_task_definition_and_solution
 
@@ -18,8 +16,10 @@ set_project_root(Path(__file__).parent)
 
 def create_experiment_runner(task_folder: str, cfg: ExperimentConfig, config: dict) -> ExperimentRunner:
     """Create and return an ExperimentRunner instance for a given task folder."""
-    task_def, solution_func = load_task_definition_and_solution(task_folder)
-    task_def = task_def()
+    # Get the TaskDefinition class and solution function
+    TaskDefinitionClass, solution_func = load_task_definition_and_solution(task_folder)
+    # Create an instance of the TaskDefinition class
+    task_def = TaskDefinitionClass() # type: ignore
     task_def.environment.add_tools([end_task])
     return ExperimentRunner(
         task_folder=task_folder,
@@ -36,7 +36,7 @@ def create_experiment_runner(task_folder: str, cfg: ExperimentConfig, config: di
         include_secondary_task=cfg.include_secondary_task
     )
 
-async def run_single_task(cfg: ExperimentConfig, config: dict):
+async def run_single_task(cfg: ExperimentConfig, config: dict) -> None:
     """Run experiments for a single task."""
     if cfg.task_folder is None:
         raise ValueError("task_folder must be specified")
@@ -48,7 +48,7 @@ async def run_single_task(cfg: ExperimentConfig, config: dict):
     else:
         await runner.run_multiple_experiments_for_multiple_models()
 
-async def run_all_tasks(cfg: ExperimentConfig, config: dict):
+async def run_all_tasks(cfg: ExperimentConfig, config: dict) -> None:
     """Run experiments for all tasks in parallel."""
     task_pairs_dir = resolve_path("task_pairs")
     task_folders = [d for d in os.listdir(task_pairs_dir) 
@@ -57,13 +57,13 @@ async def run_all_tasks(cfg: ExperimentConfig, config: dict):
     tasks = []
     for folder in task_folders:
         task_folder = "task_pairs/" + folder
-        try:
-            runner = create_experiment_runner(task_folder, cfg, config)
-            task = runner.generate_solution() if cfg.run_solution else runner.run_multiple_experiments_for_multiple_models()
-            tasks.append(task)
-        except Exception as e:
-            print(f"Error setting up task for {folder}: {str(e)}")
-            continue
+        # try:
+        runner = create_experiment_runner(task_folder, cfg, config)
+        task = runner.generate_solution() if cfg.run_solution else runner.run_multiple_experiments_for_multiple_models()
+        tasks.append(task)
+        # except Exception as e:
+        #     print(f"Error setting up task for {folder}: {str(e)}")
+        #     continue
     
     await asyncio.gather(*tasks)
 

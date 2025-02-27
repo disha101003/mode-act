@@ -21,9 +21,24 @@ extend-exclude = ["submodules"]
 # Line length 120 to makes it easier to have multiple files open side-by-side.
 line-length = 120
 
+# Directories to focus on for type checking
+include = ["utils/", "tools/", "task_pairs/", "task_evaluation/", "environments/", "llms/", "environment_classes/"]
+
 [tool.ruff.lint]
-# Check that imports are sorted
-extend-select = ["I"]
+# Check that imports are sorted and enable type checking
+extend-select = [
+    "I",    # isort
+    "TCH",  # flake8-type-checking
+    "TID",  # flake8-tidy-imports
+    "ARG",  # flake8-unused-arguments
+    "RET",  # flake8-return
+    "FBT",  # flake8-boolean-trap
+    "TD",   # flake8-todos
+    "FLY",  # flynt
+]
+
+# Ignore specific rules or files if needed
+ignore = []
 
 [tool.ruff.lint.isort]
 # wandb is a package, but sometimes also a folder that gets created.

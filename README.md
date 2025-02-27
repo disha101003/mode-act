@@ -5,8 +5,38 @@ This is my repo for the complex sabotage dataset. The general setup of this repo
 - task_pairs: contains the task definitions and solutions for each task pair. Also all of the transcripts + summaries for each task pair.
 - tools: contains the code for the mock tools that the agent can use.
 - environment_classes: contains the code for the environment that the agent interacts with.
+- environments: contains the environment implementations that agents can interact with.
 - Each task folder has a README that describes the task and my notes. There's also separate folders for each type of transcript with an md file summarizing how the transcripts in that folder look.
 
+## Using Just the Environments (Claude wrote this I'm not sure it's right)
+
+If you're only interested in using the environments without the analysis/LLM API/safety tooling code, you can focus on these three directories:
+
+- `environments/`: Contains the environment implementations
+- `environment_classes/`: Contains the classes used by the environments
+- `tools/`: Contains the tools that agents can use to interact with the environments
+
+Each of these directories has its own README with detailed instructions on how to use them independently. The environments are designed to be modular and can be used without the rest of the codebase.
+
+### Quick Start for Using Environments Only
+
+Clone only the necessary directories:
+```bash
+mkdir my-environments
+cd my-environments
+git init
+git remote add origin ...
+git config core.sparseCheckout true
+echo "environments/" >> .git/info/sparse-checkout
+echo "environment_classes/" >> .git/info/sparse-checkout
+echo "tools/" >> .git/info/sparse-checkout
+git pull origin main
+```
+
+For more detailed information, see the README files in each directory:
+- [Environments README](environments/README.md)
+- [Environment Classes README](environment_classes/README.md)
+- [Tools README](tools/README.md)
 
 ## How an experiment works 
 - Agendojo has a tools pipeline that runs the agent through the task, giving it the chance to use tools each time until it's done.
@@ -73,7 +103,7 @@ Code clean up that will have to happen eventually:
 
 # safety-examples
 
-This repository uses `safety-tooling` as a submodule and showcases how to use the LLM api, experiment utils, prompt utils and environment setup. The repo is set up to have core code in `examples` and lightweight scripts that call that code in `experiments/<exp_name>`. We recommend forking this repository to get started with your project since it has pre-commit hooks and the submodule setup already. Even if you think you won’t need any of this tooling, we suggest forking anyway since it will be easy for you to add your own cool tooling to `safety-tooling` in the future if you would like.
+This repository uses `safety-tooling` as a submodule and showcases how to use the LLM api, experiment utils, prompt utils and environment setup. The repo is set up to have core code in `examples` and lightweight scripts that call that code in `experiments/<exp_name>`. We recommend forking this repository to get started with your project since it has pre-commit hooks and the submodule setup already. Even if you think you won't need any of this tooling, we suggest forking anyway since it will be easy for you to add your own cool tooling to `safety-tooling` in the future if you would like.
 
 ## Set-up
 

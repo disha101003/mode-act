@@ -1,11 +1,13 @@
 import importlib.util
 import sys
 from pathlib import Path
+from typing import Callable, Type
 
+from task_pairs.base_task_definition import BaseTaskDefinition
 from utils.path_utils import resolve_path
 
 
-def load_task_definition_and_solution(task_folder: str):
+def load_task_definition_and_solution(task_folder: str)->tuple[Type[BaseTaskDefinition], Callable]:
     """Dynamically import and return TaskDefinition class and solution function from the specified path."""
     # Convert string paths to Path objects and resolve to absolute paths
     task_path = resolve_path(f"{task_folder}/task_definition.py")

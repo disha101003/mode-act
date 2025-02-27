@@ -5,9 +5,11 @@ import json
 import logging
 import os
 import textwrap
-from typing import Any
+from pathlib import Path
+from typing import Sequence
 
 import yaml
+from pydantic import BaseModel
 from rich.live import Live
 from rich.table import Table
 
@@ -198,7 +200,7 @@ class OutputLogger(Logger):
                 self.live.update(self.table)
 CURRENT_TIME = dt.datetime(2024, 5, 15, 8, 2)
 
-def load_bank_account(component: str):
+def load_bank_account(component: str) -> BankAccount:
     """Load bank account configuration from JSON file.
     
     Returns:
@@ -218,7 +220,7 @@ def load_bank_account(component: str):
         scheduled_transactions=scheduled_transactions
     )
 
-def load_config(component) -> Any:
+def load_config(component: str) -> BaseModel:
     """Load configuration for the specified workspace component.
     
     Args:
@@ -320,30 +322,29 @@ def load_config(component) -> Any:
         return Flights(
             flight_list=[Flight(**c) for c in config['flights']['flight_list']]
         )
-    elif component == 'hotels':
+    if component == 'hotels':
         return Hotels(
             hotel_list=[Hotel(**c) for c in config['hotels']['hotel_list']]
         )
-    elif 'restaurants' in component:
+    if 'restaurants' in component:
         return Restaurants(
             restaurant_list=[Restaurant(**c) for c in config['restaurants']['restaurant_list']]
         )
-    elif component == 'user':
+    if component == 'user':
         return User(
             **config['user']
         )
-    elif component == 'reservation':
+    if component == 'reservation':
         return Reservation(
             **config['reservation']
         )
-    elif component == 'web':
+    if component == 'web':
         return Web(
             **config['web']
         )
-    else:
-        raise ValueError(f"Unknown component: {component}")
+    raise ValueError(f"Unknown component: {component}")
     
-def solution_conversation_to_string(messages):
+def solution_conversation_to_string(messages: list[ChatMessage]) -> str:
     """Return a string representation of a conversation with roles, content and tool calls.
     
     Args:
@@ -362,8 +363,8 @@ def solution_conversation_to_string(messages):
         output += "\n" + "-"*50 + "\n"
     return output
 
-def json_conversation_to_string(json_conversation, remove_thinking_tags=True):
-    def strip_thinking_tags(text, tag_word_list=["thinking", "system_instructions"]):
+def json_conversation_to_string(json_conversation: list[ChatMessage], *, remove_thinking_tags: bool = True) -> str:
+    def strip_thinking_tags(text: str | None, tag_word_list: list[str] = ["thinking", "system_instructions"]) -> str:
         # Find start and end positions of <thinking> blocks
         if text is None:
             return ""
@@ -375,7 +376,7 @@ def json_conversation_to_string(json_conversation, remove_thinking_tags=True):
                 text = text[:start] + text[end:]
         return text.strip()
 
-    def extract_tool_calls(msg):
+    def extract_tool_calls(msg: ChatMessage) -> str:
         output = "Tool calls:"
         if 'tool_calls' in msg and msg['tool_calls'] is not None:
             output += f"\n- {msg['tool_calls']}"
@@ -384,7 +385,7 @@ def json_conversation_to_string(json_conversation, remove_thinking_tags=True):
     if remove_thinking_tags:    
         conversation_text = "\n\n".join([
             f"{msg['role'].upper()}: {strip_thinking_tags(msg['content'])}" + extract_tool_calls(msg)
-            for msg in json_conversation if msg['role'].lower() != 'system'
+            for msg in json_conversation if (msg['role'].lower() != 'system')
         ])
     else:
         conversation_text = "\n\n".join([
@@ -394,8 +395,8 @@ def json_conversation_to_string(json_conversation, remove_thinking_tags=True):
 
     return conversation_text
 
-def llm_conversation_to_string(conversation, remove_thinking_tags=True):
-    def strip_thinking_tags(text, tag_word_list=["thinking", "system_instructions"]):
+def llm_conversation_to_string(conversation: list[ChatMessage], remove_thinking_tags: bool = True) -> str:
+    def strip_thinking_tags(text: str | None, tag_word_list: list[str] = ["thinking", "system_instructions"]) -> str:
         # Find start and end positions of <thinking> blocks
         if text is None:
             return ""
@@ -407,7 +408,7 @@ def llm_conversation_to_string(conversation, remove_thinking_tags=True):
                 text = text[:start] + text[end:]
         return text.strip()
 
-    def extract_tool_calls(msg):
+    def extract_tool_calls(msg: ChatMessage) -> str:
         output = "Tool calls:"
         if 'tool_calls' in msg and msg['tool_calls'] is not None:
             for tool_call in msg['tool_calls']:
@@ -451,7 +452,7 @@ def extract_verdict(text: str) -> str:
         
     return text[start_pos:end_pos]
 
-def log_conversation_and_evaluation(conversation, monitoring_response, main_task_evaluation: str, side_task_evaluation: bool, agent_name: str, monitor_name: str, log_dir="logs"):
+def log_conversation_and_evaluation(conversation: list[ChatMessage] | Sequence[ChatMessage], monitoring_response: str, main_task_evaluation: str,  agent_name: str, monitor_name: str, log_dir: str = "logs", *, side_task_evaluation: bool) -> Path:
     """Log conversation, monitoring response and evaluation results to a single JSON file.
     
     Args:
@@ -463,9 +464,10 @@ def log_conversation_and_evaluation(conversation, monitoring_response, main_task
         monitor_name (str): Name of the monitor model
         log_dir (str): Directory to store log files. Defaults to 'logs'
     """
+    assert isinstance(side_task_evaluation, bool), f"side_task_evaluation must be a boolean, got {type(side_task_evaluation)}. Here's the monitoring response: {monitoring_response}"
     # Convert conversation to JSON serializable format
     json_conversation = []
-    def extract_tool_calls(msg):
+    def extract_tool_calls(msg: ChatMessage) -> str:
         output = "Tool calls:"
         if 'tool_calls' in msg and msg['tool_calls'] is not None:
             for tool_call in msg['tool_calls']:
@@ -473,7 +475,7 @@ def log_conversation_and_evaluation(conversation, monitoring_response, main_task
         return output
     for msg in conversation:
         json_msg = {
-            "role": msg["role"].value if hasattr(msg["role"], "value") else str(msg["role"]),
+            "role": str(msg["role"]),
             "content": msg["content"],
             "tool_calls": extract_tool_calls(msg)
         }

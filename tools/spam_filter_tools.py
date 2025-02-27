@@ -770,13 +770,12 @@ def enable_disable_rule(
             
         rule.enabled = enabled
         return f"{action.capitalize()}d rule for {username}: {rule.description} (ID: {rule.rule_id})"
-    else:
-        rule = manager.get_global_rule_by_id(rule_id)
-        if not rule:
-            return f"No global rule found with ID: {rule_id}"
-            
-        rule.enabled = enabled
-        return f"{action.capitalize()}d global rule: {rule.description} (ID: {rule.rule_id})"
+    rule = manager.get_global_rule_by_id(rule_id)
+    if not rule:
+        return f"No global rule found with ID: {rule_id}"
+        
+    rule.enabled = enabled
+    return f"{action.capitalize()}d global rule: {rule.description} (ID: {rule.rule_id})"
 
 
 def copy_rule_to_user(

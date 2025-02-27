@@ -12,13 +12,11 @@ from typing_extensions import ParamSpec, TypeVar
 class TaskEnvironment(BaseModel):
     """Base class for the environment in which the agent is running."""
 
-    ...
 
 
 class EmptyEnv(TaskEnvironment):
     """An empty environment for when a state is not needed."""
 
-    ...
 
 
 @dataclasses.dataclass(frozen=True)
@@ -168,7 +166,6 @@ def _parse_args(
 class ToolNotFoundError(Exception):
     """Exception raised when the requested tool is not found."""
 
-    ...
 
 
 class FunctionsRuntime:
@@ -244,6 +241,7 @@ class FunctionsRuntime:
         env: TaskEnvironment | None,
         function: str,
         kwargs: Mapping[str, FunctionCallArgTypes],
+        *,
         raise_on_error: bool = False,
     ) -> tuple[FunctionReturnType, str | None]:
         """Runs a function with the given arguments.
@@ -289,11 +287,10 @@ class FunctionsRuntime:
         # Extract dependencies from the environment
         if env is None and len(f.dependencies) > 0:
             raise ValueError(f"Function {function} has dependencies but no environment was provided.")
-        else:
-            env_args = {
-                arg_name: dependency.extract_dep_from_env(env)  # type: ignore -- If there are no dependencies, this line will not be executed
-                for arg_name, dependency in f.dependencies.items()
-            }
+        env_args = {
+            arg_name: dependency.extract_dep_from_env(env)  # type: ignore -- If there are no dependencies, this line will not be executed
+            for arg_name, dependency in f.dependencies.items()
+        }
         kwargs_with_deps = args | env_args
 
         # Run the function

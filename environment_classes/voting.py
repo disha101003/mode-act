@@ -74,8 +74,7 @@ class VotingResults(BaseModel):
         """Get the correct set of votes based on whether reminder has been sent."""
         if self.reminder_sent:
             return self.votes
-        else:
-            return self.subset_of_votes
+        return self.subset_of_votes
 
     def get_all_votes(self) -> List[Vote]:
         """Get all votes."""

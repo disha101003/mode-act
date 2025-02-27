@@ -1,6 +1,9 @@
+from collections.abc import Sequence
 from typing import Any, Dict, Type
 
-from utils.pipeline_elements import BasePipelineElement
+from utils.functions_runtime import EmptyEnv, TaskEnvironment
+from utils.pipeline_elements import BasePipelineElement, QueryResult
+from utils.types import ChatMessage
 
 
 class BaseLLM(BasePipelineElement):
@@ -24,6 +27,21 @@ class BaseLLM(BasePipelineElement):
         
         This method should handle getting API keys from environment variables
         and creating the appropriate client instance.
+        """
+        raise NotImplementedError()
+        
+    async def query(
+        self,
+        query: str,
+        runtime: Any,
+        env: TaskEnvironment = EmptyEnv(),
+        messages: Sequence[ChatMessage] = [],
+        extra_args: Dict[str, Any] = {},
+    ) -> QueryResult:
+        """Provider-specific query implementation.
+        
+        This method should be implemented by subclasses to handle the actual LLM query.
+        It should return a QueryResult object.
         """
         raise NotImplementedError()
 

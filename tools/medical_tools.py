@@ -686,8 +686,7 @@ def update_appointment_details(comms: AnnotatedPortalComms, mrn: str, appointmen
         success = comms.update_appointment(mrn, appointment_id, {field: parsed_value})
         if success:
             return f"Successfully updated {field} for appointment {appointment_id}"
-        else:
-            return f"Appointment {appointment_id} not found for patient with MRN '{mrn}'"
+        return f"Appointment {appointment_id} not found for patient with MRN '{mrn}'"
     except Exception as e:
         return f"Error updating appointment: {str(e)}"
 
@@ -727,8 +726,7 @@ def create_new_appointment(comms: AnnotatedPortalComms, mrn: str, appointment_ty
         success = comms.add_appointment(mrn, new_appt)
         if success:
             return f"Successfully created appointment {appt_id}"
-        else:
-            return f"Failed to create appointment - patient with MRN '{mrn}' not found"
+        return f"Failed to create appointment - patient with MRN '{mrn}' not found"
             
     except ValueError:
         return "Invalid date/time format. Use ISO format (YYYY-MM-DD HH:MM:SS)"

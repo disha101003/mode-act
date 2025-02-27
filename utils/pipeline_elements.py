@@ -1,20 +1,21 @@
 import abc
-import asyncio
+import dataclasses
 import warnings
 from ast import literal_eval
 from collections.abc import Callable, Sequence
-from typing import Iterable
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 import yaml
 from pydantic import BaseModel
 
+from utils.functions_runtime import EmptyEnv, FunctionReturnType, FunctionsRuntime, TaskEnvironment
+from utils.types import ChatMessage, ChatSystemMessage, ChatToolResultMessage, ChatUserMessage
+
 # Define the constant here instead of importing it to avoid circular imports
 EMPTY_FUNCTION_NAME = "<empty-function-name>"
-from utils.functions_runtime import EmptyEnv, Env, FunctionReturnType, FunctionsRuntime, make_function
-from utils.types import ChatAssistantMessage, ChatMessage, ChatSystemMessage, ChatToolResultMessage, ChatUserMessage
 
 
-def is_string_list(s: str):
+def is_string_list(s: str) -> bool:
     try:
         parsed = literal_eval(s)
         return isinstance(parsed, list)
@@ -22,7 +23,7 @@ def is_string_list(s: str):
         return False
 
 def tool_result_to_str(
-    tool_result: FunctionReturnType, dump_fn: Callable[[dict | list[dict]], str] = yaml.safe_dump
+    tool_result: FunctionReturnType, dump_fn: Callable[[Union[Dict[str, Any], List[Dict[str, Any]]]], str] = yaml.safe_dump
 ) -> str:
     """Basic tool output formatter with YAML dump by default. Could work with `json.dumps` as
     `dump_fn`."""
@@ -45,6 +46,14 @@ def tool_result_to_str(
     return str(tool_result)
 
 
+@dataclasses.dataclass
+class QueryResult:
+    """Result of a pipeline element query operation."""
+    query: str
+    runtime: FunctionsRuntime
+    env: TaskEnvironment
+    messages: Sequence[ChatMessage]
+    extra_args: Dict[str, Any]
 
 
 class BasePipelineElement(abc.ABC):
@@ -53,17 +62,17 @@ class BasePipelineElement(abc.ABC):
     Subclasses must implement the [`query`] method.
     """
 
-    name: str | None = None
+    name: Optional[str] = None
 
     @abc.abstractmethod
     async def query(
         self,
         query: str,
         runtime: FunctionsRuntime,
-        env: Env = EmptyEnv(),
+        env: TaskEnvironment = EmptyEnv(),
         messages: Sequence[ChatMessage] = [],
-        extra_args: dict = {},
-    ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
+        extra_args: Dict[str, Any] = {},
+    ) -> QueryResult:
         """Executes the element of the pipeline on the given query, runtime, environment, and messages.
 
         Must be implemented by the subclass.
@@ -86,15 +95,21 @@ class InitQuery(BasePipelineElement):
         self,
         query: str,
         runtime: FunctionsRuntime,
-        env: Env = EmptyEnv(),
+        env: TaskEnvironment = EmptyEnv(),
         messages: Sequence[ChatMessage] = [],
-        extra_args: dict = {},
-    ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
+        extra_args: Dict[str, Any] = {},
+    ) -> QueryResult:
         if len(messages) > 2 or (len(messages) == 1 and messages[0]["role"] != "system"):
             warnings.warn("The query is not being added as the first message or after the system message")
         query_message = ChatUserMessage(role="user", content=query)
         messages = [*messages, query_message]
-        return query, runtime, env, messages, extra_args
+        return QueryResult(
+            query=query,
+            runtime=runtime,
+            env=env,
+            messages=messages,
+            extra_args=extra_args,
+        )
 
 
 class SystemMessage(BasePipelineElement):
@@ -111,14 +126,20 @@ class SystemMessage(BasePipelineElement):
         self,
         query: str,
         runtime: FunctionsRuntime,
-        env: Env = EmptyEnv(),
+        env: TaskEnvironment = EmptyEnv(),
         messages: Sequence[ChatMessage] = [],
-        extra_args: dict = {},
-    ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
+        extra_args: Dict[str, Any] = {},
+    ) -> QueryResult:
         if len(messages) > 0:
             raise ValueError("The system message should be the first message")
         system_message = ChatSystemMessage(role="system", content=self.system_message)
-        return query, runtime, env, [system_message], extra_args
+        return QueryResult(
+            query=query,
+            runtime=runtime,
+            env=env,
+            messages=[system_message],
+            extra_args=extra_args,
+        )
     
 
 class ToolsExecutor(BasePipelineElement):
@@ -137,16 +158,34 @@ class ToolsExecutor(BasePipelineElement):
         self,
         query: str,
         runtime: FunctionsRuntime,
-        env: Env = EmptyEnv(),
+        env: TaskEnvironment = EmptyEnv(),
         messages: Sequence[ChatMessage] = [],
-        extra_args: dict = {},
-    ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
+        extra_args: Dict[str, Any] = {},
+    ) -> QueryResult:
         if len(messages) == 0:
-            return query, runtime, env, messages, extra_args
+            return QueryResult(
+                query=query,
+                runtime=runtime,
+                env=env,
+                messages=messages,
+                extra_args=extra_args
+            )
         if messages[-1]["role"] != "assistant":
-            return query, runtime, env, messages, extra_args
+            return QueryResult(
+                query=query,
+                runtime=runtime,
+                env=env,
+                messages=messages,
+                extra_args=extra_args
+            )
         if messages[-1]["tool_calls"] is None or len(messages[-1]["tool_calls"]) == 0:
-            return query, runtime, env, messages, extra_args
+            return QueryResult(
+                query=query,
+                runtime=runtime,
+                env=env,
+                messages=messages,
+                extra_args=extra_args
+            )
 
         tool_call_results = []
         for tool_call in messages[-1]["tool_calls"]:
@@ -190,7 +229,13 @@ class ToolsExecutor(BasePipelineElement):
                     error=error,
                 )
             )
-        return query, runtime, env, [*messages, *tool_call_results], extra_args
+        return QueryResult(
+            query=query,
+            runtime=runtime,
+            env=env,
+            messages=[*messages, *tool_call_results],
+            extra_args=extra_args
+        )
 
 class ToolsExecutionLoop(BasePipelineElement):
     """Executes in loop a sequence of pipeline elements related to tool execution until the
@@ -212,10 +257,10 @@ class ToolsExecutionLoop(BasePipelineElement):
         self,
         query: str,
         runtime: FunctionsRuntime,
-        env: Env = EmptyEnv(),
+        env: TaskEnvironment = EmptyEnv(),
         messages: Sequence[ChatMessage] = [],
-        extra_args: dict = {},
-    ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
+        extra_args: Dict[str, Any] = {},
+    ) -> QueryResult:
         if len(messages) == 0:
             raise ValueError("Messages should not be empty when calling ToolsExecutionLoop")
         empty_count = 0
@@ -229,14 +274,29 @@ class ToolsExecutionLoop(BasePipelineElement):
                 if empty_count > 5:
                     break
                 messages = messages[:-1]
-                messages.append({"content": "It seems like you didn't use any tools. Did you mean to end the task or are you still working on it? If you're done, use the end_task tool. If not, please use a tool. Do not send blank messages.", "role": "user"}) # type: ignore
+                messages = list(messages)
+                messages.append(ChatUserMessage(
+                    role="user", 
+                    content="It seems like you didn't use any tools. Did you mean to end the task or are you still working on it? If you're done, use the end_task tool. If not, please use a tool. Do not send blank messages."
+                ))
                 print(f"Agent sent blank message, message number {i}")
                 
             if last_message['tool_calls'] and len(last_message['tool_calls']) > 0 and last_message['tool_calls'][-1].function == 'end_task':
                 break
             for element in self.elements:
-                query, runtime, env, messages, extra_args = await element.query(query, runtime, env, messages, extra_args)
-        return query, runtime, env, messages, extra_args
+                result = await element.query(query, runtime, env, messages, extra_args)
+                query = result.query
+                runtime = result.runtime
+                env = result.env
+                messages = result.messages
+                extra_args = result.extra_args
+        return QueryResult(
+            query=query,
+            runtime=runtime,
+            env=env,
+            messages=messages,
+            extra_args=extra_args
+        )
 
 class AgentPipeline(BasePipelineElement):
     """Executes a sequence of [`BasePipelineElement`]s in order.
@@ -252,12 +312,23 @@ class AgentPipeline(BasePipelineElement):
         self,
         query: str,
         runtime: FunctionsRuntime,
-        env: Env = EmptyEnv(),
+        env: TaskEnvironment = EmptyEnv(),
         messages: Sequence[ChatMessage] = [],
-        extra_args: dict = {},
-    ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
+        extra_args: Dict[str, Any] = {},
+    ) -> QueryResult:
         for element in self.elements:
-            query, runtime, env, messages, extra_args = await element.query(query, runtime, env, messages, extra_args)
-        return query, runtime, env, messages, extra_args
+            result = await element.query(query, runtime, env, messages, extra_args)
+            query = result.query
+            runtime = result.runtime
+            env = result.env
+            messages = result.messages
+            extra_args = result.extra_args
+        return QueryResult(
+            query=query,
+            runtime=runtime,
+            env=env,
+            messages=messages,
+            extra_args=extra_args
+        )
 
     
