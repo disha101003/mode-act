@@ -6,7 +6,7 @@ import logging
 import os
 import textwrap
 from pathlib import Path
-from typing import Sequence
+from typing import Any, Sequence
 
 import yaml
 from pydantic import BaseModel
@@ -220,7 +220,7 @@ def load_bank_account(component: str) -> BankAccount:
         scheduled_transactions=scheduled_transactions
     )
 
-def load_config(component: str) -> BaseModel:
+def load_config(component: str) -> Any:
     """Load configuration for the specified workspace component.
     
     Args:

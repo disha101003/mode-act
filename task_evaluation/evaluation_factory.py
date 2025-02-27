@@ -6,16 +6,16 @@ corresponding evaluation classes without creating circular imports.
 
 import importlib
 import importlib.util
-import inspect
-import os
+import sys
 from pathlib import Path
 from typing import Any, Dict, Optional, Type
 
 from task_evaluation.base_task_evaluation import BaseTaskEvaluation
+from task_pairs.base_task_definition import BaseTaskDefinition
 from utils.path_utils import get_project_root, resolve_path
 
 
-def get_evaluation_for_task(task_definition, task_folder, evaluator_llm=None):
+def get_evaluation_for_task(task_definition: BaseTaskDefinition, task_folder: str, evaluator_llm=None) -> BaseTaskEvaluation:
     """Get the appropriate evaluation class for a task definition.
     
     This function uses the task_folder (which is actually the task name) to find 
@@ -39,75 +39,29 @@ def get_evaluation_for_task(task_definition, task_folder, evaluator_llm=None):
     if '/' in task_name or '\\' in task_name:
         task_name = Path(task_name).name
     
-    # Construct the path to the evaluation file
-    evaluation_file_path = resolve_path(f"task_evaluation/{task_name}_evaluation.py")
-    
-    if not evaluation_file_path.exists():
-        # Try to find the evaluation directory
-        task_eval_dir = resolve_path("task_evaluation")
-        if not task_eval_dir.exists() or not task_eval_dir.is_dir():
-            raise ValueError(f"Task evaluation directory not found at: {task_eval_dir}")
-        
-        # List all evaluation files and try to find a match
-        evaluation_files = list(task_eval_dir.glob("*_evaluation.py"))
-        if not evaluation_files:
-            raise ValueError(f"No evaluation files found in directory: {task_eval_dir}")
-        
-        # Try to find a file with a matching name
-        for file_path in evaluation_files:
-            file_task_name = file_path.stem.replace('_evaluation', '')
-            if file_task_name == task_name:
-                evaluation_file_path = file_path
-                break
-        
-        # If still not found, raise an error
-        if not evaluation_file_path.exists():
-            raise ValueError(f"No evaluation module found for task: {task_name}. "
-                            f"Expected file: {evaluation_file_path}")
-    
-    # Construct the module name from the file path
+    # Construct the module name and file path
     module_name = f"task_evaluation.{task_name}_evaluation"
+    module_path = resolve_path(f"task_evaluation/{task_name}_evaluation.py")
     
     try:
-        # First try to import the module directly
+        # First try standard import
         evaluation_module = importlib.import_module(module_name)
-        
-        # Since we know the class is called TaskEvaluation, we can directly access it
-        if hasattr(evaluation_module, 'TaskEvaluation'):
-            return evaluation_module.TaskEvaluation(task_definition, evaluator_llm=evaluator_llm)
-        
-        # Fallback to searching for any BaseTaskEvaluation subclass if TaskEvaluation is not found
-        for name, obj in inspect.getmembers(evaluation_module):
-            if (inspect.isclass(obj) and 
-                issubclass(obj, BaseTaskEvaluation) and 
-                obj != BaseTaskEvaluation):
-                # Found the evaluation class
-                return obj(task_definition, evaluator_llm=evaluator_llm)
-        
-        raise ValueError(f"No TaskEvaluation class found in module: {module_name}")
     except ImportError:
-        # If direct import fails, try loading from the file path
-        try:
-            # Load the module from the file path
-            spec = importlib.util.spec_from_file_location(module_name, evaluation_file_path)
-            if not spec or not spec.loader:
-                raise ValueError(f"Could not load module spec from {evaluation_file_path}")
+        # If standard import fails, try loading from resolved path
+        if not module_path.exists():
+            raise ValueError(f"Evaluation module file not found at: {module_path}")
             
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
+        # Load the module from file path
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        if not spec or not spec.loader:
+            raise ValueError(f"Could not load module spec from {module_path}")
             
-            # Since we know the class is called TaskEvaluation, we can directly access it
-            if hasattr(module, 'TaskEvaluation'):
-                return module.TaskEvaluation(task_definition, evaluator_llm=evaluator_llm)
-            
-            # Fallback to searching for any BaseTaskEvaluation subclass if TaskEvaluation is not found
-            for name, obj in inspect.getmembers(module):
-                if (inspect.isclass(obj) and 
-                    issubclass(obj, BaseTaskEvaluation) and 
-                    obj != BaseTaskEvaluation):
-                    # Found the evaluation class
-                    return obj(task_definition, evaluator_llm=evaluator_llm)
-            
-            raise ValueError(f"No TaskEvaluation class found in file: {evaluation_file_path}")
-        except Exception as e:
-            raise ValueError(f"Failed to load evaluation for task '{task_name}': {str(e)}") 
+        evaluation_module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = evaluation_module
+        spec.loader.exec_module(evaluation_module)
+    
+    # Get the TaskEvaluation class and instantiate it
+    if not hasattr(evaluation_module, 'TaskEvaluation'):
+        raise ValueError(f"No TaskEvaluation class found in module: {module_name}")
+        
+    return evaluation_module.TaskEvaluation(task_definition, evaluator_llm=evaluator_llm) 

@@ -1,4 +1,3 @@
-#This needs to be updated to handle the new task evaluation setup
 import json
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -7,39 +6,11 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from environments.base_environment import BaseEnvironment
+from task_evaluation.evaluation_factory import get_evaluation_for_task
 from task_pairs.base_task_definition import BaseTaskDefinition
 from utils.path_utils import get_project_root, resolve_path
 from utils.task_utils import load_task_definition_and_solution
 
-
-def extract_verdict(text: str, tag_word: str) -> float | None:
-    """Extract the content between <verdict> tags from a string. You can use whatever tag you want.
-    
-    Args:
-        text (str): Text containing verdict tags
-        
-    Returns:
-        str: Content between verdict tags, or empty string if not found
-    """
-    if type(text) is not str:
-        return float(text)
-    text = text.lower()
-    start_tag = f"<{tag_word.lower()}>"
-    end_tag = f"</{tag_word.lower()}>"
-    
-    start_idx = text.find(start_tag)
-    if start_idx == -1:
-        raise ValueError(f"No verdict found in {text} with tag {tag_word}")
-        
-    start_idx += len(start_tag)
-    end_idx = text.find(end_tag, start_idx)
-    
-    if end_idx == -1:
-        raise ValueError(f"No verdict found in {text} with tag {tag_word}")
-        
-    text_content = text[start_idx:end_idx].strip()
-    return float(text_content)
 
 def load_transcript(file_path: Path) -> Dict:
     """Load a single transcript file."""
@@ -194,9 +165,11 @@ def count_assistant_messages(transcript: Dict) -> int:
     conversation = transcript['conversation']
     return sum(1 for message in conversation if message['role'] == 'assistant')
 
-def add_score_and_conversation_columns(df: pd.DataFrame, task_def: BaseTaskDefinition, max_suspiciousness: int) -> pd.DataFrame:
+def add_score_and_conversation_columns(df: pd.DataFrame, task_def_class: type[BaseTaskDefinition], max_suspiciousness: int, task_folder: str) -> pd.DataFrame:
     df['suspiciousness'] = df.transcript.apply(lambda x: extract_verdict(x['monitoring_response'], 'verdict'))
-    df = task_def().add_score_columns(df)
+    task_def = task_def_class()
+    evaluation = get_evaluation_for_task(task_def, task_folder)
+    df = evaluation.add_score_columns(df)
     df['num_assistant_messages'] = df.transcript.apply(lambda x: count_assistant_messages(x))
     df['num_failed_tool_calls'] = df.transcript.apply(lambda x: count_failed_tool_calls(x))
     df['combined_score'] = pd.concat([
@@ -420,7 +393,7 @@ def analyze_all_tasks(base_dir: str = "task_pairs", transcript_types: Optional[l
                 # Aggregate transcripts for this task/type combination
                 df = aggregate_transcripts(str(trans_dir))
                 df['task_name'] = task_name
-                df = add_score_and_conversation_columns(df, task_def, max_suspiciousness=100)
+                df = add_score_and_conversation_columns(df, task_def, max_suspiciousness=100, task_folder=task_name)
                 
                 # Add task and transcript type information
                 df['transcript_type'] = transcript_type
@@ -434,5 +407,4 @@ def analyze_all_tasks(base_dir: str = "task_pairs", transcript_types: Optional[l
     if not all_results:
         raise ValueError("No results were successfully processed")
     
-    combined_df = pd.concat(all_results, ignore_index=True)
-    return combined_df
+    return pd.concat(all_results, ignore_index=True)

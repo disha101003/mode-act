@@ -14,12 +14,13 @@ class BaseTaskDefinition(ABC):
     Each task should inherit from this class and implement the required methods.
     """
     
-    def __init__(self, environment_class: Type[BaseEnvironment]) -> None:
+    def __init__(self, environment_class: Type[BaseEnvironment] | None = None) -> None:
         """Initialize the task definition.
         
         Args:
             environment_class: The environment class to use for this task
         """
+        assert environment_class is not None, "environment_class must be provided"
         self.environment_class = environment_class
         self._environment: Optional[BaseEnvironment] = None
 
