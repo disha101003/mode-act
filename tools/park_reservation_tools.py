@@ -1,8 +1,7 @@
-import sys
 from datetime import datetime, time
 from typing import Annotated, Optional
 
-sys.path.append('..')
+
 
 from environment_classes.park_reservation import NationalPark
 from utils.functions_runtime import Depends

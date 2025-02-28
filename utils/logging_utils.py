@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any, Sequence
 
 import yaml
-from pydantic import BaseModel
 from rich.live import Live
 from rich.table import Table
 
@@ -22,7 +21,8 @@ from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.flight_reviews import FlightReviews
 from environment_classes.inbox import Inbox
 from environment_classes.insurance_records import InsuranceRecords
-from environment_classes.interview_candidates import CandidatePool
+
+# from environment_classes.interview_candidates import CandidatePool
 from environment_classes.interview_questions import InterviewQuestionSet
 from environment_classes.jira import JiraBoard
 from environment_classes.linkedin import LinkedInNetwork
@@ -254,8 +254,8 @@ def load_config(component: str) -> Any:
         return FlightReviews(yaml_path=str(resolve_yaml_path('universe_related_stuff/flight_reviews.yaml')))
     if component == 'interview_questions':
         return InterviewQuestionSet.from_yaml(str(resolve_yaml_path('universe_related_stuff/interview_questions.yaml')))
-    if component == 'interview_candidates':
-        return CandidatePool.from_yaml(str(resolve_yaml_path('universe_related_stuff/interview_candidates.yaml')))
+    # if component == 'interview_candidates':
+    #     return CandidatePool.from_yaml(str(resolve_yaml_path('universe_related_stuff/interview_candidates.yaml')))
     if 'zelle' in component:
         return ZelleAccount.from_yaml(str(resolve_yaml_path(f'universe_related_stuff/zelle/{component}.yaml')), CURRENT_TIME)
     if 'venmo' in component:

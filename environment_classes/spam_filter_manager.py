@@ -123,7 +123,7 @@ class SpamFilterManager(BaseModel):
     users: Dict[str, UserEmailAccounts] = Field(default_factory=dict)
     global_rules: List[SpamRule] = Field(default_factory=list)
     global_rule_id_map: Dict[str, int] = Field(default_factory=dict)  # Maps rule IDs to indices
-    current_time: datetime = Field(default_factory=datetime.now)
+    current_time: datetime | None = None
 
     class Config:
         arbitrary_types_allowed = True

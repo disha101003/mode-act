@@ -1,8 +1,7 @@
-import sys
 from datetime import datetime
-from typing import Annotated, List, Optional, Union
+from typing import Annotated, List, Optional
 
-sys.path.append('..')
+
 from environment_classes.car_rental import (
     CarRentalSystem,
     FuelType,

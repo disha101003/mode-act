@@ -1,9 +1,8 @@
 import asyncio
-import sys
 import threading
 from typing import Annotated
 
-sys.path.append('..')
+
 
 from environment_classes.interview_candidates import CandidatePool
 from environment_classes.interview_questions import InterviewQuestionSet

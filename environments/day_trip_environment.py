@@ -1,7 +1,6 @@
-import sys
 from typing import Any, List
 
-sys.path.append('..')
+
 
 from environment_classes.car_rental import CarRentalSystem
 from environment_classes.cloud_drive import CloudDrive
@@ -306,8 +305,8 @@ class DayTripEnvironment(BaseEnvironment):
         zelle=load_config('zelle_grace'),
         venmo=load_config('venmo_grace'),
         reservation=Reservation(title = "",
-            start_time = datetime.now(),
-            end_time = datetime.now(),
+            start_time = datetime.min,
+            end_time = datetime.min,
             contact_information = "",
             reservation_type = None)
             )

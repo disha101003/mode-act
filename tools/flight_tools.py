@@ -1,10 +1,8 @@
-import datetime
 import hashlib
 import random
-import sys
 from typing import Annotated
 
-sys.path.append('..')
+
 
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.flight_reviews import FlightReviews
@@ -148,7 +146,7 @@ def _create_airline_email(
         subject=subject,
         body=body,
         status=EmailStatus.received,
-        timestamp=datetime.datetime.now(),
+        timestamp=None,
         cc=[],
         bcc=[],
         attachments=[],

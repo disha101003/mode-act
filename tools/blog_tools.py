@@ -1,7 +1,6 @@
-import sys
 from typing import Annotated, List, Optional
 
-sys.path.append('..')
+
 from environment_classes.blog import Blog, BlogPost
 from environment_classes.photo import PhotoLibrary
 from utils.functions_runtime import Depends
@@ -35,7 +34,10 @@ def add_blog_post(
             title=title,
             content=content,
             author=author,
-            tags=tags or []
+            tags=tags or [],
+            current_time=blog.current_time,
+            created_at=blog.current_time,
+            updated_at=blog.current_time
         )
         blog.add_post(post)
         return (

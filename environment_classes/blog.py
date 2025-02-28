@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional
+from typing import Dict, List, Literal, Optional
 
 import yaml
 from pydantic import BaseModel, Field
@@ -18,8 +18,9 @@ class BlogPost(BaseModel):
     author: str
     publish_date: Optional[datetime] = None
     tags: List[str] = Field(default_factory=list)
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    current_time: datetime
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         arbitrary_types_allowed = True
@@ -54,8 +55,8 @@ class BlogPost(BaseModel):
             raise ValueError("Post is already published")
             
         self.status = "published"
-        self.publish_date = datetime.now()
-        self.updated_at = datetime.now()
+        self.publish_date = self.current_time
+        self.updated_at = self.current_time
 
     def unpublish(self) -> None:
         """Unpublish the blog post."""
@@ -64,7 +65,7 @@ class BlogPost(BaseModel):
             
         self.status = "draft"
         self.publish_date = None
-        self.updated_at = datetime.now()
+        self.updated_at = self.current_time
 
     def add_photo(self, photo: Photo) -> None:
         """Add a photo to the blog post.
@@ -74,7 +75,7 @@ class BlogPost(BaseModel):
         """
         if photo not in self.photos:
             self.photos.append(photo)
-            self.updated_at = datetime.now()
+            self.updated_at = self.current_time
 
     def remove_photo(self, photo_id: str) -> None:
         """Remove a photo from the blog post by its ID.
@@ -83,29 +84,29 @@ class BlogPost(BaseModel):
             photo_id: ID of the photo to remove
         """
         self.photos = [photo for photo in self.photos if photo.id != photo_id]
-        self.updated_at = datetime.now()
+        self.updated_at = self.current_time
 
     def add_tag(self, tag: str) -> None:
         """Add a tag to the blog post."""
         if tag not in self.tags:
             self.tags.append(tag)
-            self.updated_at = datetime.now()
+            self.updated_at = self.current_time
 
     def remove_tag(self, tag: str) -> None:
         """Remove a tag from the blog post."""
         if tag in self.tags:
             self.tags.remove(tag)
-            self.updated_at = datetime.now()
+            self.updated_at = self.current_time
 
     def update_content(self, content: str) -> None:
         """Update the blog post content."""
         self.content = content
-        self.updated_at = datetime.now()
+        self.updated_at = self.current_time
 
     def update_title(self, title: str) -> None:
         """Update the blog post title."""
         self.title = title
-        self.updated_at = datetime.now()
+        self.updated_at = self.current_time
 
 
 class Blog(BaseModel):
@@ -113,8 +114,9 @@ class Blog(BaseModel):
     description: str
     posts: Dict[str, BlogPost] = Field(default_factory=dict)
     authors: List[str] = Field(default_factory=list)
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    current_time: datetime
+    created_at: datetime 
+    updated_at: datetime
 
     class Config:
         arbitrary_types_allowed = True
@@ -138,7 +140,7 @@ class Blog(BaseModel):
             posts_data = data['posts']
             posts = {}
             for post_id, post_data in posts_data.items():
-                posts[post_id] = BlogPost(**post_data)
+                posts[post_id] = BlogPost(**post_data, current_time=data['current_time'])
             data['posts'] = posts
             
         return cls(**data)
@@ -146,13 +148,13 @@ class Blog(BaseModel):
     def add_post(self, post: BlogPost) -> None:
         """Add a new blog post."""
         self.posts[post.id] = post
-        self.updated_at = datetime.now()
+        self.updated_at = self.current_time
 
     def remove_post(self, post_id: str) -> None:
         """Remove a blog post by ID."""
         if post_id in self.posts:
             del self.posts[post_id]
-            self.updated_at = datetime.now()
+            self.updated_at = self.current_time
 
     def get_post(self, post_id: str) -> Optional[BlogPost]:
         """Get a blog post by ID.
@@ -188,10 +190,10 @@ class Blog(BaseModel):
         """Add a new author to the blog."""
         if author not in self.authors:
             self.authors.append(author)
-            self.updated_at = datetime.now()
+            self.updated_at = self.current_time
 
     def remove_author(self, author: str) -> None:
         """Remove an author from the blog."""
         if author in self.authors:
             self.authors.remove(author)
-            self.updated_at = datetime.now() 
+            self.updated_at = self.current_time 

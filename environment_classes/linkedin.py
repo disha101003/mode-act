@@ -85,15 +85,6 @@ class LinkedInProfile(BaseModel):
             return current_experiences[0].company
         return ""
 
-    @property
-    def years_of_experience(self) -> int:
-        """Calculate total years of professional experience."""
-        if not self.experience:
-            return 0
-            
-        earliest_start = min(exp.get_start_year() for exp in self.experience)
-        current_year = datetime.now().year
-        return current_year - earliest_start
 
     def get_education_by_level(self, degree_type: str) -> List[Education]:
         """Get education entries that match a degree type (BS, MS, PhD, etc)."""

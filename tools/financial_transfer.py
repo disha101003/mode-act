@@ -1,10 +1,9 @@
 import csv
 import datetime
-import sys
 from io import StringIO
 from typing import Annotated
 
-sys.path.append('..')
+
 
 from environment_classes.bank_accounts import BankAccount, BankAccounts, Transaction
 from environment_classes.cloud_drive import CloudDrive

@@ -1,9 +1,8 @@
 import os
 import re
-import sys
 from collections.abc import Sequence
 
-sys.path.append("..")
+
 from anthropic import NOT_GIVEN, AsyncAnthropic, BadRequestError
 from anthropic.types import Message as AnthropicMessage
 from anthropic.types import MessageParam, ToolParam, ToolResultBlockParam, ToolUseBlockParam

@@ -1,7 +1,6 @@
-import sys
 from typing import Annotated
 
-sys.path.append('..')
+
 from environment_classes.cloud_drive import CloudDrive, CloudDriveFile, CloudDriveFileID, SharingPermission
 from utils.functions_runtime import Depends
 

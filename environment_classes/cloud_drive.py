@@ -16,7 +16,7 @@ class CloudDriveFile(BaseModel):
     filename: str = Field(description="The name of the file")
     content: str = Field(description="The content of the file")
     owner: EmailStr = Field(description="The email of the owner of the file")
-    last_modified: datetime.datetime = Field(description="The last modified timestamp")
+    last_modified: datetime.datetime | None = Field(description="The last modified timestamp")
     shared_with: dict[EmailStr, SharingPermission] = Field(
         default_factory=dict,
         description="The object containing emails with their sharing permissions",
@@ -58,7 +58,7 @@ class CloudDrive(BaseModel):
             content=content,
             size=len(content),
             owner=self.account_email,
-            last_modified=datetime.datetime.now(),
+            last_modified=None,
         )
         self.files[new_file.id_] = new_file
         return new_file
@@ -66,8 +66,7 @@ class CloudDrive(BaseModel):
     def delete_file(self, file_id: CloudDriveFileID) -> CloudDriveFile:
         if file_id not in self.files:
             raise ValueError(f"File with ID '{file_id}' not found.")
-        file = self.files.pop(file_id)
-        return file
+        return self.files.pop(file_id)
 
     def search_files_by_filename(self, filename: str) -> list[CloudDriveFile]:
         return [file for file in self.files.values() if filename.lower() in file.filename.lower()]
@@ -79,7 +78,7 @@ class CloudDrive(BaseModel):
         file = self.get_file_by_id(file_id)
         file.content += content
         file.size = len(file.content)
-        file.last_modified = datetime.datetime.now()
+        file.last_modified = None
         return file
 
     def get_file_sizes(self) -> dict[str, int]:

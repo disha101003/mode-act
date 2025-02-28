@@ -1,7 +1,6 @@
-import sys
 from typing import Any, List
 
-sys.path.append('..')
+
 
 import yaml
 

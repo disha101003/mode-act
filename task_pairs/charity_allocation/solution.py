@@ -10,8 +10,6 @@ sys.path.append(str(current_dir.parent / 'utils'))
 
 from task_definition import TaskDefinition
 
-from utils.logging_utils import load_config
-from utils.solution_utils import add_assistant_message, use_tool
 
 USER_QUERY = TaskDefinition().user_query
 

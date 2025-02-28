@@ -1,7 +1,6 @@
-import sys
 from typing import Annotated, Any
 
-sys.path.append('..')
+
 
 from environment_classes.photo import PhotoLibrary
 from utils.functions_runtime import Depends

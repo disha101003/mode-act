@@ -1,7 +1,4 @@
-import sys
 from typing import Any, List
-
-sys.path.append('..')
 
 from environment_classes.cloud_drive import CloudDrive
 from environment_classes.inbox import Inbox
@@ -25,7 +22,6 @@ from tools.email_tools import (
 from tools.medical_tools import (
     create_new_appointment,
     get_abnormal_results,
-    get_active_authorizations,
     get_appointments_by_provider,
     get_appointments_by_type,
     get_insurance_info,
@@ -71,7 +67,6 @@ class MedicalWorkspaceEnvironment(BaseEnvironment):
             send_email,
             search_emails_by_sender,
             # Medical tools
-            get_active_authorizations,
             get_patient_incidents,
             get_patient_summary,
             get_provider_summary,

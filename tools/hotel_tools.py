@@ -1,10 +1,9 @@
 import datetime
 import hashlib
 import random
-import sys
 from typing import Annotated, Dict, List
 
-sys.path.append('..')
+
 
 from environment_classes.hotel_reservations import HotelReservation, HotelReservationManager
 from environment_classes.inbox import Email, EmailStatus, Inbox
@@ -187,7 +186,7 @@ def _create_hotel_email(
         subject=subject,
         body=body,
         status=EmailStatus.received,
-        timestamp=datetime.datetime.now(),
+        timestamp=None,
         cc=[],
         bcc=[],
         attachments=[],

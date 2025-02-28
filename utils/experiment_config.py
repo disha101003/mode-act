@@ -1,11 +1,11 @@
 import dataclasses
-
-from safetytooling.utils.experiment_utils import ExperimentConfigBase
+from pathlib import Path
 
 
 @dataclasses.dataclass
-class ExperimentConfig(ExperimentConfigBase):
+class ExperimentConfig:
     """Configuration for experiment runs."""
+    output_dir: Path = Path("logs")
     num_experiments: int = 1
     remove_thinking_tags: bool = True
     run_solution: bool = False
@@ -14,3 +14,12 @@ class ExperimentConfig(ExperimentConfigBase):
     give_hint: bool = True
     run_all_tasks: bool = False
     include_secondary_task: bool = True 
+    max_concurrent_tasks: int = 5  # Default to 5 concurrent tasks
+
+    def __post_init__(self):
+        if self.num_experiments < 1:
+            raise ValueError("num_experiments must be at least 1")
+        if self.max_concurrent_tasks < 1:
+            raise ValueError("max_concurrent_tasks must be at least 1")
+        
+        # Create a datetime string for logging

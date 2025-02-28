@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, List, Literal, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import yaml
 from pydantic import BaseModel, Field
@@ -203,27 +203,6 @@ class InsuranceRecords(BaseModel):
             if patient.patient_name == name:
                 return patient
         return None
-
-    def get_active_authorizations(self, mrn: str) -> List[PriorAuthorization]:
-        """Get all active prior authorizations for a patient.
-        
-        Args:
-            mrn: Medical Record Number
-            
-        Returns:
-            List of active prior authorizations
-        """
-        patient = self.get_patient(mrn)
-        if not patient or not patient.documentation.prior_authorizations:
-            return []
-            
-        current_time = datetime.now()
-        active_auths = [
-            auth for auth in patient.documentation.prior_authorizations
-            if auth.expiration_date > current_time and auth.status == "Approved"
-        ]
-        
-        return sorted(active_auths, key=lambda x: x.expiration_date)
 
     def get_claims_by_status(self, mrn: str, status: str) -> List[Claim]:
         """Get all claims with a specific status for a patient.

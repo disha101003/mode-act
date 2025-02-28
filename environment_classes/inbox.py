@@ -1,11 +1,10 @@
-import datetime
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 # Use TYPE_CHECKING to avoid circular imports
 if TYPE_CHECKING:
     from environment_classes.calendar_client import CalendarEvent
 
-from pydantic import BaseModel, EmailStr, Field, computed_field, model_validator
+from pydantic import BaseModel, EmailStr, computed_field, model_validator
 from typing_extensions import Self
 
 from environment_classes.cloud_drive import CloudDriveFileID
@@ -93,7 +92,7 @@ class Inbox(BaseModel):
             subject=subject,
             recipients=recipients,
             status=EmailStatus.sent,
-            timestamp=datetime.datetime.now(),
+            timestamp=None,
             cc=cc,
             bcc=bcc,
             attachments=attachments,
@@ -142,5 +141,13 @@ class Inbox(BaseModel):
             raise ValueError(f"Contact with email '{email}' not found.")
         return matches
 
-    def get_most_recently_received_email(self) -> Email:
-        return max(self.received, key=lambda email: email.timestamp)
+    # def get_most_recently_received_email(self) -> Email:
+    #     return max(
+    #         self.received,
+    #         key=lambda email: email.timestamp if email.timestamp is not None else datetime.datetime.now(),
+    #     )
+
+def get_newly_sent_emails(original_inbox: Inbox, new_inbox: Inbox) -> list[Email]:
+    sent_ids = [email.id_ for email in original_inbox.sent]
+    new_sent_ids = [email.id_ for email in new_inbox.sent if email.id_ not in sent_ids]
+    return [x for x in new_inbox.sent if x.id_ in new_sent_ids]

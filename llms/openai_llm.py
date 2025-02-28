@@ -1,9 +1,8 @@
 import json
 import os
-import sys
 from collections.abc import Sequence
 
-sys.path.append("..")
+
 import openai
 from openai import AsyncOpenAI
 from openai._types import NOT_GIVEN

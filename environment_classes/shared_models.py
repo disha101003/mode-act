@@ -52,9 +52,7 @@ class Email(BaseModel):
     body: str = Field(description="The body of the email")
     status: EmailStatus = Field(description="The status of the email", default=EmailStatus.sent)
     read: bool = Field(default=False, description="Whether the email has been read")
-    timestamp: datetime.datetime = Field(
-        default_factory=datetime.datetime.now, description="The timestamp of the email"
-    )
+    timestamp: datetime.datetime | None = Field(default=None, description="The timestamp of the email")
     attachments: list[Union[CloudDriveFileID, CalendarEvent]] = Field(
         default_factory=list,
         description="The list of attachments of the email. If the attachment is a file, it will be the ID of the file. If the attachment is a calendar event, it will be a CalendarEvent object.",

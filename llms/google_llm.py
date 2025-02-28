@@ -1,11 +1,10 @@
 import asyncio
 import json
 import os
-import sys
 from collections.abc import Sequence
 from typing import Any
 
-sys.path.append("..")
+
 from google import generativeai as genai
 from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_random_exponential

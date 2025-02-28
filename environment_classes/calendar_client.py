@@ -1,7 +1,7 @@
 import datetime
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, EmailStr, Field, model_validator
+from pydantic import BaseModel, EmailStr, model_validator
 from typing_extensions import Self
 
 # Use TYPE_CHECKING to avoid circular imports

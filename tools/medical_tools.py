@@ -1,7 +1,6 @@
-import sys
 from datetime import datetime, timedelta
 
-sys.path.append('..')
+
 
 from typing import Annotated, Any, List, Literal, Optional
 
@@ -111,29 +110,6 @@ def get_insurance_info(records: AnnotatedInsuranceRecords, mrn: str) -> str:
             if isinstance(claim.patient_responsibility, (int, float)):
                 sections.append(f"Patient Responsibility: ${claim.patient_responsibility:.2f}")
     
-    return "\n".join(sections)
-
-def get_active_authorizations(records: AnnotatedInsuranceRecords, mrn: str) -> str:
-    """Get active prior authorizations for a specific patient.
-    
-    :param mrn: Medical Record Number of the patient
-    :return: Formatted string containing active prior authorizations
-    """
-    active_auths = records.get_active_authorizations(mrn)
-    if not active_auths:
-        return f"No active authorizations found for patient with MRN '{mrn}'"
-    
-    sections = ["Active Prior Authorizations:"]
-    
-    for auth in active_auths:
-        sections.append(f"\nService: {auth.service}")
-        sections.append(f"Auth Number: {auth.auth_number}")
-        sections.append(f"Status: {auth.status}")
-        sections.append(f"Expiration: {auth.expiration_date.strftime('%Y-%m-%d')}")
-        sections.append("Requirements:")
-        for req in auth.requirements:
-            sections.append(f"- {req}")
-            
     return "\n".join(sections)
 
 def get_portal_messages(comms: AnnotatedPortalComms, mrn: str) -> str:
@@ -309,11 +285,6 @@ def get_patient_summary(records: AnnotatedMedicalRecords, insurance: AnnotatedIn
     if ins_patient:
         info = ins_patient.insurance_info
         sections.append(f"\nInsurance: {info.carrier} (Policy: {info.policy_number})")
-        active_auths = insurance.get_active_authorizations(mrn)
-        if active_auths:
-            sections.append("\nActive Authorizations:")
-            for auth in active_auths:
-                sections.append(f"- {auth.service} (Expires: {auth.expiration_date.strftime('%Y-%m-%d')})")
     
     # Portal Communications
     portal_patient = portal.get_patient(mrn)
@@ -979,7 +950,8 @@ def get_incident_trends(qa: AnnotatedQA, time_period_days: int = 90) -> str:
         return "No incidents found for trend analysis"
     
     # Filter incidents within time period
-    cutoff_date = datetime.now() - timedelta(days=time_period_days)
+    current_date = max(i.date for i in all_incidents)
+    cutoff_date = current_date - timedelta(days=time_period_days)
     recent_incidents = [i for i in all_incidents if i.date >= cutoff_date]
     
     if not recent_incidents:

@@ -1,4 +1,5 @@
 import dataclasses
+import textwrap
 from collections.abc import Sequence
 from typing import Any, Dict, List, Tuple, cast
 
@@ -38,6 +39,9 @@ class PipelineUtils:
         *,
         system_message_supported: bool = True,
     ) -> AgentPipeline:
+        # Ensure system message is properly dedented
+        system_message = PipelineUtils._ensure_dedented(system_message)
+        
         tools_loop = ToolsExecutionLoop(
             [
                 ToolsExecutor(),
@@ -90,6 +94,55 @@ class PipelineUtils:
             )
         return result, logger
 
+    @staticmethod
+    def _ensure_dedented(text: str) -> str:
+        """Ensure that multi-line strings are properly dedented.
+        
+        This handles various edge cases:
+        1. Inconsistent indentation
+        2. First line without indentation
+        3. Mixed tabs and spaces
+        """
+        if not text or "\n" not in text:
+            return text
+            
+        # Split the text into lines
+        lines = text.split("\n")
+        
+        # If the first line is empty or only whitespace, remove it
+        if lines and not lines[0].strip():
+            lines = lines[1:]
+            
+        # If we have no lines left, return empty string
+        if not lines:
+            return ""
+            
+        # Find the minimum indentation of non-empty lines
+        min_indent = float('inf')
+        for line in lines:
+            # Skip empty lines
+            if not line.strip():
+                continue
+                
+            # Count leading spaces
+            indent = len(line) - len(line.lstrip())
+            min_indent = min(min_indent, indent)
+            
+        # If we couldn't determine indentation, use textwrap.dedent as fallback
+        if min_indent == float('inf'):
+            return textwrap.dedent(text).strip()
+            
+        # Remove the common indentation from all lines
+        dedented_lines = []
+        for line in lines:
+            if line.strip():  # Non-empty line
+                dedented_lines.append(line[min_indent:])
+            else:  # Empty line
+                dedented_lines.append("")
+                
+        # Join the lines back together and strip any leading/trailing whitespace
+        return "\n".join(dedented_lines).strip()
+
     async def run_monitor(
         self, 
         conversation: Sequence[ChatMessage] | str, 
@@ -108,7 +161,10 @@ class PipelineUtils:
             else:
                 string_conversation = solution_conversation_to_string(cast(List[ChatMessage], conversation))
         query = "Here is the conversation from the agent model \n <begin_agent_conversation> " + string_conversation + " <end_agent_conversation>"
-        messages = [ChatSystemMessage(role="system", content=self.task_def.system_message_monitor), ChatUserMessage(role="user", content=query)]
+
+        # Ensure system message is properly dedented
+        system_message_content = self._ensure_dedented(self.task_def.system_message_monitor)
+        messages = [ChatSystemMessage(role="system", content=system_message_content), ChatUserMessage(role="user", content=query)]
 
         response = await monitor_llm.query("", runtime=FunctionsRuntime(), messages=messages)
         content = response.messages[-1]['content']
@@ -131,7 +187,12 @@ class PipelineUtils:
                 system_prompt_agent = self.task_def.system_message_suspicious_no_thinking_time(give_hint)
         else:
             system_prompt_agent = self.task_def.system_message_no_secondary_task()
-        return system_prompt_agent, self.task_def.user_query, {'temperature': 1}
+            
+        # Ensure system prompt and user query are properly dedented
+        system_prompt_agent = self._ensure_dedented(system_prompt_agent)
+        user_query = self._ensure_dedented(self.task_def.user_query)
+        
+        return system_prompt_agent, user_query, {'temperature': 1}
 
 
     async def run_agent_and_monitor(

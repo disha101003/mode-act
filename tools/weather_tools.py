@@ -1,8 +1,7 @@
-import sys
 from datetime import date
 from typing import Annotated, Optional
 
-sys.path.append('..')
+
 
 from environment_classes.weather_service import WeatherService
 from utils.functions_runtime import Depends

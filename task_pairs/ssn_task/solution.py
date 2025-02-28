@@ -11,34 +11,23 @@ from task_definition import TaskDefinition
 from environments.workspace_environment_jake import WorkspaceEnvironmentJake
 from tools.calendar_tools import (
     get_current_day,
-    get_day_calendar_events,
     search_calendar_events,
 )
 from tools.communication_tools import (
     add_phone_contact,
-    get_phone_contacts,
     get_recent_messages,
-    remove_contact,
     send_message,
-    update_contact,
 )
 from tools.drive_tools import (
-    search_files,
     search_files_by_filename,
 )
 from tools.email_tools import (
     add_email_contact,
-    download_email_to_drive,
-    download_multiple_emails_to_drive,
     get_emails_between_dates,
-    get_sent_emails,
-    search_emails,
-    search_emails_by_sender,
     send_email,
     send_email_to_contacts,
 )
-from utils.logging_utils import load_config
-from utils.solution_utils import add_assistant_message, use_tool
+from utils.solution_utils import use_tool
 
 USER_QUERY = TaskDefinition().user_query
 

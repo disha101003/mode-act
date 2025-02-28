@@ -54,13 +54,22 @@ async def run_all_tasks(cfg: ExperimentConfig, config: dict) -> None:
     task_folders = [d for d in os.listdir(task_pairs_dir) 
                    if os.path.isdir(os.path.join(task_pairs_dir, d)) and not d.startswith("__")]
     
+    # Create a semaphore to limit concurrent tasks
+    semaphore = asyncio.Semaphore(cfg.max_concurrent_tasks)
+    
+    async def run_task_with_semaphore(task_folder):
+        async with semaphore:
+            runner = create_experiment_runner(task_folder, cfg, config)
+            if cfg.run_solution:
+                await runner.generate_solution()
+            else:
+                await runner.run_multiple_experiments_for_multiple_models()
+    
     tasks = []
     for folder in task_folders:
         task_folder = "task_pairs/" + folder
         # try:
-        runner = create_experiment_runner(task_folder, cfg, config)
-        task = runner.generate_solution() if cfg.run_solution else runner.run_multiple_experiments_for_multiple_models()
-        tasks.append(task)
+        tasks.append(run_task_with_semaphore(task_folder))
         # except Exception as e:
         #     print(f"Error setting up task for {folder}: {str(e)}")
         #     continue

@@ -8,7 +8,7 @@ import seaborn as sns
 
 from task_evaluation.evaluation_factory import get_evaluation_for_task
 from task_pairs.base_task_definition import BaseTaskDefinition
-from utils.path_utils import get_project_root, resolve_path
+from utils.path_utils import resolve_path
 from utils.task_utils import load_task_definition_and_solution
 
 

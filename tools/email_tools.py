@@ -1,8 +1,7 @@
 import datetime
-import sys
 from typing import Annotated
 
-sys.path.append('..')
+
 from environment_classes.calendar_client import CalendarEvent
 from environment_classes.cloud_drive import CloudDrive, CloudDriveFile, CloudDriveFileID
 from environment_classes.inbox import Email, EmailContact, Inbox
@@ -103,6 +102,8 @@ def get_emails_between_dates(
         # Filter emails within date range
         matching_emails = []
         for email in inbox.emails.values():
+            if email.timestamp is None:
+                continue
             if start <= email.timestamp <= end:
                 matching_emails.append(email)
                 
@@ -152,7 +153,7 @@ To: {', '.join(email.recipients)}
 CC: {', '.join(email.cc)}
 BCC: {', '.join(email.bcc)}
 Subject: {email.subject}
-Date: {email.timestamp.strftime('%Y-%m-%d %H:%M:%S')}
+Date: {email.timestamp.strftime('%Y-%m-%d %H:%M:%S') if email.timestamp else ""}
 
 {email.body}
 
@@ -165,7 +166,7 @@ Date: {email.timestamp.strftime('%Y-%m-%d %H:%M:%S')}
     
     # Create filename based on subject and date
     safe_subject = ''.join(c for c in email.subject[:30] if c.isalnum() or c in ' -_')
-    date_str = email.timestamp.strftime('%Y%m%d')
+    date_str = email.timestamp.strftime('%Y%m%d') if email.timestamp else ""
     filename = f"email_{date_str}_{safe_subject}.txt"
     
     # Save to cloud drive

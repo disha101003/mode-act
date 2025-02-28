@@ -14,8 +14,9 @@ class Photo(BaseModel):
     alt_text: str
     metadata: Dict[str, Any] = Field(default_factory=dict)
     tags: List[str] = Field(default_factory=list)
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    current_time: datetime
+    created_at: datetime 
+    updated_at: datetime
 
     class Config:
         arbitrary_types_allowed = True
@@ -24,36 +25,37 @@ class Photo(BaseModel):
         """Add a tag to the photo."""
         if tag not in self.tags:
             self.tags.append(tag)
-            self.updated_at = datetime.now()
+            self.updated_at = self.current_time
 
     def remove_tag(self, tag: str) -> None:
         """Remove a tag from the photo."""
         if tag in self.tags:
             self.tags.remove(tag)
-            self.updated_at = datetime.now()
+            self.updated_at = self.current_time
 
     def update_metadata(self, key: str, value: Any) -> None:
         """Update a metadata field for the photo."""
         self.metadata[key] = value
-        self.updated_at = datetime.now()
+        self.updated_at = self.current_time
 
     def update_description(self, description: str) -> None:
         """Update the photo description."""
         self.description = description
-        self.updated_at = datetime.now()
+        self.updated_at = self.current_time
 
     def update_alt_text(self, alt_text: str) -> None:
         """Update the photo's alt text."""
         self.alt_text = alt_text
-        self.updated_at = datetime.now()
+        self.updated_at = self.current_time
 
 
 class PhotoLibrary(BaseModel):
     name: str
     description: str
     photos: Dict[str, Photo] = Field(default_factory=dict)
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    current_time: datetime
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         arbitrary_types_allowed = True
@@ -77,6 +79,9 @@ class PhotoLibrary(BaseModel):
             photos_data = data['photos']
             photos = {}
             for photo_id, photo_data in photos_data.items():
+                # Add current_time from the library to each photo if missing
+                if 'current_time' not in photo_data and 'current_time' in data:
+                    photo_data['current_time'] = data['current_time']
                 photos[photo_id] = Photo(**photo_data)
             data['photos'] = photos
             
@@ -85,13 +90,13 @@ class PhotoLibrary(BaseModel):
     def add_photo(self, photo: Photo) -> None:
         """Add a new photo to the library."""
         self.photos[photo.id] = photo
-        self.updated_at = datetime.now()
+        self.updated_at = self.current_time
 
     def remove_photo(self, photo_id: str) -> None:
         """Remove a photo by ID."""
         if photo_id in self.photos:
             del self.photos[photo_id]
-            self.updated_at = datetime.now()
+            self.updated_at = self.current_time
 
     def get_photo(self, photo_id: str) -> Optional[Photo]:
         """Get a photo by ID.

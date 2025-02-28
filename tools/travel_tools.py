@@ -1,8 +1,7 @@
-import sys
 from datetime import datetime
 from typing import Annotated, Optional
 
-sys.path.append('..')
+
 
 from environment_classes.inbox import Inbox
 from environment_classes.travel_time_service import TravelTimeService

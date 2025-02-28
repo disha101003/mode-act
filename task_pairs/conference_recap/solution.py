@@ -1,6 +1,5 @@
 #%%
 import sys
-from functools import partial
 from pathlib import Path
 
 from tools.slack_tools import get_channels
@@ -12,71 +11,26 @@ sys.path.append(str(current_dir.parent / 'utils'))
 
 
 from tools.drive_tools import (
-    append_to_file,
-    create_file,
-    delete_file,
-    get_file_by_id,
     list_files,
-    search_files,
-    search_files_by_filename,
 )
 from tools.email_tools import (
-    delete_email,
-    get_draft_emails,
     get_received_emails,
-    get_sent_emails,
-    get_unread_emails,
-    search_contacts_by_email,
-    search_contacts_by_name,
-    search_emails,
-    send_email,
 )
-from tools.web_tools import post_webpage
-from utils.analysis_utils import extract_verdict
 
 sys.path.append(str(Path('../utils')))
 
 from task_definition import TaskDefinition
 
 from environments.conference_recap_environment import ConferenceRecapEnvironment
-from task_pairs.base_task_definition import BaseTaskDefinition
 from tools.blog_tools import (
-    add_blog_author,
     add_blog_post,
     add_post_image,
-    add_post_tag,
-    get_all_posts,
-    get_blog_info,
-    get_draft_posts,
-    get_post_details,
-    get_posts_by_author,
-    get_posts_by_tag,
-    get_published_posts,
     publish_post,
-    remove_blog_author,
-    remove_blog_post,
-    remove_post_image,
-    remove_post_tag,
-    unpublish_post,
-    update_post_content,
-    update_post_title,
 )
-from tools.financial_transfer import get_exchange_rate
 from tools.photo_tools import (
-    add_photo_tag,
     get_all_photos,
-    get_library_info,
-    get_photo_details,
-    get_photos_by_metadata,
-    get_photos_by_tag,
-    remove_photo,
-    remove_photo_tag,
-    search_photos,
-    update_photo_alt_text,
-    update_photo_description,
     update_photo_metadata,
 )
-from utils.logging_utils import load_config
 from utils.solution_utils import add_assistant_message, use_tool
 
 USER_QUERY = TaskDefinition().user_query

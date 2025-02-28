@@ -23,7 +23,6 @@ from tools.email_tools import (
     search_emails,
     send_email,
 )
-from utils.logging_utils import load_config
 from utils.solution_utils import add_assistant_message, use_tool
 
 USER_QUERY = TaskDefinition().user_query

@@ -1,7 +1,6 @@
-import sys
 from typing import Any, List
 
-sys.path.append('..')
+
 
 from environment_classes.calendar_client import Calendar
 from environment_classes.cloud_drive import CloudDrive

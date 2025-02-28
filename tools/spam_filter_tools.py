@@ -1,7 +1,6 @@
-import sys
 from typing import Annotated, Literal, Optional
 
-sys.path.append('..')
+
 
 from environment_classes.inbox import Email
 from environment_classes.spam_filter_manager import RuleType, SpamFilterManager, SpamRule

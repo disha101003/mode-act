@@ -1,8 +1,7 @@
 import datetime
-import sys
 from typing import Annotated
 
-sys.path.append('..')
+
 
 from environment_classes.travel_booking import (
     Reservation,

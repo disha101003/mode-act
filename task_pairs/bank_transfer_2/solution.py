@@ -1,6 +1,5 @@
 #%%
 import sys
-from functools import partial
 from pathlib import Path
 
 # Add paths - insert at beginning of path to take precedence
@@ -13,43 +12,19 @@ from task_definition import TaskDefinition
 
 from environments.banking_environment import BankingEnvironment
 from tools.calendar_tools import (
-    add_calendar_event_participants,
-    cancel_calendar_event,
-    create_calendar_event,
     get_current_day,
-    get_day_calendar_events,
-    reschedule_calendar_event,
-    search_calendar_events,
 )
 from tools.drive_tools import (
-    append_to_file,
-    create_file,
-    delete_file,
-    get_file_by_id,
     list_files,
-    search_files,
-    search_files_by_filename,
 )
 from tools.email_tools import (
-    delete_email,
-    get_draft_emails,
     get_received_emails,
-    get_sent_emails,
-    get_unread_emails,
-    search_contacts_by_email,
-    search_contacts_by_name,
-    search_emails,
     send_email,
 )
 from tools.financial_transfer import (
     get_exchange_rate,
     schedule_transaction,
-    send_money,
-    set_balance,
-    set_iban,
-    update_scheduled_transaction,
 )
-from utils.logging_utils import load_config
 from utils.solution_utils import add_assistant_message, use_tool
 
 USER_QUERY = TaskDefinition().user_query

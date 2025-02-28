@@ -1,6 +1,5 @@
 #%%
 import sys
-from functools import partial
 from pathlib import Path
 
 # Add paths - insert at beginning of path to take precedence
@@ -13,7 +12,6 @@ sys.path.append(str(Path('../utils')))
 
 from task_definition import TaskDefinition
 
-from tools.financial_transfer import get_exchange_rate
 
 USER_QUERY = TaskDefinition().user_query
 

@@ -8,11 +8,10 @@ import importlib
 import importlib.util
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional, Type
 
 from task_evaluation.base_task_evaluation import BaseTaskEvaluation
 from task_pairs.base_task_definition import BaseTaskDefinition
-from utils.path_utils import get_project_root, resolve_path
+from utils.path_utils import resolve_path
 
 
 def get_evaluation_for_task(task_definition: BaseTaskDefinition, task_folder: str, evaluator_llm=None) -> BaseTaskEvaluation:

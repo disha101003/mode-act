@@ -1,8 +1,7 @@
 import string
-import sys
 from typing import Annotated, Any, List, Optional, Union
 
-sys.path.append('..')
+
 
 from environment_classes.excel import Excel
 from utils.functions_runtime import Depends

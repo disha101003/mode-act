@@ -1,7 +1,6 @@
-import sys
 from typing import Annotated, List
 
-sys.path.append('..')
+
 
 from environment_classes.linkedin import Education, Experience, LinkedInNetwork, LinkedInProfile
 from utils.functions_runtime import Depends

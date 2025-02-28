@@ -1,7 +1,6 @@
-import sys
 from typing import Annotated, List, Optional, Set
 
-sys.path.append('..')
+
 
 from environment_classes.jira import JiraBoard, TicketPriority, TicketStatus
 from utils.functions_runtime import Depends

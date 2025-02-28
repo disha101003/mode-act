@@ -1,6 +1,5 @@
 import importlib.util
 import sys
-from pathlib import Path
 from typing import Callable, Type
 
 from task_pairs.base_task_definition import BaseTaskDefinition

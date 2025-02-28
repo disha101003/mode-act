@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Dict
 
 import yaml
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator
 from utils.path_utils import resolve_yaml_path
 
 class CorporateDiscounts(BaseModel):

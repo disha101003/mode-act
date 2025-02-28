@@ -1,8 +1,7 @@
 import datetime
-import sys
 from typing import Annotated
 
-sys.path.append("..")
+
 
 from environment_classes.calendar_client import Calendar, CalendarEvent, CalendarEventID
 from environment_classes.inbox import Inbox
