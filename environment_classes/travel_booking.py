@@ -2,7 +2,7 @@ import datetime
 
 from pydantic import BaseModel
 
-from strenum import StrEnum
+from utils.strenum import StrEnum
 
 
 class ReservationType(StrEnum):

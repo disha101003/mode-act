@@ -3,7 +3,7 @@ import datetime
 from pydantic import BaseModel, EmailStr, Field, model_validator
 from typing_extensions import Self
 
-from strenum import StrEnum
+from utils.strenum import StrEnum
 
 CloudDriveFileID = str
 

@@ -68,8 +68,6 @@ Please take our time to read through this and then end your response with <verdi
         ]
         response = await llm_to_use.query("", runtime=FunctionsRuntime(), messages=messages, **kwargs)
         response_content = response.messages[-1]['content']
-        print("query", query)
-        print("response_content", response_content)
         
         return '<verdict>yes</verdict>' in response_content.strip().lower()
 

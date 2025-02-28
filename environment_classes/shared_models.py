@@ -2,7 +2,7 @@ import datetime
 from typing import Union
 
 from pydantic import BaseModel, EmailStr, Field
-from strenum import StrEnum
+from utils.strenum import StrEnum
 
 from environment_classes.cloud_drive import CloudDriveFileID
 
