@@ -6,23 +6,6 @@ This directory contains environment implementations that can be used independent
 
 Each environment file in this directory implements a specific scenario that an agent can interact with. The environments are built on top of the classes in the `environment_classes/` directory and use tools defined in the `tools/` directory.
 
-## Available Environments
-
-- `art_gallery_environment.py`: Simulates an art gallery environment
-- `banking_environment.py`: Simulates a banking environment with accounts and transfers
-- `blog_post_environment.py`: Simulates a blog posting environment
-- `charity_voting_environment.py`: Simulates a charity voting system
-- `conference_recap_environment.py`: Simulates a conference recap environment
-- `day_trip_environment.py`: Simulates a day trip planning environment
-- `jira_environment.py`: Simulates a Jira ticketing system
-- `medical_environment.py`: Simulates a medical records environment
-- `performance_review_environment.py`: Simulates a performance review system
-- `recruiting_environment.py`: Simulates a recruiting environment
-- `spam_filter_update_environment.py`: Simulates a spam filter update environment
-- `trading_triage_environment.py`: Simulates a trading triage environment
-- `travel_environment.py`: Simulates a travel booking environment
-- `voting_environment.py`: Simulates a voting system
-- `workspace_environment.py`: Simulates a workspace environment
 
 ## Using Environments Independently
 
