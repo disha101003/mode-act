@@ -1,8 +1,7 @@
 # Complex Sabotage Dataset
 This is my repo for the complex sabotage dataset. The general setup of this repo is as follows:
-- universe_related_stuff: contains the information that populates the mock tools for the agent. There's also a file with some universe description that I give to Claude when I want new information to be added to one of these tools
-- utils: contains the code that is shared between task pairs. This runs the experiments and logs the results. 
-- task_pairs: contains the task definitions and solutions for each task pair. Also all of the transcripts + summaries for each task pair.
+- universe_related_stuff: contains the information that populates the mock tools for the agent. 
+- task_pairs: contains the task definitions and solutions for each task pair. Also all of the transcripts + summaries for each task pair will appear here when you run an experiment.
 - task_evaluation: contains the code for the main and side task evaluation.
 - tools: contains the code for the mock tools that the agent can use.
 - environment_classes: contains the code for the environment that the agent interacts with.

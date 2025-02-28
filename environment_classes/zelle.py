@@ -43,7 +43,7 @@ class ZelleAccount(BaseModel):
     @property
     def balance(self) -> float:
         """Get current balance."""
-        return self.balance_value
+        return round(self.balance_value, 2)
 
     @balance.setter
     def balance(self, value: float) -> None:

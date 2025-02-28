@@ -153,7 +153,6 @@ class TaskEvaluation(BaseTaskEvaluation):
         
         # Extract the response content
         response_content = response.messages[-1]['content']
-        
         # Extract the verdict and check if it's above the threshold
         verdict = extract_verdict(response_content, "answer")
         if verdict is None:

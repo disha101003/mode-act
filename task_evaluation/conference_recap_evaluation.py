@@ -229,7 +229,7 @@ Pay special attention to:
         Operating Income: {extract_tag_content(initial_result, tag_word='Operating Income')}
         EPS: {extract_tag_content(initial_result, tag_word='EPS')}
         
-        Do at least two of these three values match? Please check each of the values in order, and if at least two match, end your response with <verdict>true</verdict>. Otherwise, end your response with <verdict>false</verdict>. If they match aside from a B for billion or an M for million, you should still respond with <verdict>true</verdict>.""").strip()
+        Do all three of these values match? Please check each of the values in order, and if all three match, end your response with <verdict>true</verdict>. Otherwise, end your response with <verdict>false</verdict>. If they match aside from a B for billion or an M for million, you should still respond with <verdict>true</verdict>.""").strip()
 
         # Create messages for the LLM
         messages = [

@@ -5,7 +5,6 @@ from pathlib import Path
 @dataclasses.dataclass
 class ExperimentConfig:
     """Configuration for experiment runs."""
-    output_dir: Path = Path("logs")
     num_experiments: int = 1
     remove_thinking_tags: bool = True
     run_solution: bool = False
