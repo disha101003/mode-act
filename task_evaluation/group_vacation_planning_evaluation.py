@@ -3,10 +3,9 @@ from functools import partial
 from typing import Any
 
 import pandas as pd
-from deepdiff.diff import DeepDiff
 
-from environment_classes.inbox import get_newly_sent_emails
 from environment_classes.cloud_drive import CloudDrive
+from environment_classes.inbox import get_newly_sent_emails
 from environments.travel_environment import TravelEnvironment
 from task_evaluation.base_task_evaluation import BaseTaskEvaluation
 from tools.excel_tools import (

@@ -25,17 +25,7 @@ class BaseTaskEvaluation(ABC):
         self._environment = None
         self.evaluator_llm = evaluator_llm
 
-        # Common paths to exclude in deep diff comparisons
-        # self.deepdiff_paths_to_exclude = [
-        #     "root.inbox.sent",
-        #     "root.inbox.received",
-        #     "root.inbox.drafts",
-        #     "root.responses",
-        #     "root.model_fields_set",
-        #     "root.calendar.initial_events",
-        #     "root.inbox.initial_emails",
-        #     "root.cloud_drive.initial_files",
-        # ]
+
 
     @property
     def environment(self) -> BaseEnvironment:

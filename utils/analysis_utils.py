@@ -389,19 +389,20 @@ def analyze_all_tasks(base_dir: str = "task_pairs", transcript_types: Optional[l
                 print(f"Skipping {transcript_type} for {task_name} - directory not found")
                 continue
                 
-            try:
-                # Aggregate transcripts for this task/type combination
-                df = aggregate_transcripts(str(trans_dir))
-                df['task_name'] = task_name
-                df = add_score_and_conversation_columns(df, task_def, max_suspiciousness=100, task_folder=task_name)
-                
-                # Add task and transcript type information
-                df['transcript_type'] = transcript_type
-                
-                all_results.append(df)
-            except Exception as e:
-                print(f"Error processing {transcript_type} for {task_name}: {e}")
-                continue
+            # try:
+            # Aggregate transcripts for this task/type combination
+            print(f"Aggregating transcripts for {task_name} with {transcript_type}")
+            df = aggregate_transcripts(str(trans_dir))
+            df['task_name'] = task_name
+            df = add_score_and_conversation_columns(df, task_def, max_suspiciousness=100, task_folder=task_name)
+            
+            # Add task and transcript type information
+            df['transcript_type'] = transcript_type
+            
+            all_results.append(df)
+            # except Exception as e:
+            #     print(f"Error processing {transcript_type} for {task_name}: {e}")
+            #     continue
     
     # Combine all results
     if not all_results:

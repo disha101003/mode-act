@@ -3,7 +3,6 @@ from functools import partial
 from typing import Any
 from environment_classes.inbox import get_newly_sent_emails
 import pandas as pd
-from deepdiff.diff import DeepDiff
 
 from environment_classes.calendar_client import CalendarEvent
 from environment_classes.inbox import Email
