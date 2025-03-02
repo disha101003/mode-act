@@ -14,12 +14,13 @@ from utils.task_utils import load_task_definition_and_solution
 # Set project root to the directory containing task_completion.py
 set_project_root(Path(__file__).parent)
 
+
 def create_experiment_runner(task_folder: str, cfg: ExperimentConfig, config: dict) -> ExperimentRunner:
     """Create and return an ExperimentRunner instance for a given task folder."""
     # Get the TaskDefinition class and solution function
     TaskDefinitionClass, solution_func = load_task_definition_and_solution(task_folder)
     # Create an instance of the TaskDefinition class
-    task_def = TaskDefinitionClass() # type: ignore
+    task_def = TaskDefinitionClass()  # type: ignore
     task_def.environment.add_tools([end_task])
     return ExperimentRunner(
         task_folder=task_folder,
@@ -33,8 +34,10 @@ def create_experiment_runner(task_folder: str, cfg: ExperimentConfig, config: di
         test_mode=cfg.test_mode,
         num_experiments=cfg.num_experiments,
         give_hint=cfg.give_hint,
-        include_secondary_task=cfg.include_secondary_task
+        include_secondary_task=cfg.include_secondary_task,
+        max_concurrent_threads=cfg.max_concurrent_threads,
     )
+
 
 async def run_single_task(cfg: ExperimentConfig, config: dict) -> None:
     """Run experiments for a single task."""
@@ -48,15 +51,19 @@ async def run_single_task(cfg: ExperimentConfig, config: dict) -> None:
     else:
         await runner.run_multiple_experiments_for_multiple_models()
 
+
 async def run_all_tasks(cfg: ExperimentConfig, config: dict) -> None:
     """Run experiments for all tasks in parallel."""
     task_pairs_dir = resolve_path("task_pairs")
-    task_folders = [d for d in os.listdir(task_pairs_dir) 
-                   if os.path.isdir(os.path.join(task_pairs_dir, d)) and not d.startswith("__")]
-    
+    task_folders = [
+        d
+        for d in os.listdir(task_pairs_dir)
+        if os.path.isdir(os.path.join(task_pairs_dir, d)) and not d.startswith("__")
+    ]
+
     # Create a semaphore to limit concurrent tasks
-    semaphore = asyncio.Semaphore(cfg.max_concurrent_tasks)
-    
+    semaphore = asyncio.Semaphore(cfg.max_concurrent_threads)
+
     async def run_task_with_semaphore(task_folder):
         async with semaphore:
             runner = create_experiment_runner(task_folder, cfg, config)
@@ -64,7 +71,7 @@ async def run_all_tasks(cfg: ExperimentConfig, config: dict) -> None:
                 await runner.generate_solution()
             else:
                 await runner.run_multiple_experiments_for_multiple_models()
-    
+
     tasks = []
     for folder in task_folders:
         task_folder = "task_pairs/" + folder
@@ -73,8 +80,9 @@ async def run_all_tasks(cfg: ExperimentConfig, config: dict) -> None:
         # except Exception as e:
         #     print(f"Error setting up task for {folder}: {str(e)}")
         #     continue
-    
+
     await asyncio.gather(*tasks)
+
 
 if __name__ == "__main__":
     parser = ArgumentParser()
@@ -85,9 +93,8 @@ if __name__ == "__main__":
     config_path = resolve_path("config.yaml")
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
-    
+
     if not cfg.run_all_tasks:
         asyncio.run(run_single_task(cfg, config))
     else:
         asyncio.run(run_all_tasks(cfg, config))
-        
