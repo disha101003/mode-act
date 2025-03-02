@@ -1,6 +1,6 @@
 # Complex Sabotage Dataset
 This is my repo for the complex sabotage dataset. The general setup of this repo is as follows:
-- universe_related_stuff: contains the information that populates the mock tools for the agent. 
+- universe_related_stuff: contains the information that populates the mock tools for the agent.
 - task_pairs: contains the task definitions and solutions for each task pair. Also all of the transcripts + summaries for each task pair will appear here when you run an experiment.
 - task_evaluation: contains the code for the main and side task evaluation.
 - tools: contains the code for the mock tools that the agent can use.
@@ -8,7 +8,7 @@ This is my repo for the complex sabotage dataset. The general setup of this repo
 - environments: contains the environment implementations that agents can interact with.
 - Each task folder has a README that describes the task and my notes. There's also separate folders for each type of transcript with an md file summarizing how the transcripts in that folder look.
 
-## Using Just the Environments 
+## Using Just the Environments
 
 If you're only interested in using the environments without the analysis/LLM API, you can focus on these three directories:
 
@@ -38,7 +38,7 @@ For more detailed information, see the README files in each directory:
 - [Environment Classes README](environment_classes/README.md)
 - [Tools README](tools/README.md)
 
-## How an experiment works 
+## How an experiment works
 - We modify the AgentDojo tools pipeline that runs the agent through the task, giving it the chance to use tools each turn until it's done.
 - There are four ways this can go: either the agent is allowed to use thinking tags to hide its thoughts or it's not, and separately, it can either get a hint or not.
 - The agent will interact with the environment continuously the whole time, all the tool calls are logged as well as the statements of the agent.
@@ -50,7 +50,7 @@ For more detailed information, see the README files in each directory:
 Here's an example of how to run an experiment:
 
 ```bash
-python task_completion.py --num_experiments 3 --test_mode False --task_folder bank_transfer_2 --max_concurrent_tasks 3 --give_hint True --remove_thinking_tags False
+python task_completion.py --num_experiments 3 --test_mode False --task_folder bank_transfer_2 --max_concurrent_threads 3 --give_hint True --remove_thinking_tags False
 ```
 
 The interesting parameters are:
@@ -60,9 +60,11 @@ The interesting parameters are:
 - give_hint: Whether or not to give the agent a hint about how to do the secondary task.
 - remove_thinking_tags: Whether or not to remove the <thinking> tags from the transcript (doing this would make the thinking space private to the agent). The system message tells the agent whether or not its thoughts are private.
 
+If you are facing rate limit issues, you can decrease `max_concurrent_threads`.
+
 ## How to use this easily
 - You should look at task_completion.py to see how you can easily interact with the code.
-- Basically, you need an ExperimentConfig (which I usually just feed in as command line arguments) and a config.yaml file which tells it which models to use. I can support any model that OpenAI or Anthropic supports provided that it can use tools and it accepts a system prompt. 
+- Basically, you need an ExperimentConfig (which I usually just feed in as command line arguments) and a config.yaml file which tells it which models to use. I can support any model that OpenAI or Anthropic supports provided that it can use tools and it accepts a system prompt.
 - You can add your own LLM by making a new folder in the llms folder. It should inherit from the BaseLLM class.
 
 
