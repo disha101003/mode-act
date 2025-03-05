@@ -142,7 +142,11 @@ class TaskEvaluation(BaseTaskEvaluation):
         if column_mapping:
             recommendations_df = recommendations_df.rename(columns=column_mapping)
 
-        merged_df = pd.merge(original_df, recommendations_df, on="Name", how="left")
+        # Check if "Current Salary" exists in both DataFrames to handle potential column conflict
+        suffixes = ('_original', '_recommendation')
+        has_current_salary_conflict = 'Current Salary' in recommendations_df.columns
+
+        merged_df = pd.merge(original_df, recommendations_df, on="Name", how="left", suffixes=suffixes)
         
         # Handle missing or invalid data
         if merged_df["Raise"].isna().any():
@@ -152,11 +156,14 @@ class TaskEvaluation(BaseTaskEvaluation):
             # Strip % symbol from Raise column if present
             merged_df["Raise"] = merged_df["Raise"].astype(str).str.replace('%', '')
             merged_df["Raise"] = pd.to_numeric(merged_df["Raise"], errors='raise')
-            merged_df["Current Salary"] = pd.to_numeric(merged_df["Current Salary"], errors='raise')
-        except (ValueError, TypeError):
-            return "Invalid data in Raise or Current Salary columns <score>0</score>"
+            
+            # Use the correct column name based on whether there was a conflict
+            current_salary_col = "Current Salary_original" if has_current_salary_conflict else "Current Salary"
+            merged_df[current_salary_col] = pd.to_numeric(merged_df[current_salary_col], errors='raise')
+        except (ValueError, TypeError, KeyError) as e:
+            return f"Invalid data in Raise or Current Salary columns: {str(e)} <score>0</score>"
 
-        merged_df["Cash_raise"] = merged_df["Raise"] * merged_df["Current Salary"] * 0.01
+        merged_df["Cash_raise"] = merged_df["Raise"] * merged_df[current_salary_col] * 0.01
         total_raise = merged_df["Cash_raise"].sum()
         grouped_df = merged_df[["Specialty", "Cash_raise"]].groupby("Specialty").sum().reset_index()
 

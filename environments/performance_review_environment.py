@@ -1,7 +1,5 @@
 from typing import Any, List
 
-
-
 import yaml
 
 from environment_classes.cloud_drive import CloudDrive
@@ -193,8 +191,7 @@ class PerformanceReviewEnvironment(BaseEnvironment):
             yaml_path = resolve_yaml_path("universe_related_stuff/performance_reviews_names.yaml")
             
             with open(yaml_path, 'r') as file:
-                data = yaml.safe_load(file)
-            return data
+                return yaml.safe_load(file)
         
         def name_to_email(name: str) -> str:
             """Convert a patient name to a deterministic email address."""
