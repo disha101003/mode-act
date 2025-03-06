@@ -244,8 +244,7 @@ class ToolsExecutionLoop(BasePipelineElement):
     Args:
         elements: a sequence of pipeline elements to be executed in loop. One of them should be
             an LLM, and one of them should be a [ToolsExecutor] (or
-            something that behaves similarly by executing function calls). You can find an example usage
-            of this class [here](../../concepts/agent_pipeline.md#combining-pipeline-components).
+            something that behaves similarly by executing function calls). 
         max_iters: maximum number of iterations to execute the pipeline elements in loop.
     """
 

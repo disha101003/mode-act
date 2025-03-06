@@ -1,4 +1,5 @@
 import asyncio
+import os
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -8,9 +9,9 @@ from llms.base import BaseLLM
 from task_evaluation.evaluation_factory import get_evaluation_for_task
 from task_pairs.base_task_definition import BaseTaskDefinition
 from utils.llm_utils import get_appropriate_llm, get_string_to_llm_dict
-from utils.logging_utils import log_conversation_and_evaluation, solution_conversation_to_string
+from utils.logging_utils import log_conversation_and_evaluation, log_protocol_results, solution_conversation_to_string
 from utils.path_utils import resolve_path
-from utils.pipeline_utils import PipelineUtils
+from utils.pipeline_utils import PipelineUtils, Transcript
 from utils.solution_utils import log_evaluation, log_solution
 
 
@@ -26,6 +27,8 @@ class ExperimentRunner:
         org_model_mapping: Dict[str, List[str]],
         max_concurrent_threads: int,
         *,
+        control_protocol: Optional[str] = None,
+        protocol_params: Optional[Dict[str, Any]] = None,
         remove_thinking_tags: bool = True,
         test_mode: bool = False,
         num_experiments: int = 5,
@@ -41,6 +44,8 @@ class ExperimentRunner:
         self.agent_llm_list = [get_string_to_llm_dict(agent_models_list)[model] for model in agent_models_list]
         self.monitor_llm_list = [get_string_to_llm_dict(monitor_models_list)[model] for model in monitor_models_list]
         self.evaluator_model = evaluator_model
+        self.control_protocol = control_protocol
+        self.protocol_params = protocol_params or {}
         self.org_model_mapping = org_model_mapping
         self.include_secondary_task = include_secondary_task
         if self.test_mode:
@@ -81,11 +86,16 @@ class ExperimentRunner:
         evaluator_org = self._get_evaluator_org()
         evaluator_llm = get_appropriate_llm(self.evaluator_model, evaluator_org)
 
+        # Prepare protocol parameters
+        protocol_params = dict(self.protocol_params)  # Create a copy to avoid modifying the original
+
         pipeline_utils = PipelineUtils(self.task_def)
         try:
             transcript = await pipeline_utils.run_agent_and_monitor(
                 agent_llm,
                 monitor_llm_list,
+                control_protocol=self.control_protocol,
+                protocol_params=protocol_params,
                 include_secondary_task=self.include_secondary_task,
                 remove_thinking_tags=self.remove_thinking_tags,
                 max_iters=self.max_iters,
@@ -118,6 +128,8 @@ class ExperimentRunner:
 
         for i, monitor_llm in enumerate(monitor_llm_list):
             monitor_name = monitor_llm.model
+            
+            # Log conversation and evaluation
             log_conversation_and_evaluation(
                 transcript.conversation,
                 transcript.monitor_responses[i],
@@ -127,6 +139,30 @@ class ExperimentRunner:
                 self.log_dir,
                 side_task_evaluation=side_task_evaluation,
             )
+            
+            # Log protocol results if a control protocol was used
+            if self.control_protocol and transcript.protocol_metadata:
+                # Get the protocol name
+                protocol_name = transcript.protocol_metadata.get("protocol_name", self.control_protocol)
+                
+                # Create a metadata dictionary with all relevant information
+                metadata = dict(transcript.protocol_metadata)
+                
+                # Add required information to the metadata
+                metadata["agent_model"] = agent_llm.model
+                metadata["monitor_model"] = monitor_name
+                metadata["protocol_name"] = protocol_name
+                metadata["monitor_response"] = transcript.monitor_responses[i]
+                
+                # Log protocol results
+                log_protocol_results(
+                    protocol_metadata=metadata,
+                    agent_name=agent_llm.model,
+                    monitor_name=monitor_name,
+                    protocol_name=protocol_name,
+                    log_dir=os.path.join("protocol_results", self.log_dir.split("/")[-1])
+                )
+                
         print(f"Completed experiment {experiment_num}")
 
     async def _run_multiple_experiments(

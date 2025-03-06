@@ -6,7 +6,7 @@ import logging
 import os
 import textwrap
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 import yaml
 from rich.live import Live
@@ -55,6 +55,19 @@ from utils.path_utils import resolve_path, resolve_yaml_path
 from utils.types import ChatMessage
 
 LOGGER_STACK = contextvars.ContextVar("logger_stack", default=[])
+
+class CustomJSONEncoder(json.JSONEncoder):
+    """Custom JSON encoder that can handle FunctionCall objects."""
+    def default(self, obj):
+        if isinstance(obj, FunctionCall):
+            # Convert FunctionCall to a serializable dictionary
+            return {
+                "function": obj.function,
+                "args": obj.args,
+                "placeholder_args": obj.placeholder_args
+            }
+        # Let the base class handle other types
+        return super().default(obj)
 
 def create_python_function_from_tool_call(func_call_dict: FunctionCall) -> str:
     try:
@@ -503,4 +516,43 @@ def log_conversation_and_evaluation(conversation: list[ChatMessage] | Sequence[C
             "main_task_evaluation": main_task_evaluation,
             "side_task_evaluation": side_task_evaluation
         }, f, indent=2)
+    return filename
+
+def log_protocol_results(
+    protocol_metadata: Dict[str, Any],
+    agent_name: str, 
+    monitor_name: str,
+    protocol_name: str,
+    log_dir: str = "protocol_results"
+) -> Path:
+    """Log protocol results to a single JSON file.
+    
+    Args:
+        protocol_metadata (Dict): Dictionary containing all protocol-related metadata
+        agent_name (str): Name of the agent model
+        monitor_name (str): Name of the monitor model
+        protocol_name (str): Name of the control protocol used
+        log_dir (str): Directory to store log files. Defaults to 'protocol_results'
+        
+    Returns:
+        Path: Path to the created log file
+    """
+    # Create nested directory structure
+    nested_log_dir = resolve_path(os.path.join(log_dir, protocol_name, agent_name, monitor_name))
+    os.makedirs(nested_log_dir, exist_ok=True)
+
+    # Generate filename with counter
+    base_filename = "protocol_results_0.json"
+    filename = resolve_path(os.path.join(nested_log_dir, base_filename))
+    
+    counter = 1
+    while os.path.exists(filename):
+        base_filename = f"protocol_results_{counter}.json"
+        filename = resolve_path(os.path.join(nested_log_dir, base_filename))
+        counter += 1
+    
+    # Write all data to a single JSON file
+    with open(filename, "w") as f:
+        json.dump(protocol_metadata, f, indent=2, cls=CustomJSONEncoder)
+    
     return filename

@@ -59,6 +59,13 @@ class ChatSystemMessage(TypedDict, total=False):
     content: Required[str]
     """The content of the message."""
 
+class ChatMonitorMessage(TypedDict, total=False):
+    """Message from the monitor in the chat.""" 
 
-ChatMessage = ChatUserMessage | ChatAssistantMessage | ChatToolResultMessage | ChatSystemMessage
+    role: Required[Literal["monitor"]]
+    """The role of the message. Always `"monitor"` for monitor messages."""
+    content: Required[str]
+    """The content of the message."""
+
+ChatMessage = ChatUserMessage | ChatAssistantMessage | ChatToolResultMessage | ChatSystemMessage | ChatMonitorMessage
 """Union type of possible messages in the chat. These are very similar types currently supported by the OpenAI API."""

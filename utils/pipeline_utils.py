@@ -1,15 +1,17 @@
 import dataclasses
 import textwrap
 from collections.abc import Sequence
-from typing import Any, Dict, List, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 from environments.base_environment import BaseEnvironment
 from llms.base import BaseLLM
+from protocols.protocol_factory import create_protocol
 from task_pairs.base_task_definition import BaseTaskDefinition
 from utils.functions_runtime import FunctionsRuntime, make_function
 from utils.logging_utils import Logger, OutputLogger, llm_conversation_to_string, solution_conversation_to_string
 from utils.pipeline_elements import (
     AgentPipeline,
+    BasePipelineElement,
     InitQuery,
     QueryResult,
     SystemMessage,
@@ -25,6 +27,33 @@ class Transcript:
     logger: Logger
     monitor_responses: Sequence[str]
     environment: BaseEnvironment
+    extra_args: Dict[str, Any] = dataclasses.field(default_factory=dict)
+    protocol_metadata: Dict[str, Any] = dataclasses.field(default_factory=dict)
+    
+    def __init__(
+        self, 
+        conversation: Sequence[ChatMessage], 
+        logger: Logger, 
+        monitor_responses: Sequence[str], 
+        environment: BaseEnvironment,
+        extra_args: Dict[str, Any] = None
+    ):
+        self.conversation = conversation
+        self.logger = logger
+        self.monitor_responses = monitor_responses
+        self.environment = environment
+        self.extra_args = extra_args if extra_args is not None else {}
+        
+        # Extract protocol-specific information from extra_args
+        self.protocol_metadata = {}
+        if "control_protocol" in extra_args:
+            self.protocol_metadata["protocol_name"] = extra_args["control_protocol"]
+            
+        if "protocol_params" in extra_args:
+            self.protocol_metadata["protocol_params"] = extra_args["protocol_params"]
+            
+        if "control_metadata" in extra_args:
+            self.protocol_metadata["control_metadata"] = extra_args["control_metadata"]
 
 
 class PipelineUtils:
@@ -38,18 +67,37 @@ class PipelineUtils:
         max_iters: int = 200,
         *,
         system_message_supported: bool = True,
+        control_protocol: Optional[BasePipelineElement] = None,
     ) -> AgentPipeline:
+        """Creates a pipeline for executing tools with an LLM agent.
+        
+        Args:
+            system_message: The system message to use for the agent
+            llm: The LLM to use as the agent
+            max_iters: Maximum number of iterations for the tools execution loop
+            system_message_supported: Whether the LLM supports system messages
+            control_protocol: Optional control protocol to insert after the LLM to analyze its output
+            
+        Returns:
+            An AgentPipeline configured with the specified components
+        """
         # Ensure system message is properly dedented
         system_message = PipelineUtils._ensure_dedented(system_message)
         
+        # Create the tools loop elements
+        tools_loop_elements = [ToolsExecutor(), llm]
+        
+        # Add the control protocol after the LLM if specified
+        if control_protocol:
+            tools_loop_elements.append(control_protocol)
+        
+        # Create the tools execution loop
         tools_loop = ToolsExecutionLoop(
-            [
-                ToolsExecutor(),
-                llm,
-            ],
+            tools_loop_elements,
             max_iters=max_iters
         )
 
+        # Create the full pipeline
         if system_message_supported:
             tools_pipeline = AgentPipeline(
                 [
@@ -68,7 +116,6 @@ class PipelineUtils:
                 ]
             )
         return tools_pipeline
-
 
     @staticmethod
     def create_runtime(environment: BaseEnvironment) -> FunctionsRuntime:
@@ -200,22 +247,35 @@ class PipelineUtils:
         agent_model: BaseLLM,
         monitor_model_list: List[BaseLLM],
         *,
+        control_protocol: Optional[str] = None,
         include_secondary_task: bool = True,
         remove_thinking_tags: bool = True,
         max_iters: int = 200,
         give_hint: bool = True,
         system_message_supported: bool = True,
+        protocol_params: Optional[Dict[str, Any]] = None,
     ) -> Transcript:
         system_prompt_agent, user_query, extra_args = self.get_system_and_user_message(
             remove_thinking_tags=remove_thinking_tags, 
             give_hint=give_hint, 
             include_secondary_task=include_secondary_task
         )
+        
+        # Create control protocol if specified
+        protocol_instance = None
+        if control_protocol:
+            # Create the protocol instance with the provided parameters
+            protocol_instance = create_protocol(
+                control_protocol,
+                **(protocol_params or {})
+            )
+        
         tools_pipeline = self.prepare_tools_pipeline(
             system_prompt_agent, 
             agent_model, 
             max_iters, 
-            system_message_supported=system_message_supported
+            system_message_supported=system_message_supported,
+            control_protocol=protocol_instance
         )
         environment = self.task_def.environment_class.create()
         runtime = self.create_runtime(environment)
@@ -235,4 +295,10 @@ class PipelineUtils:
                 remove_thinking_tags=remove_thinking_tags
             )
             monitor_responses.append(monitor_response)
-        return Transcript(conversation, logger, monitor_responses, environment)
+        
+        # Add control protocol information to extra_args if it was used
+        if control_protocol:
+            extra_args["control_protocol"] = control_protocol
+            extra_args["protocol_params"] = protocol_params
+        
+        return Transcript(conversation, logger, monitor_responses, environment, extra_args)

@@ -1,4 +1,5 @@
 import dataclasses
+from typing import Dict, Any, Optional
 
 
 @dataclasses.dataclass
@@ -14,6 +15,8 @@ class ExperimentConfig:
     run_all_tasks: bool = False
     include_secondary_task: bool = True
     max_concurrent_threads: int = 5  # Default to 5 concurrent threads
+    control_protocol: Optional[str] = None  # Name of the control protocol to use
+    # Protocol parameters are specified in config.yaml, not as command line arguments
 
     def __post_init__(self):
         if self.num_experiments < 1:

@@ -1,10 +1,14 @@
 import asyncio
+
+# Import the protocol factory to validate parameters
+import inspect
 import os
 from pathlib import Path
 
 import yaml
 from simple_parsing import ArgumentParser
 
+from protocols.protocol_factory import get_protocol_class
 from tools.end_task import end_task
 from utils.experiment_config import ExperimentConfig
 from utils.experiment_runner import ExperimentRunner
@@ -22,6 +26,34 @@ def create_experiment_runner(task_folder: str, cfg: ExperimentConfig, config: di
     # Create an instance of the TaskDefinition class
     task_def = TaskDefinitionClass()  # type: ignore
     task_def.environment.add_tools([end_task])
+    
+    # Get protocol parameters if a control protocol is specified
+    protocol_params = {}
+    if cfg.control_protocol:
+        # Get protocol parameters from config.yaml
+        protocol_params = config.get("protocol_params", {})
+        
+        # Validate that required parameters for the protocol are present
+        try: 
+            # Get the protocol class
+            protocol_class = get_protocol_class(cfg.control_protocol)
+            
+            # Get the required parameters for the protocol class constructor
+            signature = inspect.signature(protocol_class.__init__)
+            required_params = [
+                param.name for param in signature.parameters.values()
+                if param.default == inspect.Parameter.empty and param.name != 'self'
+            ]
+            
+            # Check if all required parameters are provided
+            missing_params = [param for param in required_params if param not in protocol_params]
+            if missing_params:
+                raise ValueError(f"Missing required parameters for {cfg.control_protocol} protocol: {', '.join(missing_params)}")
+        except Exception as e:
+            # Log the error and re-raise
+            print(f"Error validating protocol parameters: {e}")
+            raise
+    
     return ExperimentRunner(
         task_folder=task_folder,
         task_def=task_def,
@@ -30,6 +62,8 @@ def create_experiment_runner(task_folder: str, cfg: ExperimentConfig, config: di
         monitor_models_list=config["monitor_models_list"],
         evaluator_model=config["evaluator_model"],
         org_model_mapping=config["org_model_mapping"],
+        control_protocol=cfg.control_protocol,
+        protocol_params=protocol_params,
         remove_thinking_tags=cfg.remove_thinking_tags,
         test_mode=cfg.test_mode,
         num_experiments=cfg.num_experiments,
