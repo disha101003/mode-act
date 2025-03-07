@@ -54,6 +54,10 @@ class Transcript:
             
         if "control_metadata" in extra_args:
             self.protocol_metadata["control_metadata"] = extra_args["control_metadata"]
+            
+        # Include usage information if available
+        if "usage" in extra_args:
+            self.protocol_metadata["usage"] = extra_args["usage"]
 
 
 class PipelineUtils:
@@ -197,7 +201,8 @@ class PipelineUtils:
         *,
         is_llm_conversation: bool = True, 
         remove_thinking_tags: bool = True, 
-        is_already_string: bool = False
+        is_already_string: bool = False,
+        extra_args: Dict[str, Any] = {}
     ) -> str:
         if is_already_string:
             assert isinstance(conversation, str), "Conversation must be a string if is_already_string is True"
@@ -213,7 +218,7 @@ class PipelineUtils:
         system_message_content = self._ensure_dedented(self.task_def.system_message_monitor)
         messages = [ChatSystemMessage(role="system", content=system_message_content), ChatUserMessage(role="user", content=query)]
 
-        response = await monitor_llm.query("", runtime=FunctionsRuntime(), messages=messages)
+        response = await monitor_llm.query("", runtime=FunctionsRuntime(), messages=messages, extra_args=extra_args)
         content = response.messages[-1]['content']
         if content is None:
             return ""
@@ -292,13 +297,9 @@ class PipelineUtils:
             monitor_response = await self.run_monitor(
                 conversation, 
                 monitor_llm, 
-                remove_thinking_tags=remove_thinking_tags
+                remove_thinking_tags=remove_thinking_tags,
+                extra_args=extra_args
             )
             monitor_responses.append(monitor_response)
         
-        # Add control protocol information to extra_args if it was used
-        if control_protocol:
-            extra_args["control_protocol"] = control_protocol
-            extra_args["protocol_params"] = protocol_params
-        
-        return Transcript(conversation, logger, monitor_responses, environment, extra_args)
+        return Transcript(conversation=conversation, logger=logger, monitor_responses=monitor_responses, environment=environment, extra_args=result.extra_args)

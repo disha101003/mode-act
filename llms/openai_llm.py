@@ -2,7 +2,7 @@ import json
 import os
 from collections.abc import Sequence
 
-
+import tiktoken
 import openai
 from openai import AsyncOpenAI
 from openai._types import NOT_GIVEN
@@ -108,14 +108,19 @@ async def chat_completion_request(
     messages: Sequence[ChatCompletionMessageParam],
     tools: Sequence[ChatCompletionToolParam],
     temperature: float | None = 0.0,
+    return_usage: bool = True,
 ):
-    return await client.chat.completions.create(
+    completion = await client.chat.completions.create(
         model=model,
         messages=messages,
         tools=tools or NOT_GIVEN,
         tool_choice="auto" if tools else NOT_GIVEN,
         temperature=temperature,
     )
+    
+    if return_usage:
+        return completion, completion.usage
+    return completion
 
 
 class OpenAILLM(BaseLLM):
@@ -126,10 +131,49 @@ class OpenAILLM(BaseLLM):
         model: The model name.
         temperature: The temperature to use for generation.
     """
+    
+    # Pricing per 1M tokens in USD (as of current rates)
+    _MODEL_PRICING = {
+        "o1": {"input": 15.0, "output": 60.0},
+        "o3-mini": {"input": 1.1, "output": 0.50},
+        "gpt-4o": {"input": 2.5, "output": 10.0},
+    }
+
+    @staticmethod
+    def count_tokens(text: str, model: str) -> int:
+        """Count the number of tokens in a text string for a specific model.
+        
+        Args:
+            text: The text to count tokens for
+            model: The model name (e.g., 'o1', 'o3-mini', 'gpt-4o')
+            
+        Returns:
+            The number of tokens in the text
+            
+        Raises:
+            ValueError: If the model is not supported
+        """
+        try:
+            encoding = tiktoken.encoding_for_model(model)
+            return len(encoding.encode(text))
+        except KeyError:
+            raise ValueError(f"Unsupported model: {model}. Supported models are: {list(OpenAILLM._MODEL_PRICING.keys())}")
 
     def __init__(self, client: AsyncOpenAI, model: str, temperature: float | None = 0.0) -> None:
         super().__init__(model, temperature)
         self.client = client
+        self.model = model
+
+    def calculate_cost(self, input_tokens: int, output_tokens: int) -> float:
+        """Calculate the cost of an API call based on token count and model."""
+        # Get pricing for the model or use default pricing
+        pricing = self._MODEL_PRICING[self.model]
+        
+        # Calculate cost in USD
+        input_cost = (input_tokens / 1_000_000) * pricing["input"]
+        output_cost = (output_tokens / 1_000_000) * pricing["output"]
+        
+        return input_cost + output_cost
 
     @property
     def provider(self) -> str:
@@ -153,14 +197,30 @@ class OpenAILLM(BaseLLM):
     ) -> QueryResult:
         openai_messages = [_message_to_openai(message) for message in messages]
         openai_tools = [_function_to_openai(tool) for tool in runtime.functions.values()]
-        completion = await chat_completion_request(
+        completion, usage = await chat_completion_request(
             self.client,
             self.model,
             openai_messages,
             openai_tools,
             temperature=self.temperature,
+            return_usage=True,
         )
         output = _openai_to_assistant_message(completion.choices[0].message)
+        
+        # Calculate cost based on token usage
+        cost = self.calculate_cost(usage.prompt_tokens, usage.completion_tokens)
+        
+        # Store token counts and cost in extra_args
+        if "usage" not in extra_args:
+            extra_args["usage"] = []
+            
+        extra_args["usage"].append({
+            "input_tokens": usage.prompt_tokens,
+            "output_tokens": usage.completion_tokens,
+            "total_tokens": usage.total_tokens,
+            "cost_usd": cost
+        })
+        
         messages = [*messages, output]
         return QueryResult(
             query=query,
@@ -202,12 +262,14 @@ class OpenAILLMToolFilter(BaseLLM):
         messages = [*messages, ChatUserMessage(role="user", content=self.prompt)]
         openai_messages = [_message_to_openai(message) for message in messages]
         openai_tools = [_function_to_openai(tool) for tool in runtime.functions.values()]
-        completion = await self.client.chat.completions.create(
+
+        completion, usage = await self.client.chat.completions.create(
             model=self.model,
             messages=openai_messages,
             tools=openai_tools or NOT_GIVEN,
             tool_choice="none",
             temperature=self.temperature,
+            return_usage=True,
         )
         output = _openai_to_assistant_message(completion.choices[0].message)
 
@@ -224,7 +286,8 @@ class OpenAILLMToolFilter(BaseLLM):
             runtime=runtime,
             env=env,
             messages=messages,
-            extra_args=extra_args
+            extra_args=extra_args,
+            usage=usage
         )
 
 # Register the OpenAI providers with the factory

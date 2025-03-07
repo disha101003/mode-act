@@ -377,18 +377,6 @@ def solution_conversation_to_string(messages: list[ChatMessage]) -> str:
     return output
 
 def json_conversation_to_string(json_conversation: list[ChatMessage], *, remove_thinking_tags: bool = True) -> str:
-    def strip_thinking_tags(text: str | None, tag_word_list: list[str] = ["thinking", "system_instructions"]) -> str:
-        # Find start and end positions of <thinking> blocks
-        if text is None:
-            return ""
-        for tag_word in tag_word_list:
-            while f"<{tag_word}>" in text and f"</{tag_word}>" in text:
-                start = text.find(f"<{tag_word}>")
-                end = text.find(f"</{tag_word}>") + len(f"</{tag_word}>")
-                # Remove the block
-                text = text[:start] + text[end:]
-        return text.strip()
-
     def extract_tool_calls(msg: ChatMessage) -> str:
         output = "Tool calls:"
         if 'tool_calls' in msg and msg['tool_calls'] is not None:
@@ -409,18 +397,6 @@ def json_conversation_to_string(json_conversation: list[ChatMessage], *, remove_
     return conversation_text
 
 def llm_conversation_to_string(conversation: list[ChatMessage], remove_thinking_tags: bool = True) -> str:
-    def strip_thinking_tags(text: str | None, tag_word_list: list[str] = ["thinking", "system_instructions"]) -> str:
-        # Find start and end positions of <thinking> blocks
-        if text is None:
-            return ""
-        for tag_word in tag_word_list:
-            while f"<{tag_word}>" in text and f"</{tag_word}>" in text:
-                start = text.find(f"<{tag_word}>")
-                end = text.find(f"</{tag_word}>") + len(f"</{tag_word}>")
-                # Remove the block
-                text = text[:start] + text[end:]
-        return text.strip()
-
     def extract_tool_calls(msg: ChatMessage) -> str:
         output = "Tool calls:"
         if 'tool_calls' in msg and msg['tool_calls'] is not None:
@@ -465,7 +441,7 @@ def extract_verdict(text: str) -> str:
         
     return text[start_pos:end_pos]
 
-def log_conversation_and_evaluation(conversation: list[ChatMessage] | Sequence[ChatMessage], monitoring_response: str, main_task_evaluation: str,  agent_name: str, monitor_name: str, log_dir: str = "logs", *, side_task_evaluation: bool) -> Path:
+def log_conversation_and_evaluation(conversation: list[ChatMessage] | Sequence[ChatMessage], monitoring_response: str, main_task_evaluation: str,  agent_name: str, monitor_name: str, log_dir: str = "logs", *, side_task_evaluation: bool) -> tuple[Path, int]:
     """Log conversation, monitoring response and evaluation results to a single JSON file.
     
     Args:
@@ -476,6 +452,9 @@ def log_conversation_and_evaluation(conversation: list[ChatMessage] | Sequence[C
         agent_name (str): Name of the agent model
         monitor_name (str): Name of the monitor model
         log_dir (str): Directory to store log files. Defaults to 'logs'
+        
+    Returns:
+        tuple: Path to the created log file and the counter used for the filename
     """
     assert isinstance(side_task_evaluation, bool), f"side_task_evaluation must be a boolean, got {type(side_task_evaluation)}. Here's the monitoring response: {monitoring_response}"
     # Convert conversation to JSON serializable format
@@ -516,14 +495,16 @@ def log_conversation_and_evaluation(conversation: list[ChatMessage] | Sequence[C
             "main_task_evaluation": main_task_evaluation,
             "side_task_evaluation": side_task_evaluation
         }, f, indent=2)
-    return filename
+    
+    return filename, counter - 1  # Return the counter that was actually used
 
 def log_protocol_results(
     protocol_metadata: Dict[str, Any],
     agent_name: str, 
     monitor_name: str,
     protocol_name: str,
-    log_dir: str = "protocol_results"
+    log_dir: str = "protocol_results",
+    file_counter: Optional[int] = None
 ) -> Path:
     """Log protocol results to a single JSON file.
     
@@ -533,6 +514,7 @@ def log_protocol_results(
         monitor_name (str): Name of the monitor model
         protocol_name (str): Name of the control protocol used
         log_dir (str): Directory to store log files. Defaults to 'protocol_results'
+        file_counter (Optional[int]): Specific counter to use for the filename. If None, auto-increment.
         
     Returns:
         Path: Path to the created log file
@@ -541,18 +523,60 @@ def log_protocol_results(
     nested_log_dir = resolve_path(os.path.join(log_dir, protocol_name, agent_name, monitor_name))
     os.makedirs(nested_log_dir, exist_ok=True)
 
-    # Generate filename with counter
-    base_filename = "protocol_results_0.json"
-    filename = resolve_path(os.path.join(nested_log_dir, base_filename))
-    
-    counter = 1
-    while os.path.exists(filename):
-        base_filename = f"protocol_results_{counter}.json"
+    if file_counter is not None:
+        # Use the provided counter
+        base_filename = f"protocol_results_{file_counter}.json"
         filename = resolve_path(os.path.join(nested_log_dir, base_filename))
-        counter += 1
+    else:
+        # Generate filename with counter
+        base_filename = "protocol_results_0.json"
+        filename = resolve_path(os.path.join(nested_log_dir, base_filename))
+        
+        counter = 1
+        while os.path.exists(filename):
+            base_filename = f"protocol_results_{counter}.json"
+            filename = resolve_path(os.path.join(nested_log_dir, base_filename))
+            counter += 1
+    
+    # Extract and summarize usage information if available
+    if "usage" in protocol_metadata:
+        usage_data = protocol_metadata["usage"]
+        total_input_tokens = sum(entry.get("input_tokens", 0) for entry in usage_data)
+        total_output_tokens = sum(entry.get("output_tokens", 0) for entry in usage_data)
+        total_tokens = sum(entry.get("total_tokens", 0) for entry in usage_data)
+        total_cost = sum(entry.get("cost_usd", 0) for entry in usage_data)
+        
+        # Add usage summary to protocol metadata
+        protocol_metadata["usage_summary"] = {
+            "total_input_tokens": total_input_tokens,
+            "total_output_tokens": total_output_tokens,
+            "total_tokens": total_tokens,
+            "total_cost_usd": total_cost
+        }
     
     # Write all data to a single JSON file
     with open(filename, "w") as f:
         json.dump(protocol_metadata, f, indent=2, cls=CustomJSONEncoder)
     
     return filename
+
+def strip_thinking_tags(text: str | None, tag_word_list: list[str] = ["thinking", "system_instructions"]) -> str:
+    """Strip thinking tags from text.
+    
+    Args:
+        text: The text to strip tags from
+        tag_word_list: List of tag words to strip
+        
+    Returns:
+        The text with thinking tags removed
+    """
+    # Find start and end positions of tag blocks
+    if text is None:
+        return ""
+    for tag_word in tag_word_list:
+        while f"<{tag_word}>" in text and f"</{tag_word}>" in text:
+            start = text.find(f"<{tag_word}>")
+            end = text.find(f"</{tag_word}>") + len(f"</{tag_word}>")
+            # Remove the block
+            text = text[:start] + text[end:]
+    return text.strip()

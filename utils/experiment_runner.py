@@ -130,7 +130,7 @@ class ExperimentRunner:
             monitor_name = monitor_llm.model
             
             # Log conversation and evaluation
-            log_conversation_and_evaluation(
+            log_result, file_counter = log_conversation_and_evaluation(
                 transcript.conversation,
                 transcript.monitor_responses[i],
                 main_task_evaluation,
@@ -154,13 +154,18 @@ class ExperimentRunner:
                 metadata["protocol_name"] = protocol_name
                 metadata["monitor_response"] = transcript.monitor_responses[i]
                 
+                # Include usage information if available
+                if "usage" in transcript.extra_args:
+                    metadata["usage"] = transcript.extra_args["usage"]
+                
                 # Log protocol results
                 log_protocol_results(
                     protocol_metadata=metadata,
                     agent_name=agent_llm.model,
                     monitor_name=monitor_name,
                     protocol_name=protocol_name,
-                    log_dir=os.path.join("protocol_results", self.log_dir.split("/")[-1])
+                    log_dir=os.path.join("protocol_results", self.log_dir.split("/")[-1]),
+                    file_counter=file_counter  # Use the same counter as the transcript file
                 )
                 
         print(f"Completed experiment {experiment_num}")

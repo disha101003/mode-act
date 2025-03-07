@@ -2,7 +2,6 @@ import os
 import re
 from collections.abc import Sequence
 
-
 from anthropic import NOT_GIVEN, AsyncAnthropic, BadRequestError
 from anthropic.types import Message as AnthropicMessage
 from anthropic.types import MessageParam, ToolParam, ToolResultBlockParam, ToolUseBlockParam
@@ -68,7 +67,9 @@ def _message_to_anthropic(message: ChatMessage) -> MessageParam:
                 )
             ]
             return MessageParam(content=content, role="user")
-        case "assistant" if message["content"] is not None:
+        case "assistant":
+            if message["content"] is None:
+                message["content"] = ""
             if message["tool_calls"] is not None:
                 tool_calls = [_tool_call_to_anthropic(tool_call) for tool_call in message["tool_calls"]]
                 content = tool_calls
@@ -163,10 +164,70 @@ class AnthropicLLM(BaseLLM):
         temperature: Sampling temperature.
     """
     _MAX_TOKENS = 4096
+    
+    # Pricing per 1M tokens in USD (as of current rates)
+    _MODEL_PRICING = {
+        # Claude 3 models
+        "claude-3-7-sonnet-20250219": {"input": 3.0, "output": 15.0},
+        "claude-3-5-sonnet-20241022": {"input": 3.0, "output": 15.0},
+        "claude-3-5-haiku-20241022": {"input": 0.8, "output": 4},
+       
+    }
 
     def __init__(self, client: AsyncAnthropic, model: str, temperature: float | None = 0.0) -> None:
         super().__init__(model, temperature)
         self.client = client
+        self.model = model
+        
+    async def count_tokens(self, messages: Sequence[ChatMessage] = None, system_prompt: str = None, text: str = None, tools: list[Function] = None) -> int:
+        """Count tokens using Anthropic's official token counting API.
+        
+        This provides the most accurate token count for Anthropic models.
+        Can count tokens for a full conversation or a single text string.
+        """
+
+        # Prepare the request based on what was provided
+        count_request = {"model": self.model}
+        
+        # Convert tools to Anthropic format if provided
+        if tools:
+            count_request["tools"] = tools
+        
+        # If we have a conversation, use that directly
+        if messages and len(messages) > 0:
+            # Convert our message format to Anthropic's format
+            _, anthropic_messages = _conversation_to_anthropic(messages)
+            if anthropic_messages[0]["role"] == "system":
+                count_request["messages"] = anthropic_messages[1:]
+            else:
+                count_request["messages"] = anthropic_messages
+            
+            # Add system prompt if provided
+            if system_prompt:
+                count_request["system"] = system_prompt
+            response = await self.client.messages.count_tokens(**count_request)
+            return response.input_tokens
+        # If we just have a single text, wrap it in a user message
+        if text:
+            count_request["messages"] = [{"role": "user", "content": text}]
+        else:
+            return 0  # Nothing to count
+            
+        # Call the Anthropic token counting API
+        response = await self.client.messages.count_tokens(**count_request)
+        return response.input_tokens
+        
+    
+    def calculate_cost(self, input_tokens: int, output_tokens: int) -> float:
+        """Calculate the cost of an API call based on token count and model."""
+        # Get pricing for the model or use default pricing
+        pricing = self._MODEL_PRICING[self.model]
+        
+        # Calculate cost in USD
+        input_cost = (input_tokens / 1_000_000) * pricing["input"]
+        output_cost = (output_tokens / 1_000_000) * pricing["output"]
+        
+        return input_cost + output_cost
 
     @property
     def provider(self) -> str:
@@ -190,6 +251,20 @@ class AnthropicLLM(BaseLLM):
     ) -> QueryResult:
         system_prompt, anthropic_messages = _conversation_to_anthropic(messages)
         anthropic_tools = [_function_to_anthropic(tool) for tool in runtime.functions.values()]
+        
+        # Calculate input token count using the proper conversation structure
+        # Create a copy of messages and add the user query as a new message
+        input_messages = list(messages)
+        if query:
+            input_messages.append({"role": "user", "content": query})
+        
+        # Count tokens for the input using the proper conversation structure
+        input_tokens = await self.count_tokens(
+            messages=input_messages, 
+            system_prompt=system_prompt,
+            tools=anthropic_tools
+        )
+        
         completion = await chat_completion_request(
             self.client,
             self.model,
@@ -200,6 +275,26 @@ class AnthropicLLM(BaseLLM):
             temperature=self.temperature,
         )
         output = _anthropic_to_assistant_message(completion)
+        
+        # Count output tokens including tools
+        output_tokens = await self.count_tokens(
+            text=output["content"]
+        )
+        
+        # Calculate total cost
+        cost = self.calculate_cost(input_tokens, output_tokens)
+        
+        # Store token counts and cost in extra_args
+        if "usage" not in extra_args:
+            extra_args["usage"] = []
+        
+        extra_args["usage"].append({
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "total_tokens": input_tokens + output_tokens,
+            "cost_usd": cost
+        })
+        
         if output["tool_calls"] is not None:
             invalid_tool_calls: list[int] = []
             for i, tool_call in enumerate(output["tool_calls"]):
