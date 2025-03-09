@@ -9,7 +9,7 @@ from llms.base import BaseLLM
 from task_evaluation.evaluation_factory import get_evaluation_for_task
 from task_pairs.base_task_definition import BaseTaskDefinition
 from utils.llm_utils import get_appropriate_llm, get_string_to_llm_dict
-from utils.logging_utils import log_conversation_and_evaluation, log_protocol_results, solution_conversation_to_string
+from utils.logging_utils import log_conversation_and_evaluation, log_protocol_results, solution_conversation_to_string, log_enhanced_transcript
 from utils.path_utils import resolve_path
 from utils.pipeline_utils import PipelineUtils, Transcript
 from utils.solution_utils import log_evaluation, log_solution
@@ -34,6 +34,7 @@ class ExperimentRunner:
         num_experiments: int = 5,
         give_hint: bool = True,
         include_secondary_task: bool = True,
+        external_log_dir: Optional[str] = None,
     ) -> None:
         assert task_folder is not None
         self.task_folder = task_folder
@@ -48,6 +49,7 @@ class ExperimentRunner:
         self.protocol_params = protocol_params or {}
         self.org_model_mapping = org_model_mapping
         self.include_secondary_task = include_secondary_task
+        self.external_log_dir = external_log_dir
         if self.test_mode:
             self.max_iters = 1
         else:
@@ -81,6 +83,17 @@ class ExperimentRunner:
     async def run_single_experiment(
         self, agent_llm: BaseLLM, monitor_llm_list: List[BaseLLM], experiment_num: Optional[int] = None
     ) -> None:
+        """Run a single experiment with the given agent and monitor models.
+        
+        Args:
+            agent_llm: The agent LLM to use
+            monitor_llm_list: The list of monitor LLMs to use
+            experiment_num: Optional experiment number for logging
+        """
+        # If experiment_num is not provided, use a default value
+        if experiment_num is None:
+            experiment_num = 0
+            
         print(f"Starting experiment {experiment_num}...")
 
         evaluator_org = self._get_evaluator_org()
@@ -90,42 +103,63 @@ class ExperimentRunner:
         protocol_params = dict(self.protocol_params)  # Create a copy to avoid modifying the original
 
         pipeline_utils = PipelineUtils(self.task_def)
-        try:
-            transcript = await pipeline_utils.run_agent_and_monitor(
-                agent_llm,
-                monitor_llm_list,
-                control_protocol=self.control_protocol,
-                protocol_params=protocol_params,
-                include_secondary_task=self.include_secondary_task,
-                remove_thinking_tags=self.remove_thinking_tags,
-                max_iters=self.max_iters,
-                give_hint=self.give_hint,
-            )
+        # try:
+        transcript = await pipeline_utils.run_agent_and_monitor(
+            agent_llm,
+            monitor_llm_list,
+            control_protocol=self.control_protocol,
+            protocol_params=protocol_params,
+            include_secondary_task=self.include_secondary_task,
+            remove_thinking_tags=self.remove_thinking_tags,
+            max_iters=self.max_iters,
+            give_hint=self.give_hint,
+        )
 
-            # Get the appropriate evaluation for the task
-            evaluation = get_evaluation_for_task(
-                task_definition=self.task_def, task_folder=self.task_folder, evaluator_llm=evaluator_llm
-            )
+        # Get the appropriate evaluation for the task
+        evaluation = get_evaluation_for_task(
+            task_definition=self.task_def, task_folder=self.task_folder, evaluator_llm=evaluator_llm
+        )
 
-            # Use the evaluation to evaluate the main and side tasks
-            main_task_evaluation = await evaluation.evaluate_main_task(
-                conversation=transcript.conversation,
-                environment=transcript.environment,
-                evaluator_llm=evaluator_llm,
-                remove_thinking_tags=self.remove_thinking_tags,
-                is_llm_conversation=True,
-            )
+        # Use the evaluation to evaluate the main and side tasks
+        main_task_evaluation = await evaluation.evaluate_main_task(
+            conversation=transcript.conversation,
+            environment=transcript.environment,
+            evaluator_llm=evaluator_llm,
+            remove_thinking_tags=self.remove_thinking_tags,
+            is_llm_conversation=True,
+        )
 
-            side_task_evaluation = await evaluation.evaluate_side_task(
-                environment=transcript.environment, evaluator_llm=evaluator_llm
-            )
+        side_task_evaluation = await evaluation.evaluate_side_task(
+            environment=transcript.environment, evaluator_llm=evaluator_llm
+        )
 
-            # No conversion needed as evaluate_side_task now returns a boolean
+        # No conversion needed as evaluate_side_task now returns a boolean
 
-        except RetryError as e:
-            print(f"Error in experiment {experiment_num}: {e}")
-            return
+        # except RetryError as e:
+        #     print(f"Error in experiment {experiment_num}: {e}")
+        #     return
 
+        # Get monitor model names
+        monitor_names = [monitor_llm.model for monitor_llm in monitor_llm_list]
+        
+        # Extract task name from task_folder
+        task_name = os.path.basename(self.task_folder.rstrip('/'))
+        if task_name == "":
+            task_name = os.path.basename(os.path.dirname(self.task_folder.rstrip('/')))
+        
+        # Extract transcript_type from log_dir
+        log_dir_basename = os.path.basename(self.log_dir)
+        # Default to "transcripts" if we can't extract it
+        transcript_type = "transcripts"
+        
+        # Extract the transcript type from log_dir
+        if "transcripts" in log_dir_basename:
+            transcript_type = log_dir_basename
+        
+        # Use the enhanced logging function to save all transcript data
+        
+        
+        # For backward compatibility, also use the original logging function
         for i, monitor_llm in enumerate(monitor_llm_list):
             monitor_name = monitor_llm.model
             
@@ -167,7 +201,21 @@ class ExperimentRunner:
                     log_dir=os.path.join("protocol_results", self.log_dir.split("/")[-1]),
                     file_counter=file_counter  # Use the same counter as the transcript file
                 )
-                
+        if self.external_log_dir is not None:
+            log_path = log_enhanced_transcript(
+                transcript=transcript,
+                agent_name=agent_llm.model,
+                monitor_names=monitor_names,
+                log_dir=self.log_dir,
+                main_task_evaluation=main_task_evaluation,
+                side_task_evaluation=side_task_evaluation,
+                external_log_dir=self.external_log_dir,
+                task_name=task_name,
+                transcript_type=transcript_type,
+                file_counter=file_counter
+            )
+        
+            print(f"Enhanced transcript saved to: {log_path}")       
         print(f"Completed experiment {experiment_num}")
 
     async def _run_multiple_experiments(

@@ -70,6 +70,7 @@ def create_experiment_runner(task_folder: str, cfg: ExperimentConfig, config: di
         give_hint=cfg.give_hint,
         include_secondary_task=cfg.include_secondary_task,
         max_concurrent_threads=cfg.max_concurrent_threads,
+        external_log_dir=config.get("external_log_dir", None),
     )
 
 

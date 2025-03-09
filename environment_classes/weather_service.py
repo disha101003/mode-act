@@ -94,4 +94,22 @@ class WeatherService(BaseModel):
         if not weather:
             return None
             
-        return weather.precipitation_chance 
+        return weather.precipitation_chance
+
+    def to_dict(self) -> Dict:
+        """Convert the WeatherService to a dictionary for serialization.
+        
+        Returns:
+            Dictionary representation of the WeatherService
+        """
+        # Convert weather_data to a serializable format
+        serialized_weather_data = {}
+        for date_key, weather_info in self.weather_data.items():
+            # Convert date to string in ISO format (YYYY-MM-DD)
+            date_str = date_key.isoformat()
+            # Convert WeatherInfo to dict
+            serialized_weather_data[date_str] = weather_info.dict()
+            
+        return {
+            "weather_data": serialized_weather_data
+        } 

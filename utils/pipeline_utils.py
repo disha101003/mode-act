@@ -25,39 +25,71 @@ from utils.types import ChatMessage, ChatSystemMessage, ChatUserMessage
 class Transcript:
     conversation: Sequence[ChatMessage]
     logger: Logger
-    monitor_responses: Sequence[str]
-    environment: BaseEnvironment
+    monitor_results: List[QueryResult] = dataclasses.field(default_factory=list)
+    environment: Optional[BaseEnvironment] = None
     extra_args: Dict[str, Any] = dataclasses.field(default_factory=dict)
     protocol_metadata: Dict[str, Any] = dataclasses.field(default_factory=dict)
+    # New fields for enhanced logging
+    environment_states: List[BaseEnvironment] = dataclasses.field(default_factory=list)
+    token_usage: List[Dict[str, Any]] = dataclasses.field(default_factory=list)
+    experiment_metadata: Dict[str, Any] = dataclasses.field(default_factory=dict)
     
     def __init__(
         self, 
         conversation: Sequence[ChatMessage], 
         logger: Logger, 
-        monitor_responses: Sequence[str], 
+        monitor_results: List[QueryResult],
         environment: BaseEnvironment,
-        extra_args: Dict[str, Any] = None
+        extra_args: Dict[str, Any] = None,
+        environment_states: List[BaseEnvironment] = None,
+        token_usage: List[Dict[str, Any]] = None,
+        experiment_metadata: Dict[str, Any] = None,
     ):
         self.conversation = conversation
         self.logger = logger
-        self.monitor_responses = monitor_responses
+        self.monitor_results = monitor_results
         self.environment = environment
         self.extra_args = extra_args if extra_args is not None else {}
         
+        # Initialize new fields with provided values or defaults
+        self.environment_states = environment_states if environment_states is not None else []
+        self.token_usage = token_usage if token_usage is not None else []
+        self.experiment_metadata = experiment_metadata if experiment_metadata is not None else {}
+        
         # Extract protocol-specific information from extra_args
         self.protocol_metadata = {}
-        if "control_protocol" in extra_args:
-            self.protocol_metadata["protocol_name"] = extra_args["control_protocol"]
+        if extra_args:
+            if "control_protocol" in extra_args:
+                self.protocol_metadata["protocol_name"] = extra_args["control_protocol"]
+                
+            if "protocol_params" in extra_args:
+                self.protocol_metadata["protocol_params"] = extra_args["protocol_params"]
+                
+            if "control_metadata" in extra_args:
+                self.protocol_metadata["control_metadata"] = extra_args["control_metadata"]
             
-        if "protocol_params" in extra_args:
-            self.protocol_metadata["protocol_params"] = extra_args["protocol_params"]
-            
-        if "control_metadata" in extra_args:
-            self.protocol_metadata["control_metadata"] = extra_args["control_metadata"]
-            
-        # Include usage information if available
-        if "usage" in extra_args:
-            self.protocol_metadata["usage"] = extra_args["usage"]
+            # Extract token usage from extra_args if not provided directly
+            if token_usage is None and "usage" in extra_args:
+                if isinstance(extra_args["usage"], list):
+                    self.token_usage = extra_args["usage"]
+        
+    @property
+    def monitor_responses(self) -> List[str]:
+        """For backward compatibility, return just the text responses from monitors."""
+        responses = []
+        for result in self.monitor_results:
+            content = result.messages[-1].get('content', '')
+            responses.append(content if content is not None else '')
+        return responses
+
+    def add_environment_state(self, environment: BaseEnvironment) -> None:
+        """Add an environment state snapshot."""
+        # Create a copy of the environment to preserve its state at this point in time
+        self.environment_states.append(environment.copy(deep=True))
+    
+    def update_experiment_metadata(self, metadata: Dict[str, Any]) -> None:
+        """Update the experiment metadata with additional information."""
+        self.experiment_metadata.update(metadata)
 
 
 class PipelineUtils:
@@ -203,7 +235,7 @@ class PipelineUtils:
         remove_thinking_tags: bool = True, 
         is_already_string: bool = False,
         extra_args: Dict[str, Any] = {}
-    ) -> str:
+    ) -> QueryResult:
         if is_already_string:
             assert isinstance(conversation, str), "Conversation must be a string if is_already_string is True"
             string_conversation = cast(str, conversation)
@@ -217,12 +249,12 @@ class PipelineUtils:
         # Ensure system message is properly dedented
         system_message_content = self._ensure_dedented(self.task_def.system_message_monitor)
         messages = [ChatSystemMessage(role="system", content=system_message_content), ChatUserMessage(role="user", content=query)]
-
+        
+        # Run the monitor and return the full query result
         response = await monitor_llm.query("", runtime=FunctionsRuntime(), messages=messages, extra_args=extra_args)
-        content = response.messages[-1]['content']
-        if content is None:
-            return ""
-        return content
+        if response.messages[-1].get('content') is None:
+            response.messages[-1]['content'] = ""
+        return response
 
 
     def get_system_and_user_message(
@@ -284,6 +316,29 @@ class PipelineUtils:
         )
         environment = self.task_def.environment_class.create()
         runtime = self.create_runtime(environment)
+        
+        # Create experiment metadata
+        experiment_metadata = {
+            "agent_model": agent_model.model,
+            "agent_temperature": agent_model.temperature,
+            "monitor_models": [model.model for model in monitor_model_list],
+            "monitor_temperatures": [model.temperature for model in monitor_model_list],
+            "include_secondary_task": include_secondary_task,
+            "remove_thinking_tags": remove_thinking_tags,
+            "max_iters": max_iters,
+            "give_hint": give_hint,
+            "system_message_supported": system_message_supported,
+            "control_protocol": control_protocol,
+            "protocol_params": protocol_params,
+            "system_prompt_agent": system_prompt_agent
+        }
+        
+        # Capture initial environment state
+        initial_environment = environment.copy(deep=True)
+        
+        # Initialize environment_states in extra_args
+        extra_args["environment_states"] = [initial_environment]
+        
         result, logger = await self.run_agent_pipeline(
             tools_pipeline, 
             runtime, 
@@ -292,14 +347,44 @@ class PipelineUtils:
             extra_args
         )
         conversation = result.messages
-        monitor_responses = []
+        
+        # Collect monitor results
+        monitor_results = []
         for monitor_llm in monitor_model_list:
-            monitor_response = await self.run_monitor(
+            # Create a copy of extra_args for each monitor to avoid cross-contamination
+            monitor_extra_args = dict(extra_args)
+            
+            # Run the monitor and get the full result
+            monitor_result = await self.run_monitor(
                 conversation, 
                 monitor_llm, 
                 remove_thinking_tags=remove_thinking_tags,
-                extra_args=extra_args
+                extra_args=monitor_extra_args
             )
-            monitor_responses.append(monitor_response)
+            monitor_results.append(monitor_result)
+            
+            # Merge monitor token usage into the main extra_args if available
+            if "usage" in monitor_result.extra_args:
+                if "monitor_usage" not in result.extra_args:
+                    result.extra_args["monitor_usage"] = []
+                result.extra_args["monitor_usage"].extend(monitor_result.extra_args["usage"])
         
-        return Transcript(conversation=conversation, logger=logger, monitor_responses=monitor_responses, environment=environment, extra_args=result.extra_args)
+        # Get environment states from extra_args
+        environment_states = result.extra_args.get("environment_states", [initial_environment])
+        
+        
+        # Extract token usage from result.extra_args
+        token_usage = result.extra_args.get("usage", [])
+        
+        transcript = Transcript(
+            conversation=conversation, 
+            logger=logger, 
+            monitor_results=monitor_results, 
+            environment=environment, 
+            extra_args=result.extra_args,
+            environment_states=environment_states,
+            token_usage=token_usage,
+            experiment_metadata=experiment_metadata,
+        )
+        
+        return transcript

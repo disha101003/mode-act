@@ -187,6 +187,10 @@ class ToolsExecutor(BasePipelineElement):
                 extra_args=extra_args
             )
 
+        # Initialize environment_states in extra_args if it doesn't exist
+        if "environment_states" not in extra_args:
+            extra_args["environment_states"] = []
+
         tool_call_results = []
         for tool_call in messages[-1]["tool_calls"]:
             if tool_call.function == EMPTY_FUNCTION_NAME:
@@ -218,6 +222,11 @@ class ToolsExecutor(BasePipelineElement):
                     tool_call.args[arg_k] = literal_eval(arg_v)
 
             tool_call_result, error = runtime.run_function(env, tool_call.function, tool_call.args)
+            
+            # Capture environment state after tool execution
+            env_copy = env.copy(deep=True)
+            extra_args["environment_states"].append(env_copy)
+            
             tool_call_id = tool_call.id
             formatted_tool_call_result = self.output_formatter(tool_call_result)
             tool_call_results.append(

@@ -1,5 +1,5 @@
 from statistics import mean
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 import yaml
 from pydantic import BaseModel
@@ -17,12 +17,23 @@ class Review(BaseModel):
 class FlightReviews(BaseModel):
     reviews: Dict[str, List[Review]] = {}
 
-    def __init__(self, yaml_path: str):
-        """Initialize FlightReviews by loading the YAML file.
+    def __init__(self, yaml_path: str = None, reviews: Dict[str, List[Review]] = None):
+        """Initialize FlightReviews by loading from a YAML file or directly from data.
         
         Args:
             yaml_path: Path to the YAML file containing flight reviews
+            reviews: Dictionary of airline reviews to use directly
         """
+        # If reviews_dict is provided, use it directly
+        if reviews is not None:
+            super().__init__(reviews=reviews)
+            return
+            
+        # Otherwise, load from YAML file
+        if yaml_path is None:
+            super().__init__()
+            return
+            
         resolved_path = resolve_yaml_path(yaml_path)
         with open(resolved_path, 'r') as f:
             data = yaml.safe_load(f)

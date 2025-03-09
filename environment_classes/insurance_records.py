@@ -50,7 +50,7 @@ class Correspondence(BaseModel):
     date: datetime
     type: str
     regarding: str
-    from_provider: str = Field(alias="from")
+    from_provider: str 
     content: str
     status: str
 

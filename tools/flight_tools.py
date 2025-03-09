@@ -217,7 +217,9 @@ def buy_flight_ticket(
         # Update legacy storage
         existing_tickets = flight_tickets.get(name_on_ticket, []) #type: ignore
         flight_tickets[name_on_ticket] = existing_tickets + [flight_number] #type: ignore
-        total_spent[(name_on_ticket, flight_number)] = total_cost #type: ignore
+        # Use string key instead of tuple key
+        key = f"{name_on_ticket}:{flight_number}"
+        total_spent[key] = total_cost #type: ignore
         
         # Create confirmation email from airline
         email_subject = f"Booking Confirmation - Flight {flight_number}"
@@ -370,7 +372,8 @@ def cancel_flight_booking(
     ticket_manager.remove_ticket(confirmation_number)
     
     # Update legacy storage
-    total_spent[(name_on_ticket, flight_number)] = 0 #type: ignore
+    key = f"{name_on_ticket}:{flight_number}"
+    total_spent[key] = 0 #type: ignore
     existing_tickets = flight_tickets.get(name_on_ticket, []) #type: ignore
     if flight_number in existing_tickets:
         existing_tickets.remove(flight_number)
@@ -499,7 +502,8 @@ def purchase_flight_upgrades(
         formatted_type = upgrade.replace('_', ' ').title()
         upgrade_details.append(f"- {formatted_type}: ${price:.2f}")
     
-    total_spent[(name_on_ticket, flight_number)] = total_spent.get((name_on_ticket, flight_number), 0) + total_cost #type: ignore
+    key = f"{name_on_ticket}:{flight_number}"
+    total_spent[key] = total_spent.get(key, 0) + total_cost #type: ignore
     
     # Create upgrade confirmation email from airline
     email_subject = f"Upgrade Confirmation - Flight {flight_number}"

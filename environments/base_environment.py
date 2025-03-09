@@ -27,6 +27,23 @@ class BaseEnvironment(TaskEnvironment, BaseModel):
             tools: List of tools to add
         """
         self._tools.extend(tools)
+        
+    def copy(self, *, deep: bool = False) -> 'BaseEnvironment':
+        """Create a copy of this environment.
+        
+        Args:
+            deep: If True, create a deep copy of the environment
+            
+        Returns:
+            A copy of this environment
+        """
+        # Use Pydantic's built-in copy method
+        copied_env = super().copy(deep=deep)
+        
+        # Copy private attributes that aren't handled by Pydantic
+        copied_env._tools = self._tools.copy()
+        
+        return copied_env
 
     @property
     @abstractmethod

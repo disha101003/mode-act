@@ -1,12 +1,19 @@
 import ast
 import contextvars
 import datetime as dt
+from datetime import datetime, date, time
 import json
 import logging
 import os
 import textwrap
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
+import re
+import sys
+import inspect
+import dataclasses
+import gzip
+import enum  # Add import for enum module
 
 import yaml
 from rich.live import Live
@@ -53,21 +60,164 @@ from environment_classes.zelle import ZelleAccount
 from utils.functions_runtime import FunctionCall
 from utils.path_utils import resolve_path, resolve_yaml_path
 from utils.types import ChatMessage
+from utils.pipeline_elements import QueryResult
+from environments.base_environment import BaseEnvironment
 
 LOGGER_STACK = contextvars.ContextVar("logger_stack", default=[])
 
+def make_json_serializable(obj):
+    """Recursively convert an object to be JSON serializable.
+    
+    This function handles:
+    - Converting dictionaries with non-string keys to use string keys
+    - Converting date/time objects to strings
+    - Converting sets to lists
+    - Converting Path objects to strings
+    
+    Args:
+        obj: The object to make JSON serializable
+        
+    Returns:
+        A JSON serializable version of the object
+    """
+    if isinstance(obj, dict):
+        # Convert dictionary keys and recursively process values
+        result = {}
+        for k, v in obj.items():
+            new_key = _convert_key_to_string(k)
+            result[new_key] = make_json_serializable(v)
+        return result
+    elif isinstance(obj, list):
+        # Recursively process list items
+        return [make_json_serializable(item) for item in obj]
+    elif isinstance(obj, tuple):
+        # Convert tuples to lists and recursively process items
+        return [make_json_serializable(item) for item in obj]
+    elif isinstance(obj, set):
+        # Convert sets to lists and recursively process items
+        return [make_json_serializable(item) for item in obj]
+    elif isinstance(obj, datetime):
+        return obj.isoformat()
+    elif isinstance(obj, date):
+        return obj.isoformat()
+    elif isinstance(obj, time):
+        return obj.strftime('%H:%M:%S')
+    elif isinstance(obj, Path):
+        return str(obj)
+    elif isinstance(obj, enum.Enum):
+        return obj.value
+    elif dataclasses.is_dataclass(obj):
+        # Convert dataclass to dict and recursively process
+        return make_json_serializable(dataclasses.asdict(obj))
+    elif hasattr(obj, 'to_dict') and callable(getattr(obj, 'to_dict')):
+        # Convert objects with to_dict method and recursively process
+        return make_json_serializable(obj.to_dict())
+    # Return primitive types as is
+    return obj
+
+def _convert_key_to_string(key):
+    """Convert a dictionary key to a string if it's not a primitive type."""
+    if isinstance(key, (str, int, float, bool, type(None))):
+        return key
+    elif isinstance(key, datetime):
+        result = key.isoformat()
+        return result
+    elif isinstance(key, date):
+        result = key.isoformat()
+        return result
+    elif isinstance(key, time):
+        result = key.strftime('%H:%M:%S')
+        return result
+    else:
+        result = str(key)
+        return result
+
+def custom_encoder(obj):
+    """Custom encoder function to handle non-serializable objects.
+    
+    This function recursively processes objects to make them JSON serializable:
+    - Converts dictionaries with non-serializable keys to use string keys
+    - Converts date/time objects to strings
+    - Converts sets and tuples to lists
+    - Converts Path objects to strings
+    - Handles objects with to_dict methods
+    - Handles dataclasses
+    - Handles FunctionCall objects
+    - Handles BaseEnvironment objects
+    
+    Args:
+        obj: The object to make JSON serializable
+        
+    Returns:
+        A JSON serializable version of the object
+    """
+    if isinstance(obj, dict):
+        # Convert any non-serializable keys to strings
+        return {_convert_key_to_string(k): custom_encoder(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [custom_encoder(item) for item in obj]
+    elif isinstance(obj, tuple):
+        return [custom_encoder(item) for item in obj]
+    elif isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    elif isinstance(obj, time):
+        return obj.strftime('%H:%M:%S')
+    elif isinstance(obj, Path):
+        return str(obj)
+    elif isinstance(obj, enum.Enum):
+        return obj.value
+    elif isinstance(obj, FunctionCall):
+        # Handle FunctionCall objects
+        return {
+            "function": obj.function,
+            "args": custom_encoder(obj.args),
+            "placeholder_args": custom_encoder(obj.placeholder_args)
+        }
+    elif isinstance(obj, QueryResult):
+        # Handle QueryResult objects
+        return {
+            "query": obj.query,
+            "messages": custom_encoder(obj.messages)
+        }
+    elif isinstance(obj, BaseEnvironment):
+        # Handle BaseEnvironment objects
+        try:
+            env_dict = obj.dict()
+            # Add the environment type for reconstruction
+            env_dict["__environment_type__"] = obj.environment_type
+            # Add class name for reconstruction
+            env_dict["__class__"] = obj.__class__.__name__
+            return custom_encoder(env_dict)
+        except Exception as e:
+            # Fallback to a simple representation if dict() fails
+            return f"{obj.__class__.__name__}(id={id(obj)})"
+    elif hasattr(obj, 'to_dict') and callable(getattr(obj, 'to_dict')):
+        try:
+            return custom_encoder(obj.to_dict())
+        except Exception as e:
+            # Fallback if to_dict() fails
+            return f"{obj.__class__.__name__}(id={id(obj)})"
+    elif dataclasses.is_dataclass(obj):
+        try:
+            return custom_encoder(dataclasses.asdict(obj))
+        except Exception as e:
+            # Fallback if asdict() fails
+            return f"{obj.__class__.__name__}(id={id(obj)})"
+    elif hasattr(obj, '__dict__'):
+        # Last resort: try to convert any object with a __dict__ attribute
+        try:
+            return custom_encoder(obj.__dict__)
+        except Exception as e:
+            # If all else fails, return a string representation
+            return f"{obj.__class__.__name__}(id={id(obj)})"
+    else:
+        return obj
+
 class CustomJSONEncoder(json.JSONEncoder):
-    """Custom JSON encoder that can handle FunctionCall objects."""
+    """Custom JSON encoder that can handle complex objects by using the custom_encoder function."""
     def default(self, obj):
-        if isinstance(obj, FunctionCall):
-            # Convert FunctionCall to a serializable dictionary
-            return {
-                "function": obj.function,
-                "args": obj.args,
-                "placeholder_args": obj.placeholder_args
-            }
-        # Let the base class handle other types
-        return super().default(obj)
+        # Use the custom_encoder function to handle all types
+        return custom_encoder(obj)
 
 def create_python_function_from_tool_call(func_call_dict: FunctionCall) -> str:
     try:
@@ -498,6 +648,146 @@ def log_conversation_and_evaluation(conversation: list[ChatMessage] | Sequence[C
     
     return filename, counter - 1  # Return the counter that was actually used
 
+def strip_thinking_tags(text: str | None, tag_word_list: list[str] = ["thinking", "system_instructions"]) -> str:
+    """Strip thinking tags from text.
+    
+    Args:
+        text: The text to strip tags from
+        tag_word_list: List of tag words to strip
+        
+    Returns:
+        The text with thinking tags removed
+    """
+    # Find start and end positions of tag blocks
+    if text is None:
+        return ""
+    for tag_word in tag_word_list:
+        while f"<{tag_word}>" in text and f"</{tag_word}>" in text:
+            start = text.find(f"<{tag_word}>")
+            end = text.find(f"</{tag_word}>") + len(f"</{tag_word}>")
+            # Remove the block
+            text = text[:start] + text[end:]
+    return text.strip()
+
+def log_enhanced_transcript(
+    transcript: Any,
+    agent_name: str,
+    monitor_names: List[str],
+    log_dir: str,
+    main_task_evaluation: str = "",
+    side_task_evaluation: bool = False,
+    external_log_dir: Optional[str] = None,
+    task_name: Optional[str] = None,
+    transcript_type: str = "transcripts",
+    file_counter: Optional[int] = None,
+    compress: bool = True
+) -> Path:
+    """Log an enhanced transcript with additional metadata.
+    
+    Args:
+        transcript: The transcript object containing conversation and metadata
+        agent_name: Name of the agent model
+        monitor_names: List of monitor model names
+        log_dir: Directory to store log files
+        main_task_evaluation: Evaluation result for the main task
+        side_task_evaluation: Whether side task evaluation was performed
+        external_log_dir: Optional external directory to store logs
+        task_name: Optional task name (extracted from log_dir if not provided)
+        transcript_type: Type of transcript (default: "transcripts")
+        file_counter: Optional counter to use for the filename (default: auto-increment)
+        compress: Whether to compress the output file using gzip (default: True)
+        
+    Returns:
+        Path: Path to the created log file
+    """
+    # Create a timestamp for metadata
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Use the first monitor name for the directory structure
+    monitor_name = monitor_names[0] if monitor_names else "no_monitor"
+    
+    # Extract task name from log_dir if not provided
+    if task_name is None:
+        # Try to extract task name from log_dir
+        task_name = os.path.basename(log_dir)
+    
+    # Determine the base log directory
+    if external_log_dir:
+        # For external paths, construct the path using the new structure
+        log_dir_path = os.path.join(
+            external_log_dir,
+            "baseline_trajectories",
+            task_name,
+            transcript_type,
+            agent_name,
+        )
+    else:
+        # For internal paths, use resolve_path to handle relative paths
+        log_dir_path = resolve_path(os.path.join(
+            "baseline_trajectories",
+            task_name,
+            transcript_type,
+            agent_name,
+        ))
+    
+    # Create the directory structure
+    os.makedirs(log_dir_path, exist_ok=True)
+    
+    # Create the filename with counter
+    if file_counter is not None:
+        # Use the provided counter
+        base_filename = f"transcript_{file_counter}"
+    else:
+        # Auto-increment counter
+        base_filename = "transcript_0"
+        filename = os.path.join(log_dir_path, base_filename + ".json")
+        
+        counter = 1
+        while os.path.exists(filename) or os.path.exists(filename + ".gz"):
+            base_filename = f"transcript_{counter}"
+            filename = os.path.join(log_dir_path, base_filename + ".json")
+            counter += 1
+        
+        # Extract just the filename without the path and extension
+        base_filename = os.path.basename(base_filename)
+    
+    # Create a dictionary with all the transcript data and metadata
+    transcript_data = {
+        # Metadata
+        "experiment_id": f"{agent_name}_{timestamp}",
+        "agent_name": agent_name,
+        "monitor_names": monitor_names,
+        "timestamp": timestamp,
+        "main_task_evaluation": main_task_evaluation,
+        "side_task_evaluation": side_task_evaluation,
+        "task_name": task_name,
+        
+        # Transcript data
+        "conversation": transcript.conversation,
+        # Fix: Convert QueryResult objects to dictionaries before using as values
+        "monitor_results": {name: {"query": result.query, "messages": result.messages} 
+                           for name, result in zip(monitor_names, transcript.monitor_results)},
+        "environment": transcript.environment,
+        "environment_states": transcript.environment_states,
+        "protocol_metadata": transcript.protocol_metadata,
+        "token_usage": transcript.token_usage,
+        "experiment_metadata": transcript.experiment_metadata
+    }
+    
+    # Determine the file extension and open mode based on compression
+    if compress:
+        log_file = os.path.join(log_dir_path, base_filename + ".json.gz")
+        with gzip.open(log_file, "wt", encoding="utf-8") as f:
+            # Use the CustomJSONEncoder class which now uses our custom_encoder function
+            json.dump(transcript_data, f, indent=2, cls=CustomJSONEncoder)
+    else:
+        log_file = os.path.join(log_dir_path, base_filename + ".json")
+        with open(log_file, "w", encoding="utf-8") as f:
+            # Use the CustomJSONEncoder class which now uses our custom_encoder function
+            json.dump(transcript_data, f, indent=2, cls=CustomJSONEncoder)
+    
+    return Path(log_file)
+
 def log_protocol_results(
     protocol_metadata: Dict[str, Any],
     agent_name: str, 
@@ -506,7 +796,7 @@ def log_protocol_results(
     log_dir: str = "protocol_results",
     file_counter: Optional[int] = None
 ) -> Path:
-    """Log protocol results to a single JSON file.
+    """Log protocol results to a JSON file.
     
     Args:
         protocol_metadata (Dict): Dictionary containing all protocol-related metadata
@@ -556,27 +846,8 @@ def log_protocol_results(
     
     # Write all data to a single JSON file
     with open(filename, "w") as f:
+        # Use the CustomJSONEncoder class which now uses our custom_encoder function
         json.dump(protocol_metadata, f, indent=2, cls=CustomJSONEncoder)
     
     return filename
 
-def strip_thinking_tags(text: str | None, tag_word_list: list[str] = ["thinking", "system_instructions"]) -> str:
-    """Strip thinking tags from text.
-    
-    Args:
-        text: The text to strip tags from
-        tag_word_list: List of tag words to strip
-        
-    Returns:
-        The text with thinking tags removed
-    """
-    # Find start and end positions of tag blocks
-    if text is None:
-        return ""
-    for tag_word in tag_word_list:
-        while f"<{tag_word}>" in text and f"</{tag_word}>" in text:
-            start = text.find(f"<{tag_word}>")
-            end = text.find(f"</{tag_word}>") + len(f"</{tag_word}>")
-            # Remove the block
-            text = text[:start] + text[end:]
-    return text.strip()

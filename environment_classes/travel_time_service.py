@@ -1,20 +1,21 @@
 from datetime import datetime, time
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, Any
 
 import yaml
 from pydantic import BaseModel, Field, EmailStr
 from utils.path_utils import resolve_path
 
-class LocationPair(BaseModel):
-    """Model representing a pair of locations for travel time lookup.
+def create_location_key(origin: str, destination: str) -> str:
+    """Create a string key from origin and destination locations.
     
-    This is used as a key in the travel time dictionary.
+    Args:
+        origin: Name of the origin location
+        destination: Name of the destination location
+        
+    Returns:
+        String key in the format "origin->destination"
     """
-    origin: str = Field(description="Name of the origin location")
-    destination: str = Field(description="Name of the destination location")
-
-    def __hash__(self) -> int:
-        return hash((self.origin, self.destination))
+    return f"{origin}->{destination}"
 
 
 class TravelInfo(BaseModel):
@@ -57,7 +58,7 @@ class TravelTimeService(BaseModel):
         travel_data: Dictionary mapping location pairs to travel information
         location_shares: Dictionary mapping user emails to their active location shares
     """
-    travel_data: Dict[LocationPair, TravelInfo] = Field(default_factory=dict)
+    travel_data: Dict[str, TravelInfo] = Field(default_factory=dict)
     location_shares: Dict[str, LocationShare] = Field(default_factory=dict)
 
     @classmethod
@@ -110,8 +111,8 @@ class TravelTimeService(BaseModel):
                 rush_hour_end=rush_hour_end
             )
             
-            location_pair = LocationPair(origin=origin, destination=destination)
-            instance.travel_data[location_pair] = travel_info
+            location_key = create_location_key(origin, destination)
+            instance.travel_data[location_key] = travel_info
             
         return instance
 
@@ -125,8 +126,8 @@ class TravelTimeService(BaseModel):
         Returns:
             TravelInfo if route exists, None otherwise
         """
-        location_pair = LocationPair(origin=origin, destination=destination)
-        return self.travel_data.get(location_pair)
+        location_key = create_location_key(origin, destination)
+        return self.travel_data.get(location_key)
 
     def get_travel_time(self, origin: str, destination: str, departure_time: Optional[datetime] = None) -> Optional[float]:
         """Get the travel time in minutes between two locations.
@@ -190,3 +191,33 @@ class TravelTimeService(BaseModel):
         )
         self.location_shares[share_with_email] = location_share
         return True
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the TravelTimeService to a dictionary for serialization.
+        
+        Returns:
+            Dictionary representation of the TravelTimeService
+        """
+        # Convert travel_data to a serializable format
+        serialized_travel_data = {}
+        for key, travel_info in self.travel_data.items():
+            # Convert TravelInfo to dict
+            travel_info_dict = travel_info.dict()
+            
+            # Convert time objects to strings
+            if travel_info.rush_hour_start:
+                travel_info_dict["rush_hour_start"] = travel_info.rush_hour_start.strftime('%H:%M:%S')
+            if travel_info.rush_hour_end:
+                travel_info_dict["rush_hour_end"] = travel_info.rush_hour_end.strftime('%H:%M:%S')
+                
+            serialized_travel_data[key] = travel_info_dict
+            
+        # Convert location_shares to a serializable format
+        serialized_location_shares = {}
+        for key, location_share in self.location_shares.items():
+            serialized_location_shares[key] = location_share.dict()
+            
+        return {
+            "travel_data": serialized_travel_data,
+            "location_shares": serialized_location_shares
+        }

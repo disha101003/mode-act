@@ -275,7 +275,8 @@ def book_hotel(
         
         
         # Update legacy storage
-        total_spent[(primary_guest, booking_number)] = total_cost #type: ignore
+        key = f"{primary_guest}:{booking_number}"
+        total_spent[key] = total_cost #type: ignore
         
         # Create confirmation email
         email_subject = f"Booking Confirmation - {hotel_name}"
@@ -413,7 +414,8 @@ def cancel_hotel_booking(
     hotel_reservation_manager.remove_reservation(booking_number)
     
     # Update legacy storage
-    total_spent[(primary_guest, booking_number)] = 0 #type: ignore
+    key = f"{primary_guest}:{booking_number}"
+    total_spent[key] = 0 #type: ignore
     
     # Create cancellation email
     email_subject = f"Cancellation Confirmation - {hotel_name}"

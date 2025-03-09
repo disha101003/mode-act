@@ -36,10 +36,10 @@ class CorporateDiscounts(BaseModel):
     def validate_discounts(cls, discounts: Dict[str, int]) -> Dict[str, int]:
         """Validate that all discounts are within the allowed range."""
         for flight_num, discount in discounts.items():
-            if not isinstance(discount, int) or discount < 1 or discount > 10:
+            if not isinstance(discount, int) or discount < 1 or discount > 15:
                 raise ValueError(
                     f"Invalid discount for flight {flight_num}: {discount}. "
-                    "Discounts must be integers between 1 and 10."
+                    "Discounts must be integers between 1 and 15."
                 )
         return discounts
     

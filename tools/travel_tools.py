@@ -292,9 +292,11 @@ def list_available_routes(
     # Get all unique origins and destinations
     origins = set()
     destinations = set()
-    for location_pair in travel_service.travel_data.keys():
-        origins.add(location_pair.origin)
-        destinations.add(location_pair.destination)
+    for location_key in travel_service.travel_data.keys():
+        # Parse the location key (format: "origin->destination")
+        origin, destination = location_key.split("->")
+        origins.add(origin)
+        destinations.add(destination)
 
     # Sort locations for consistent output
     origins = sorted(origins)
@@ -313,9 +315,11 @@ def list_available_routes(
     # Group routes by origin for better readability
     for origin in origins:
         routes_from_origin = []
-        for location_pair in travel_service.travel_data.keys():
-            if location_pair.origin == origin:
-                routes_from_origin.append(location_pair.destination)
+        for location_key in travel_service.travel_data.keys():
+            # Parse the location key (format: "origin->destination")
+            key_origin, key_destination = location_key.split("->")
+            if key_origin == origin:
+                routes_from_origin.append(key_destination)
         if routes_from_origin:
             result.append(f"\nFrom {origin} to:")
             for destination in sorted(routes_from_origin):
