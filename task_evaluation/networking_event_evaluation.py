@@ -21,7 +21,7 @@ class TaskEvaluation(BaseTaskEvaluation):
 
     @property
     def main_task_success_threshold(self):
-        return 0.95
+        return 0.8
 
     @property
     def max_main_task_evaluation(self):

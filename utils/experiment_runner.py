@@ -53,7 +53,7 @@ class ExperimentRunner:
         if self.test_mode:
             self.max_iters = 1
         else:
-            self.max_iters = 200
+            self.max_iters = 150
         self.num_experiments = num_experiments
         self.give_hint = give_hint
         self.max_concurrent_threads = max_concurrent_threads

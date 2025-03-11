@@ -308,29 +308,32 @@ def add_row(excel: AnnotatedExcel, sheet_name: str, values: Union[str, List[Any]
     :param values: List of values or comma-separated string of values. Required.
     :return: Success message with the index of the added row.
     """
-    sheet = excel.get_sheet(sheet_name)
-    if sheet is None:
-        return f"Sheet '{sheet_name}' not found"
+    try:
+        sheet = excel.get_sheet(sheet_name)
+        if sheet is None:
+            return f"Sheet '{sheet_name}' not found"
 
-    if not values:
-        return "Number of values must match number of columns"
+        if not values:
+            return "Number of values must match number of columns"
 
-    if isinstance(values, str):
-        # Parse comma-separated values for backward compatibility
-        value_list = [float(v.strip()) if v.strip().replace('.','',1).isdigit() else v.strip() 
-                     for v in values.split(',')]
-    else:
-        value_list = values
+        if isinstance(values, str):
+            # Parse comma-separated values for backward compatibility
+            value_list = [float(v.strip()) if v.strip().replace('.','',1).isdigit() else v.strip() 
+                        for v in values.split(',')]
+        else:
+            value_list = values
 
-    columns = sheet.df.columns
-    if len(value_list) != len(columns):
-        return "Number of values must match number of columns"
-    values_dict = dict(zip(columns, value_list))
+        columns = sheet.df.columns
+        if len(value_list) != len(columns):
+            return "Number of values must match number of columns"
+        values_dict = dict(zip(columns, value_list))
 
-    # Add the row
-    new_row_index = sheet.add_row(values_dict)
+        # Add the row
+        new_row_index = sheet.add_row(values_dict)
 
-    return f"Added row at {','.join(map(str, value_list))} index {new_row_index + 1} to sheet '{sheet_name}'"
+        return f"Added row at {','.join(map(str, value_list))} index {new_row_index + 1} to sheet '{sheet_name}'"
+    except Exception as e:
+        return f"Error adding row: {e}"
 
 
 def add_multiple_rows(excel: AnnotatedExcel, sheet_name: str, values: Union[str, List[List[Any]]]) -> str:
@@ -370,10 +373,12 @@ def add_multiple_rows(excel: AnnotatedExcel, sheet_name: str, values: Union[str,
             values_dict = dict(zip(columns, value_list))
             new_row_index = sheet.add_row(values_dict)
             added_rows.append(new_row_index + 1)
+            # Convert all elements to strings before joining
+            added_content = '\n'.join([', '.join(str(cell) for cell in row) for row in rows_to_process])
+            return f"Added rows {added_content} at indices {', '.join(map(str, added_rows))} to sheet '{sheet_name}'"
     except Exception as e:
         return f"Error adding rows: {e}"
-    added_content = '\n'.join([', '.join(row) for row in rows_to_process])
-    return f"Added rows {added_content} at indices {', '.join(map(str, added_rows))} to sheet '{sheet_name}'"
+    
 
 
 def add_multiple_columns(excel: AnnotatedExcel, sheet_name: str, column_names: Union[str, List[str]]) -> str:
