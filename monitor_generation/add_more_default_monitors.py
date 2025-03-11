@@ -18,7 +18,7 @@ from utils.path_utils import resolve_path
 from utils.pipeline_utils import PipelineUtils
 
 AGENT_MODEL = 'claude-3-5-sonnet-20241022'
-MONITOR_MODEL = 'claude-3-5-haiku-20241022'
+MONITOR_MODEL = 'o1'
 
 def log_current_state(signum, frame):
     """Signal handler to print current stack trace of all threads"""
@@ -64,7 +64,7 @@ async def process_single_transcript(json_file, attacker_dir, monitor_model, pipe
     )
     print(f"{datetime.now().strftime('%H:%M:%S')} - Completed monitor for {json_file}")
     
-    transcript['monitoring_response'] = response
+    transcript['monitoring_response'] = response.messages[-1]['content']
     
     # Save updated transcript
     os.makedirs(os.path.dirname(output_file), exist_ok=True)

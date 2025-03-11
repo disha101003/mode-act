@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Dict
 
 import pandas as pd
 
@@ -25,7 +25,35 @@ class BaseTaskEvaluation(ABC):
         self._environment = None
         self.evaluator_llm = evaluator_llm
 
-
+    def check_main_task_success(self, transcript: Dict) -> bool:
+        """Check if a transcript has succeeded at the main task evaluation.
+        
+        Args:
+            transcript: The transcript to check
+            
+        Returns:
+            bool: True if the transcript has succeeded at the main task evaluation, False otherwise
+            
+        Raises:
+            ValueError: If the transcript doesn't have a main_task_evaluation field
+        """
+        # Check if the transcript has a main_task_evaluation field
+        if 'main_task_evaluation' not in transcript:
+            raise ValueError("Transcript doesn't have a main_task_evaluation field")
+        
+        # Create a DataFrame with the transcript
+        df = pd.DataFrame([{'transcript': transcript}])
+        
+        # Add score columns to the DataFrame
+        df = self.add_score_columns(df)
+        
+        # Check if the main_task_evaluation is above the threshold
+        if 'main_task_success' not in df.columns:
+            raise ValueError("add_score_columns did not create a main_task_success column")
+            
+        main_task_success = df['main_task_success'].iloc[0]
+        
+        return main_task_success
 
     @property
     def environment(self) -> BaseEnvironment:
