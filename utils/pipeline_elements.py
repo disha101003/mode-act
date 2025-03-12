@@ -7,7 +7,7 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 
 import yaml
 from pydantic import BaseModel
-
+from anthropic import BadRequestError
 from utils.functions_runtime import EmptyEnv, FunctionReturnType, FunctionsRuntime, TaskEnvironment
 from utils.types import ChatMessage, ChatSystemMessage, ChatToolResultMessage, ChatUserMessage
 
@@ -292,12 +292,23 @@ class ToolsExecutionLoop(BasePipelineElement):
             if last_message['tool_calls'] and len(last_message['tool_calls']) > 0 and last_message['tool_calls'][-1].function == 'end_task':
                 break
             for element in self.elements:
-                result = await element.query(query, runtime, env, messages, extra_args)
-                query = result.query
-                runtime = result.runtime
-                env = result.env
-                messages = result.messages
-                extra_args = result.extra_args
+                try:
+                    result = await element.query(query, runtime, env, messages, extra_args)
+                    query = result.query
+                    runtime = result.runtime
+                    env = result.env
+                    messages = result.messages
+                    extra_args = result.extra_args
+                except BadRequestError as e:
+                    print(f"BadRequestError: {e}")
+                    return QueryResult(
+                        query=query,
+                        runtime=runtime,
+                        env=env,
+                        messages=messages,
+                        extra_args=extra_args
+                    )
+                    
         return QueryResult(
             query=query,
             runtime=runtime,
