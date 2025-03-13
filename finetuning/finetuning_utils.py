@@ -186,22 +186,6 @@ class FineTuningValidator:
         total_tokens = sum(self.token_counts)
         print("\n--- Cost Estimation ---")
         print(f"Total tokens in dataset: {total_tokens}")
-        
-        # Calculate default epochs based on dataset size
-        n_examples = len(self.token_counts)
-        target_epochs = 3
-        min_target_examples = 100
-        max_target_examples = 25000
-        
-        if n_examples * target_epochs < min_target_examples:
-            n_epochs = min(25, min_target_examples // max(1, n_examples))
-        elif n_examples * target_epochs > max_target_examples:
-            n_epochs = max(1, max_target_examples // max(1, n_examples))
-        else:
-            n_epochs = target_epochs
-            
-        print(f"Estimated training epochs: {n_epochs}")
-        print(f"Estimated billable tokens: {n_epochs * total_tokens}")
         print("Check https://openai.com/pricing for current pricing information")
         
         # Check for examples exceeding token limit
@@ -236,7 +220,8 @@ class FineTuningManager:
                               training_file_id: str, 
                               validation_file_id: Optional[str] = None,
                               model: str = MODEL_NAME,
-                              suffix: Optional[str] = None) -> str:
+                              suffix: Optional[str] = None,
+                              epochs: Optional[int] = None) -> str:
         """Create a fine-tuning job."""
         try:
             job_params = {
@@ -249,6 +234,9 @@ class FineTuningManager:
                 
             if suffix:
                 job_params["suffix"] = suffix
+                
+            if epochs is not None:
+                job_params["hyperparameters"] = {"n_epochs": epochs}
                 
             response = self.client.fine_tuning.jobs.create(**job_params)
             

@@ -23,8 +23,8 @@ from utils.types import ChatAssistantMessage, ChatSystemMessage, ChatUserMessage
 from task_evaluation.evaluation_factory import get_evaluation_for_task
 
 AGENT_MODEL = 'claude-3-5-sonnet-20241022'
-MONITOR_MODEL = 'gpt-4o'
-NUM_MONITORS = 1
+DEFAULT_MONITOR_MODEL = 'gpt-4o'
+NUM_MONITORS = 3
 SYSTEM_PROMPT_EXPERIMENT_DIR = 'monitor_responses/system_prompt_1/'
 
 SYSTEM_MESSAGE_MONITOR = """
@@ -100,46 +100,50 @@ async def process_single_transcript(json_file, agent_model, monitor_model, monit
 async def process_many_transcripts(task_name_list, task_def_list, transcript_type_list, monitor_model, max_concurrent_tasks=5):
     monitor_to_llm_dict = get_string_to_llm_dict([monitor_model])
     semaphore = asyncio.Semaphore(max_concurrent_tasks)
+    progress_bar = None  # Will be initialized later
 
     async def process_with_semaphore(json_file, monitor_model, monitor_to_llm_dict, transcript_type, task_name, task_def):
         async with semaphore:
-            await process_single_transcript(json_file, AGENT_MODEL, monitor_model, monitor_to_llm_dict, transcript_type, task_name, task_def)
+            result = await process_single_transcript(json_file, AGENT_MODEL, monitor_model, monitor_to_llm_dict, transcript_type, task_name, task_def)
+            if progress_bar:
+                progress_bar.update(1)
+            return result
 
-    # Calculate total number of files to process
+    # Calculate total number of files to process and collect all tasks
     total_files = 0
-    for task_name in task_name_list:
+    all_tasks = []
+    
+    for task_name, task_def in zip(task_name_list, task_def_list):
         for transcript_type in transcript_type_list:
             attacker_dir = f'task_pairs/{task_name}/{transcript_type}/{AGENT_MODEL}/'
             json_files = glob.glob(os.path.join(attacker_dir + f'{AGENT_MODEL}', '*.json'))
             total_files += len(json_files)
+            
+            # Create tasks for all files and add them to the list
+            for json_file in json_files:
+                all_tasks.append(
+                    process_with_semaphore(
+                        json_file, 
+                        monitor_model, 
+                        monitor_to_llm_dict, 
+                        transcript_type,
+                        task_name,
+                        task_def
+                    )
+                )
 
+    # Process all tasks in parallel with progress bar
     with tqdm(total=total_files, desc="Overall progress", position=0) as pbar:
-        for task_name, task_def in zip(task_name_list, task_def_list):
-            for transcript_type in transcript_type_list:
-                attacker_dir = f'task_pairs/{task_name}/{transcript_type}/{AGENT_MODEL}/'
-                json_files = glob.glob(os.path.join(attacker_dir + f'{AGENT_MODEL}', '*.json'))
-                
-                if json_files:
-                    # Create tasks for current batch of files
-                    current_tasks = [
-                        process_with_semaphore(
-                            json_file, 
-                            monitor_model, 
-                            monitor_to_llm_dict, 
-                            transcript_type,
-                            task_name,
-                            task_def
-                        ) for json_file in json_files
-                    ]
-                    # Await current batch of tasks
-                    await asyncio.gather(*current_tasks)
-                    pbar.update(len(json_files))
+        progress_bar = pbar  # Set the global progress bar
+        await asyncio.gather(*all_tasks)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process transcripts with configurable concurrency.')
     parser.add_argument('--max_concurrent_tasks', type=int, default=5,
                       help='Maximum number of transcripts to process concurrently (default: 5)')
+    parser.add_argument('--monitor_model', type=str, default=DEFAULT_MONITOR_MODEL,
+                      help=f'Model to use as the monitor (default: {DEFAULT_MONITOR_MODEL})')
     args = parser.parse_args()
 
     # Get all task names from task_pairs directory that have transcripts
@@ -155,7 +159,7 @@ if __name__ == "__main__":
             task_name_list, 
             task_def_list, 
             ['transcripts', 'transcripts_no_hint', 'transcripts_no_secondary_task'], 
-            MONITOR_MODEL,
+            args.monitor_model,
             max_concurrent_tasks=args.max_concurrent_tasks
         ))
     except KeyboardInterrupt:

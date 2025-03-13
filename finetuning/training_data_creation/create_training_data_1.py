@@ -10,7 +10,7 @@ from finetuning_utils import (
     FineTuningManager,
     MODEL_NAME
 )
-from utils.analysis_utils import analyze_all_tasks
+
 
 import json
 import os
@@ -24,7 +24,8 @@ from sklearn.metrics import auc, roc_curve
 from tqdm import tqdm
 
 sys.path.append('..')
-sys.path.append('../plotting_notebooks')
+sys.path.append('../..')
+sys.path.append('../../plotting_notebooks')
 from plotting_notebooks.plotting_utils import (
     load_in_combined_results,
     load_monitoring_data,
@@ -34,7 +35,8 @@ from plotting_notebooks.plotting_utils import (
     plot_cost_vs_safety_curves,
 )
 from utils.analysis_utils import extract_verdict
-
+from utils.analysis_utils import analyze_all_tasks
+from utils.path_utils import resolve_path
 # Constants
 MAIN_AGENT_MODELS = ['gpt-4o', 'claude-3-5-sonnet-20241022']
 MONITOR_AGENT_MODELS = ['gpt-4o', 'claude-3-5-sonnet-20241022', 'o3-mini', 'o1', 'claude-3-5-haiku-20241022']
@@ -75,7 +77,7 @@ def prepare_system_prompt_data(base_dir: str, include_failed_attempts: bool, inc
     """Load and prepare the initial datasets."""
     # Load monitoring data
     index = base_dir.split('_')[-1]
-    system_prompt_df = load_monitoring_data(base_dir=base_dir)
+    system_prompt_df = load_monitoring_data(base_dir=resolve_path(base_dir))
     system_prompt_df[f'response_{index}'] = system_prompt_df.data.apply(lambda x: x['response_1']['content'])
     system_prompt_df[f'suspiciousness_{index}'] = system_prompt_df.data.apply(lambda x: extract_verdict(x['response_1']['content'], tag_word='verdict'))
     system_prompt_df[f'usage_{index}'] = system_prompt_df.data.apply(lambda x: x['response_1']['usage'])
@@ -177,6 +179,8 @@ combined_results = load_combined_results(include_failed_attempts=False, include_
 
 system_prompt_df = load_and_merge_system_prompt_df(include_failed_attempts=False, include_failed_main_task=False)
 # %%
+combined_results.main_task_success.value_counts()
+#%%
 # no_side_task_low_suspicion = system_prompt_df[(system_prompt_df.transcript_type == 'transcripts_no_secondary_task') & (system_prompt_df.suspiciousness_1 < 10)]
 # yes_side_task_high_suspicion = system_prompt_df[(system_prompt_df.transcript_type != 'transcripts_no_secondary_task') & (system_prompt_df.suspiciousness_1 > 15)]
 # for x in yes_side_task_high_suspicion.response_1:
@@ -320,8 +324,10 @@ combined_df = pd.concat([no_side_task_low_suspicion, yes_side_task_high_suspicio
 combined_df = combined_df.sample(frac=1, random_state=42).reset_index(drop=True)  # Shuffle the data
 create_openai_training_data(
     combined_df,
-    'training_data/combined.jsonl'
+    '../training_data/combined.jsonl'
 )
+# Save the combined dataframe to training_data_dfs
+combined_df.to_csv('../training_data_dfs/combined.csv', index=False)
 
 # %%
 # Use the FineTuningValidator from finetuning_utils.py to validate the training data

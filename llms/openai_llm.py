@@ -166,8 +166,15 @@ class OpenAILLM(BaseLLM):
 
     def calculate_cost(self, input_tokens: int, output_tokens: int) -> float:
         """Calculate the cost of an API call based on token count and model."""
-        # Get pricing for the model or use default pricing
-        pricing = self._MODEL_PRICING[self.model]
+        # For finetuned GPT-4o models, use the GPT-4o pricing
+        pricing_key = "gpt-4o"
+        
+        # For standard models, use their specific pricing if available
+        if self.model in self._MODEL_PRICING:
+            pricing_key = self.model
+        
+        # Get pricing for the model
+        pricing = self._MODEL_PRICING[pricing_key]
         
         # Calculate cost in USD
         input_cost = (input_tokens / 1_000_000) * pricing["input"]

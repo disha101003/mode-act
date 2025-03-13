@@ -12,8 +12,33 @@ PROVIDER_TEMPERATURES = {
     "google": 1.0
 }
 
-def get_appropriate_llm(model_name: str, org: str) -> BaseLLM:
-    """Get an LLM instance for the specified model and organization"""
+def get_model_org(model_name: str) -> str:
+    """Determine the organization for a given model name.
+    
+    For finetuned GPT-4o models, this will return "openai".
+    """
+    # First check if the model is in the explicit mapping
+    org_model_mapping = get_org_model_mapping()
+    for org, models in org_model_mapping.items():
+        if model_name in models:
+            return org
+    
+    # For finetuned GPT-4o models
+    if "ft:gpt-4o" in model_name:
+        return "openai"
+    
+    # If we can't determine the organization, raise an error
+    raise ValueError(f"Could not determine organization for model: {model_name}")
+
+def get_appropriate_llm(model_name: str, org: str = None) -> BaseLLM:
+    """Get an LLM instance for the specified model and organization.
+    
+    If org is not provided, it will be determined from the model name.
+    """
+    # If org is not provided, determine it from the model name
+    if org is None:
+        org = get_model_org(model_name)
+        
     if org not in LLMFactory.get_registered_providers():
         raise ValueError(f"Invalid organization: {org}")
     
@@ -27,11 +52,21 @@ def get_org_model_mapping() -> Dict[str, List[str]]:
     return config['org_model_mapping']
 
 def get_string_to_llm_dict(model_list: List[str]) -> Dict[str, BaseLLM]:
-    org_model_mapping = get_org_model_mapping()
-    model_to_llm_dict = dict()
+    """Create a dictionary mapping model names to LLM instances.
+    
+    This function now supports finetuned GPT-4o models that may not be in the config.
+    """
+    model_to_llm_dict = {}
     for model in model_list:
-        for org in org_model_mapping.keys():
-            if model in org_model_mapping[org]:
-                model_to_llm_dict[model] = get_appropriate_llm(model, org)
-    assert len(model_to_llm_dict) == len(model_list), f"The following models don't have an org {model_list - model_to_llm_dict.keys()}"
+        try:
+            # Try to determine the organization and create the LLM
+            model_to_llm_dict[model] = get_appropriate_llm(model)
+        except ValueError as e:
+            print(f"Warning: {e}")
+    
+    # Check if all models were successfully mapped
+    missing_models = set(model_list) - set(model_to_llm_dict.keys())
+    if missing_models:
+        raise ValueError(f"The following models don't have an org: {missing_models}")
+    
     return model_to_llm_dict

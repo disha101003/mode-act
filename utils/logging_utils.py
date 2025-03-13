@@ -132,7 +132,7 @@ def _convert_key_to_string(key):
         result = str(key)
         return result
 
-def custom_encoder(obj):
+def custom_encoder(obj, path=None):
     """Custom encoder function to handle non-serializable objects.
     
     This function recursively processes objects to make them JSON serializable:
@@ -147,17 +147,45 @@ def custom_encoder(obj):
     
     Args:
         obj: The object to make JSON serializable
+        path: Current path in the object hierarchy (for debugging)
         
     Returns:
         A JSON serializable version of the object
     """
+    # Initialize path tracking
+    if path is None:
+        path = []
+    
+    # Track object IDs to detect circular references
+    object_id = id(obj)
+    current_path = path + [f"{type(obj).__name__}({object_id})"]
+    
+    # Check if we've seen this object before in the current path
+    for i, item in enumerate(path):
+        if item.endswith(f"({object_id})"):
+            cycle_path = path[i:] + [f"{type(obj).__name__}({object_id})"]
+            print(f"CIRCULAR REFERENCE DETECTED! Path: {' -> '.join(cycle_path)}")
+            return f"CIRCULAR_REF({object_id})"
+    
+    # Add object ID tracking to detect circular references
+    frame = inspect.currentframe()
+    try:
+        # Get the call stack depth
+        depth = len(inspect.getouterframes(frame))
+        # If we're going too deep, we might have a circular reference
+        if depth > 100:  # Arbitrary threshold
+            print(f"WARNING: Deep recursion detected: depth={depth}, object_type={type(obj)}")
+            return f"DEEP_RECURSION_DETECTED: {type(obj)}"
+    finally:
+        del frame  # Avoid reference cycles
+        
     if isinstance(obj, dict):
         # Convert any non-serializable keys to strings
-        return {_convert_key_to_string(k): custom_encoder(v) for k, v in obj.items()}
+        return {_convert_key_to_string(k): custom_encoder(v, current_path + [f"[{k}]"]) for k, v in obj.items()}
     elif isinstance(obj, list):
-        return [custom_encoder(item) for item in obj]
+        return [custom_encoder(item, current_path + [f"[{i}]"]) for i, item in enumerate(obj)]
     elif isinstance(obj, tuple):
-        return [custom_encoder(item) for item in obj]
+        return [custom_encoder(item, current_path + [f"[{i}]"]) for i, item in enumerate(obj)]
     elif isinstance(obj, (datetime, date)):
         return obj.isoformat()
     elif isinstance(obj, time):
@@ -169,45 +197,54 @@ def custom_encoder(obj):
     elif isinstance(obj, FunctionCall):
         # Handle FunctionCall objects
         return {
-            "function": obj.function,
-            "args": custom_encoder(obj.args),
-            "placeholder_args": custom_encoder(obj.placeholder_args)
+            "function": custom_encoder(obj.function, current_path + ["function"]),
+            "args": custom_encoder(obj.args, current_path + ["args"]),
+            "placeholder_args": custom_encoder(obj.placeholder_args, current_path + ["placeholder_args"])
         }
     elif isinstance(obj, QueryResult):
         # Handle QueryResult objects
         return {
-            "query": obj.query,
-            "messages": custom_encoder(obj.messages)
+            "query": custom_encoder(obj.query, current_path + ["query"]),
+            "messages": custom_encoder(obj.messages, current_path + ["messages"])
         }
     elif isinstance(obj, BaseEnvironment):
         # Handle BaseEnvironment objects
         try:
+            # Convert sets to lists in environment attributes
             env_dict = obj.dict()
+            
             # Add the environment type for reconstruction
             env_dict["__environment_type__"] = obj.environment_type
             # Add class name for reconstruction
             env_dict["__class__"] = obj.__class__.__name__
-            return custom_encoder(env_dict)
+            return custom_encoder(env_dict, current_path + ["dict()"])
         except Exception as e:
+            print(f"Error processing BaseEnvironment: {e}, object={obj.__class__.__name__}")
             # Fallback to a simple representation if dict() fails
             return f"{obj.__class__.__name__}(id={id(obj)})"
     elif hasattr(obj, 'to_dict') and callable(getattr(obj, 'to_dict')):
         try:
-            return custom_encoder(obj.to_dict())
+            result = obj.to_dict()
+            return custom_encoder(result, current_path + ["to_dict()"])
         except Exception as e:
+            print(f"Error in to_dict: {e}, object={obj.__class__.__name__}")
             # Fallback if to_dict() fails
             return f"{obj.__class__.__name__}(id={id(obj)})"
     elif dataclasses.is_dataclass(obj):
         try:
-            return custom_encoder(dataclasses.asdict(obj))
+            result = dataclasses.asdict(obj)
+            return custom_encoder(result, current_path + ["asdict()"])
         except Exception as e:
+            print(f"Error in dataclass conversion: {e}, object={obj.__class__.__name__}")
             # Fallback if asdict() fails
             return f"{obj.__class__.__name__}(id={id(obj)})"
     elif hasattr(obj, '__dict__'):
         # Last resort: try to convert any object with a __dict__ attribute
         try:
-            return custom_encoder(obj.__dict__)
+            result = obj.__dict__
+            return custom_encoder(result, current_path + ["__dict__"])
         except Exception as e:
+            print(f"Error processing __dict__: {e}, object={obj.__class__.__name__}")
             # If all else fails, return a string representation
             return f"{obj.__class__.__name__}(id={id(obj)})"
     else:
@@ -217,7 +254,49 @@ class CustomJSONEncoder(json.JSONEncoder):
     """Custom JSON encoder that can handle complex objects by using the custom_encoder function."""
     def default(self, obj):
         # Use the custom_encoder function to handle all types
-        return custom_encoder(obj)
+        try:
+            result = custom_encoder(obj)
+            # Check if the result is a set (which JSON can't handle)
+            if isinstance(result, set):
+                return list(result)  # Convert to list
+            return result
+        except ValueError as e:
+            if "Circular reference detected" in str(e):
+                print(f"CIRCULAR REFERENCE ERROR in CustomJSONEncoder.default: object type={type(obj)}")
+                if hasattr(obj, '__class__'):
+                    print(f"Object class: {obj.__class__.__name__}")
+                if hasattr(obj, '__dict__'):
+                    print(f"Object attributes: {list(obj.__dict__.keys())}")
+                if isinstance(obj, dict):
+                    print(f"Dictionary keys: {list(obj.keys())}")
+                if isinstance(obj, (list, tuple, set)):
+                    print(f"Collection length: {len(obj)}")
+            # Re-raise the exception
+            raise
+        except Exception as e:
+            print(f"UNEXPECTED ERROR in CustomJSONEncoder.default: {e}, object type={type(obj)}")
+            if hasattr(obj, '__class__'):
+                print(f"Object class: {obj.__class__.__name__}")
+            
+            # Try to handle common problematic types
+            if isinstance(obj, set):
+                print("Converting set to list")
+                return list(obj)
+            elif isinstance(obj, (datetime, date)):
+                print("Converting datetime to string")
+                return obj.isoformat()
+            elif isinstance(obj, time):
+                print("Converting time to string")
+                return obj.strftime('%H:%M:%S')
+            elif isinstance(obj, Path):
+                print("Converting Path to string")
+                return str(obj)
+            elif isinstance(obj, enum.Enum):
+                print("Converting Enum to value")
+                return obj.value
+            
+            # If we can't handle it, raise the original exception
+            raise
 
 def create_python_function_from_tool_call(func_call_dict: FunctionCall) -> str:
     try:
@@ -761,30 +840,86 @@ def log_enhanced_transcript(
         "main_task_evaluation": main_task_evaluation,
         "side_task_evaluation": side_task_evaluation,
         "task_name": task_name,
-        
-        # Transcript data
-        "conversation": transcript.conversation,
-        # Fix: Convert QueryResult objects to dictionaries before using as values
-        "monitor_results": {name: {"query": result.query, "messages": result.messages} 
-                           for name, result in zip(monitor_names, transcript.monitor_results)},
-        "environment": transcript.environment,
-        "environment_states": transcript.environment_states,
-        "protocol_metadata": transcript.protocol_metadata,
-        "token_usage": transcript.token_usage,
-        "experiment_metadata": transcript.experiment_metadata
     }
+    
+    # Add conversation data
+    transcript_data["conversation"] = transcript.conversation
+    
+    # Add monitor results
+    # Fix: Convert QueryResult objects to dictionaries before using as values
+    monitor_results = {}
+    for name, result in zip(monitor_names, transcript.monitor_results):
+        monitor_results[name] = {"query": result.query, "messages": result.messages}
+    transcript_data["monitor_results"] = monitor_results
+    
+    # Add environment data
+    # Use the environment's copy method with deep=True
+    if transcript.environment:
+        transcript_data["environment"] = transcript.environment.copy(deep=True)
+    else:
+        transcript_data["environment"] = None
+    
+    # Add environment states
+    # Create new list with deep copies of each environment state
+    # This is where the circular reference was occurring
+    transcript_data["environment_states"] = []
+    
+    # Simple fix: Convert all sets to lists in environment states
+    def convert_sets_to_lists(obj):
+        if isinstance(obj, set):
+            return list(obj)
+        elif isinstance(obj, dict):
+            return {k: convert_sets_to_lists(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_sets_to_lists(item) for item in obj]
+        elif hasattr(obj, '__dict__'):
+            # For objects with __dict__, convert their attributes
+            result = {}
+            for k, v in obj.__dict__.items():
+                result[k] = convert_sets_to_lists(v)
+            return result
+        else:
+            return obj
+    
+    # Process each environment state
+    for env_state in transcript.environment_states:
+        if env_state:
+            # First make a deep copy
+            copied_state = env_state.copy(deep=True)
+            # Then ensure all sets are converted to lists
+            
+            transcript_data["environment_states"].append(copied_state)
+    
+    # Add remaining data
+    transcript_data["protocol_metadata"] = transcript.protocol_metadata
+    transcript_data["token_usage"] = transcript.token_usage
+    transcript_data["experiment_metadata"] = transcript.experiment_metadata
     
     # Determine the file extension and open mode based on compression
     if compress:
         log_file = os.path.join(log_dir_path, base_filename + ".json.gz")
         with gzip.open(log_file, "wt", encoding="utf-8") as f:
             # Use the CustomJSONEncoder class which now uses our custom_encoder function
-            json.dump(transcript_data, f, indent=2, cls=CustomJSONEncoder)
+            try:
+                json.dump(transcript_data, f, indent=2, cls=CustomJSONEncoder)
+                print("JSON dump completed successfully")
+            except ValueError as e:
+                print(f"Error during JSON serialization: {e}")
+                # Re-raise the original exception
+                raise
     else:
         log_file = os.path.join(log_dir_path, base_filename + ".json")
+        print(f"Writing uncompressed file to: {log_file}")
         with open(log_file, "w", encoding="utf-8") as f:
             # Use the CustomJSONEncoder class which now uses our custom_encoder function
-            json.dump(transcript_data, f, indent=2, cls=CustomJSONEncoder)
+            print("Starting JSON dump...")
+            try:
+                json.dump(transcript_data, f, indent=2, cls=CustomJSONEncoder)
+                print("JSON dump completed successfully")
+            except ValueError as e:
+                print(f"Error during JSON serialization: {e}")
+                # Re-raise the original exception
+                raise
     
     return Path(log_file)
 

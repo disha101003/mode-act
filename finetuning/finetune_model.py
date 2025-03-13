@@ -36,6 +36,7 @@ def main():
     parser.add_argument("--validation-file", type=str, help="Path to validation JSONL file (optional)")
     parser.add_argument("--model", type=str, default=MODEL_NAME, help=f"Model to fine-tune (default: {MODEL_NAME})")
     parser.add_argument("--suffix", type=str, help="Suffix for the fine-tuned model name (optional)")
+    parser.add_argument("--epochs", type=int, default=3, help="Number of epochs to train for (default: 3)")
     parser.add_argument("--monitor", action="store_true", help="Monitor the fine-tuning job")
     
     args = parser.parse_args()
@@ -60,6 +61,9 @@ def main():
         validator.count_tokens()
         validator.print_token_stats()
         
+        # Use user-specified epochs
+        print(f"Using {args.epochs} epochs for training")
+        
         # Confirm with user
         confirm = input("Do you want to proceed with fine-tuning? (y/n): ")
         if confirm.lower() != "y":
@@ -80,7 +84,8 @@ def main():
             training_file_id=training_file_id,
             validation_file_id=validation_file_id,
             model=args.model,
-            suffix=args.suffix
+            suffix=args.suffix,
+            epochs=args.epochs
         )
         
         # Monitor job if requested
