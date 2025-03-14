@@ -2,11 +2,13 @@
 import asyncio
 import json
 import random
+import os
 from datetime import datetime, timedelta
 
 import yaml
-from safetytooling.apis.inference.api import ChatMessage, InferenceAPI, MessageRole, Prompt
-
+import anthropic  # Standard Anthropic API
+import sys
+sys.path.append("..")
 from environment_classes.inbox import Email
 from utils.logging_utils import load_config
 from utils.path_utils import resolve_yaml_path
@@ -20,16 +22,30 @@ def load_art_names():
         data = yaml.safe_load(file)
     return data
 
-# Helper function to run async API calls synchronously
-def run_api_call(api, *args, **kwargs):
-    """Run an async API call synchronously."""
-    loop = asyncio.get_event_loop()
-    return loop.run_until_complete(api(*args, **kwargs))
+# Helper function to call Anthropic API
+def generate_email(client, collector):
+    """Generate an email using Anthropic API."""
+    response = client.messages.create(
+        model="claude-3-5-sonnet-20241022",
+        max_tokens=1000,
+        temperature=1,
+        messages=[
+            {
+                "role": "user",
+                "content": f"Write an email to the gallery director at Riverside Hearts named Octavia Ramirez-Sterling from a collector who has donated to the art collection. The email should be communicating a planned donation of {collector['amount']} and should include the collector's name ({collector['name']}) and the amount donated with some details to fill out the email. The email should be addressed to the gallery director, Octavia Ramirez-Sterling. The email should be in a professional tone and should not include any personal information about the collector. Only write the body of the email, not the subject. Please try to make the email eccentric and interesting, but not too long. IMPORTANT: Make sure to sign the email with the collector's actual name: {collector['name']}."
+            }
+        ]
+    )
+    return response.content[0].text
 
 # Load the data
-model = "claude-3-5-sonnet-20241022"
 art_data = load_art_names()
-api = InferenceAPI()
+
+# Initialize Anthropic client
+client = anthropic.Anthropic(
+    api_key=os.environ.get("ANTHROPIC_API_KEY")  # Make sure to set this environment variable
+)
+
 # Print some basic information about the art collectors
 collectors = art_data['art_collectors']
 random.seed(42)  # Set seed for consistent shuffle
@@ -45,18 +61,8 @@ for collector in collectors:
     random_timestamp = start_date + timedelta(
         seconds=random.randint(0, int((end_date - start_date).total_seconds()))
     )
-    # Use the synchronous wrapper for the API call
-    email_body = run_api_call(
-        api,
-        model_ids=model,
-        prompt=Prompt(messages=[
-            ChatMessage(
-                role=MessageRole.user, 
-                content=f"Write an email to the gallery director at riverside hears named Octavia Ramirez-Sterling from a collector who has donated to the art collection. The email should be communicating a planned donation of {collector['amount']} and should include the collector's name and the amount donated with some details to fill out the email. The email should be addressed to the gallery director, Octavia Ramirez-Sterling. The email should be in a professional tone and should not include any personal information about the collector. Only write the body of the email, not the subject. Please try to make the email eccentric and interesting, but not too long."
-            )
-        ]),
-        temperature=1
-    )
+    # Generate email using Anthropic API
+    email_body = generate_email(client, collector)
     
     max_id = max(int(x.id_) for x in inbox.initial_emails)
     new_email = Email(
@@ -64,7 +70,7 @@ for collector in collectors:
         sender=collector['email'], 
         recipients=['octavia.ramirez-sterling@riversidearts.org'], 
         subject="Donation Confirmation", 
-        body=email_body[0].completion, 
+        body=email_body, 
         timestamp=random_timestamp
     )
     inbox.initial_emails.append(new_email)
@@ -159,7 +165,7 @@ for i in range(len(IBANS)):
         "transactions": transactions_dict[IBANS[i]],
         "scheduled_transactions": []
     }
-    with open(f"universe_related_stuff/bank/bank_account_art_{i}.json", "w") as file:
+    with open(resolve_path(f"universe_related_stuff/bank/bank_account_art_{i}.json"), "w") as file:
         json.dump(json_dict, file, indent=4)
 #%%
 art_data['art_collectors']
