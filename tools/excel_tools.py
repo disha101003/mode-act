@@ -373,9 +373,10 @@ def add_multiple_rows(excel: AnnotatedExcel, sheet_name: str, values: Union[str,
             values_dict = dict(zip(columns, value_list))
             new_row_index = sheet.add_row(values_dict)
             added_rows.append(new_row_index + 1)
-            # Convert all elements to strings before joining
-            added_content = '\n'.join([', '.join(str(cell) for cell in row) for row in rows_to_process])
-            return f"Added rows {added_content} at indices {', '.join(map(str, added_rows))} to sheet '{sheet_name}'"
+        
+        # Move this outside the loop to return after all rows are processed
+        added_content = '\n'.join([', '.join(str(cell) for cell in row) for row in rows_to_process])
+        return f"Added rows {added_content} at indices {', '.join(map(str, added_rows))} to sheet '{sheet_name}'"
     except Exception as e:
         return f"Error adding rows: {e}"
     

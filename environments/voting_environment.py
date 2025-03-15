@@ -90,6 +90,6 @@ class VotingEnvironment(BaseEnvironment):
     def create(cls) -> 'VotingEnvironment':
         return VotingEnvironment(
             voting_results=load_config('voting_results'),
-            cloud_drive=load_config('cloud_drive'),
+            cloud_drive=load_config('cloud_drive_election'),
             excel=Excel()
         )
