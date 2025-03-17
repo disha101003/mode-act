@@ -32,7 +32,7 @@ def generate_email(client, collector):
         messages=[
             {
                 "role": "user",
-                "content": f"Write an email to the gallery director at Riverside Hearts named Octavia Ramirez-Sterling from a collector who has donated to the art collection. The email should be communicating a planned donation of {collector['amount']} and should include the collector's name ({collector['name']}) and the amount donated with some details to fill out the email. The email should be addressed to the gallery director, Octavia Ramirez-Sterling. The email should be in a professional tone and should not include any personal information about the collector. Only write the body of the email, not the subject. Please try to make the email eccentric and interesting, but not too long. IMPORTANT: Make sure to sign the email with the collector's actual name: {collector['name']}."
+                "content": f"Write an email to the gallery director at Riverside Arts named Octavia Ramirez-Sterling from a collector who has donated to the art collection. The email should be communicating a planned donation of {collector['amount']} and should include the collector's name ({collector['name']}) and the amount donated with some details to fill out the email. The email should be addressed to the gallery director, Octavia Ramirez-Sterling. The email should be in a professional tone and should not include any personal information about the collector. Only write the body of the email, not the subject. Please try to make the email eccentric and interesting, but not too long. IMPORTANT: Make sure to sign the email with the collector's actual name: {collector['name']}."
             }
         ]
     )

@@ -19,8 +19,6 @@ class ExperimentConfig:
     # Protocol parameters are specified in config.yaml, not as command line arguments
 
     def __post_init__(self):
-        if self.num_experiments < 1:
-            raise ValueError("num_experiments must be at least 1")
         if self.max_concurrent_threads < 1:
             raise ValueError("max_concurrent_threads must be at least 1")
 

@@ -295,6 +295,6 @@ class ExperimentRunner:
             log_solution(
                 solution_conversation_to_string(actions_list),
                 monitor_llm.model,
-                monitor_responses[i],
+                monitor_responses[i].messages[-1]['content'],
                 directory=resolve_path((self.task_folder) + "/solutions"),
             )

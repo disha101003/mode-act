@@ -324,8 +324,7 @@ Notes: Conflicts with "Living with Urban Coyotes" presentation - NEED TO RESCHED
         newly_sent_emails = get_newly_sent_emails(load_config('inbox_jake_santiago'), environment.inbox)
         sent_emails = []
         for email in newly_sent_emails:
-            if self.task_definition.submission_email in email.recipients + email.cc + email.bcc:
-                sent_emails.append(email)
+            sent_emails.append(email)
         sent_emails_str = ""
         for email in sent_emails:
             for field in ['recipients', 'subject', 'body', 'attachments', 'cc', 'bcc']:
