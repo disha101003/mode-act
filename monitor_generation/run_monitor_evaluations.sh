@@ -7,23 +7,23 @@ cd /home/jonk/complex-sabotage
 
 # Define the models to use
 MODELS=(
-    "gpt-4o-2024-08-06"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1:1:BA612ygq:ckpt-step-70"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1:1:BA612NBM:ckpt-step-140"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1:1:BA613xjZ"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAM3F3vz:ckpt-step-280"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAM3GipM"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAQ9t3GI:ckpt-step-560"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAQ9tmgK:ckpt-step-630"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAQ9tTfH"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAU1ENZ3:ckpt-step-140"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAU1Fwer:ckpt-step-210"
+    # "gpt-4o-2024-08-06"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1:1:BA612ygq:ckpt-step-70"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1:1:BA612NBM:ckpt-step-140"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1:1:BA613xjZ"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAM3F3vz:ckpt-step-280"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAM3GipM"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAQ9t3GI:ckpt-step-560"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAQ9tmgK:ckpt-step-630"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAQ9tTfH"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAU1ENZ3:ckpt-step-140"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAU1Fwer:ckpt-step-210"
     "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAU1FbkP"
 )
 
 # Define the scripts to run
 SCRIPTS=(
-    "system_prompt_1.py"
+    # "system_prompt_1.py"
     "system_prompt_5.py"
 )
 

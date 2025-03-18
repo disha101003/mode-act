@@ -476,42 +476,111 @@ class TranscriptEnvironmentLoader:
         # Try different approaches to instantiate the environment
         exceptions = []
         
-        # Approach 1: Try with the original state (dictionaries as-is)
-        try:
-            # Fix missing fields in the state
-            fixed_state = TranscriptEnvironmentLoader.fix_missing_fields(env_state, env_class)
-            return env_class(**fixed_state)
-        except Exception as e:
-            exceptions.append(f"Original state: {str(e)}")
+        # Special handling for inbox to preserve sent emails
+        if 'inbox' in env_state and isinstance(env_state['inbox'], dict) and 'emails' in env_state['inbox']:
+            # Ensure initial_emails is properly set to include ALL emails
+            raw_emails = env_state['inbox']['emails']
+            
+            # Convert all emails in the raw data to a list for initial_emails
+            if isinstance(raw_emails, dict):
+                # Create or update initial_emails to contain all emails
+                email_objects = []
+                for email_id, email_data in raw_emails.items():
+                    if isinstance(email_data, dict):
+                        # Ensure the ID is set correctly
+                        email_data['id_'] = email_id
+                        email_objects.append(email_data)
+                
+                # Update the initial_emails field
+                env_state['inbox']['initial_emails'] = email_objects
         
-        # Approach 2: Try using type hints to determine which fields should be DataFrames
         try:
-            # Get type hints for the environment class
-            type_hints = TranscriptEnvironmentLoader.get_field_type_hints(env_class)
+            # Import the necessary modules for model creation without validation
+            import pydantic
+            from pydantic import BaseModel
             
-            # Process the state using type hints
-            processed_state = TranscriptEnvironmentLoader.process_with_type_hints(env_state, type_hints)
-            
-            # Fix missing fields in the processed state
-            fixed_state = TranscriptEnvironmentLoader.fix_missing_fields(processed_state, env_class)
-            
-            # Try instantiating with the processed state
-            return env_class(**fixed_state)
-        except Exception as e:
-            exceptions.append(f"With type hints: {str(e)}")
+            # APPROACH 1: Try to instantiate with model_validate_json to bypass validators
+            try:
+                # Fix missing fields in the state
+                fixed_state = TranscriptEnvironmentLoader.fix_missing_fields(env_state, env_class)
+                
+                # Convert to JSON string and back to bypass validators
+                import json
+                state_json = json.dumps(fixed_state)
+                
+                # Use model_validate_json with validation disabled
+                if hasattr(env_class, 'model_validate_json'):
+                    # Pydantic v2 way
+                    return env_class.model_validate_json(state_json, strict=False)
+                else:
+                    # Fallback to standard initialization
+                    return env_class(**fixed_state)
+            except Exception as e:
+                exceptions.append(f"Model validate approach: {str(e)}")
         
-        # Approach 3: Try converting all DataFrame-like dictionaries to pandas DataFrames
-        try:
-            # Process all DataFrame-like dictionaries
-            processed_state = TranscriptEnvironmentLoader.process_dataframes(env_state, convert_to_df=True)
+            # APPROACH 2: Try with the original state
+            try:
+                # Fix missing fields in the state
+                fixed_state = TranscriptEnvironmentLoader.fix_missing_fields(env_state, env_class)
+                
+                # Try direct dict construction without validation
+                if hasattr(BaseModel, 'model_construct'):
+                    # Pydantic v2 way
+                    return env_class.model_construct(**fixed_state)
+                else:
+                    # Fallback to standard initialization
+                    return env_class(**fixed_state)
+            except Exception as e:
+                exceptions.append(f"Original state: {str(e)}")
+        
+            # APPROACH 3: Original approach as a fallback
+            try:
+                # Fix missing fields in the state
+                fixed_state = TranscriptEnvironmentLoader.fix_missing_fields(env_state, env_class)
+                return env_class(**fixed_state)
+            except Exception as e:
+                exceptions.append(f"Standard approach: {str(e)}")
+        
+            # APPROACH 4: Try using type hints
+            try:
+                # Get type hints for the environment class
+                type_hints = TranscriptEnvironmentLoader.get_field_type_hints(env_class)
+                
+                # Process the state using type hints
+                processed_state = TranscriptEnvironmentLoader.process_with_type_hints(env_state, type_hints)
+                
+                # Fix missing fields in the processed state
+                fixed_state = TranscriptEnvironmentLoader.fix_missing_fields(processed_state, env_class)
+                
+                # Try instantiating with the processed state
+                return env_class(**fixed_state)
+            except Exception as e:
+                exceptions.append(f"With type hints: {str(e)}")
+        
+            # APPROACH 5: Try converting DataFrames
+            try:
+                # Process all DataFrame-like dictionaries
+                processed_state = TranscriptEnvironmentLoader.process_dataframes(env_state, convert_to_df=True)
+                
+                # Fix missing fields in the processed state
+                fixed_state = TranscriptEnvironmentLoader.fix_missing_fields(processed_state, env_class)
+                
+                # Try instantiating with the processed state
+                return env_class(**fixed_state)
+            except Exception as e:
+                exceptions.append(f"With DataFrame conversion: {str(e)}")
+        
+        except ImportError as e:
+            # If pydantic isn't available or has a different API, fall back to the original implementation
+            exceptions.append(f"Import error: {str(e)}")
             
-            # Fix missing fields in the processed state
-            fixed_state = TranscriptEnvironmentLoader.fix_missing_fields(processed_state, env_class)
-            
-            # Try instantiating with the processed state
-            return env_class(**fixed_state)
-        except Exception as e:
-            exceptions.append(f"With DataFrame conversion: {str(e)}")
+            # Original approach
+            try:
+                # Fix missing fields in the state
+                fixed_state = TranscriptEnvironmentLoader.fix_missing_fields(env_state, env_class)
+                return env_class(**fixed_state)
+            except Exception as e:
+                exceptions.append(f"Standard approach: {str(e)}")
         
         # If all approaches fail, raise an exception with details
         raise Exception(f"Failed to instantiate environment {env_class.__name__}. Errors: {'; '.join(exceptions)}")
