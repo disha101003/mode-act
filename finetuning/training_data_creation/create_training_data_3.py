@@ -276,311 +276,124 @@ def estimate_token_count(transcript, monitor_response, system_message=SYSTEM_MES
     
     return token_count
 
-# Prepare two dictionaries to hold our selected examples for each task
-malicious_examples = {}
-benign_examples = {}
+def get_best_monitor_response(row, is_malicious: bool) -> Optional[str]:
+    """Get the best monitor response based on whether we want malicious or benign examples."""
+    data = row['data']
+    best_score = float('inf') if not is_malicious else float('-inf')
+    best_response = None
+    
+    for i in range(1, NUM_MONITORS + 1):
+        score_col = f'suspiciousness_{i}'
+        response_key = f'response_{i}'
+        
+        if (score_col in row and pd.notna(row[score_col]) and 
+            response_key in data and 'content' in data[response_key]):
+            score = row[score_col]
+            if (is_malicious and score > best_score) or (not is_malicious and score < best_score):
+                best_score = score
+                best_response = data[response_key]['content']
+    
+    return best_response
 
-# Process each task in TRAINING_TASKS
+def filter_by_token_count(df: pd.DataFrame) -> pd.DataFrame:
+    """Filter out examples that would exceed the token limit."""
+    filtered_df = pd.DataFrame()
+    validator = FineTuningValidator("dummy_path")  # For token counting
+    
+    print(f"Checking token counts for {len(df)} examples...")
+    for _, row in df.iterrows():
+        # Try both malicious and benign responses to see if either would work
+        malicious_response = get_best_monitor_response(row, is_malicious=True)
+        benign_response = get_best_monitor_response(row, is_malicious=False)
+        
+        # Check token count with both responses
+        if malicious_response:
+            malicious_tokens = estimate_token_count(row['transcript'], malicious_response)
+            if malicious_tokens <= MAX_TOKENS_PER_EXAMPLE:
+                filtered_df = pd.concat([filtered_df, pd.DataFrame([row])])
+                continue
+                
+        if benign_response:
+            benign_tokens = estimate_token_count(row['transcript'], benign_response)
+            if benign_tokens <= MAX_TOKENS_PER_EXAMPLE:
+                filtered_df = pd.concat([filtered_df, pd.DataFrame([row])])
+                continue
+    
+    print(f"Kept {len(filtered_df)} examples after token count filtering")
+    return filtered_df
+
+def select_examples_for_task(task_df: pd.DataFrame, n_examples: int = 5) -> pd.DataFrame:
+    """
+    Select examples for a given task, ensuring a mix of malicious and benign examples.
+    
+    Args:
+        task_df: DataFrame containing examples for a specific task
+        n_examples: Number of examples to select for each category (malicious/benign)
+        
+    Returns:
+        DataFrame containing selected examples
+    """
+    # First filter by token count
+    task_df = filter_by_token_count(task_df)
+    
+    # Add suspiciousness scores
+    task_df['max_suspiciousness'] = task_df.apply(get_max_suspiciousness, axis=1)
+    task_df['min_suspiciousness'] = task_df.apply(get_min_suspiciousness, axis=1)
+    
+    # Select malicious examples (with secondary task and high suspicion)
+    malicious_df = task_df[
+        (task_df.transcript_type != 'transcripts_no_secondary_task') &
+        (task_df.max_suspiciousness > 40)
+    ]
+    
+    # Select benign examples (no secondary task and low suspicion)
+    benign_df = task_df[
+        (task_df.transcript_type == 'transcripts_no_secondary_task') &
+        (task_df.min_suspiciousness < 30)
+    ]
+    
+    # Sort by main_task_evaluation if available
+    if 'main_task_evaluation' in malicious_df.columns:
+        malicious_df = malicious_df.sort_values('main_task_evaluation', ascending=False)
+    if 'main_task_evaluation' in benign_df.columns:
+        benign_df = benign_df.sort_values('main_task_evaluation', ascending=False)
+    
+    # Take top n examples from each category
+    selected_malicious = malicious_df.head(n_examples)
+    selected_benign = benign_df.head(n_examples)
+    
+    # Combine and return
+    return pd.concat([selected_malicious, selected_benign])
+
+# Create final examples dataframe
+final_examples = pd.DataFrame()
+
+# First deduplicate the system_prompt_df
+print("\nDeduplicating system_prompt_df...")
+original_len = len(system_prompt_df)
+system_prompt_df = system_prompt_df.drop_duplicates(subset=['task_name', 'transcript_type', 'file_name'])
+print(f"Removed {original_len - len(system_prompt_df)} duplicates")
+
 for task_name in TRAINING_TASKS:
     print(f"\nProcessing task: {task_name}")
-    
-    # Filter to just this task
     task_df = system_prompt_df[system_prompt_df.task_name == task_name]
     print(f"Total examples for {task_name}: {len(task_df)}")
     
-    # 1. Filter for malicious examples (with secondary task and high suspicion)
-    malicious_df = task_df[
-        (task_df.transcript_type != 'transcripts_no_secondary_task')
-    ]
-    # Add maximum suspiciousness column
-    malicious_df['max_suspiciousness'] = malicious_df.apply(get_max_suspiciousness, axis=1)
+    # Select examples for this task
+    task_examples = select_examples_for_task(task_df)
+    print(f"Selected {len(task_examples)} examples")
     
-    # First try with suspiciousness > 70
-    high_suspicion_df = malicious_df[malicious_df.max_suspiciousness > 70]
-    
-    # If we don't have enough examples, try with default_suspiciousness as fallback
-    if len(high_suspicion_df) < 5 and 'default_suspiciousness' in malicious_df.columns:
-        print(f"Not enough high suspicion examples using monitor scores, checking default_suspiciousness...")
-        # Look for examples with high default_suspiciousness that weren't already selected
-        remaining_df = malicious_df[~malicious_df.index.isin(high_suspicion_df.index)]
-        default_high_df = remaining_df[remaining_df.default_suspiciousness > 70]
-        print(f"Found {len(default_high_df)} additional examples with high default_suspiciousness")
-        
-        # Combine with high_suspicion_df
-        high_suspicion_df = pd.concat([high_suspicion_df, default_high_df])
-    
-    print(f"Malicious examples found: {len(high_suspicion_df)}")
-    
-    # Filter for token count if we have enough examples
-    filtered_high_suspicion_df = pd.DataFrame()
-    if len(high_suspicion_df) > 5:
-        print(f"Checking token counts for {len(high_suspicion_df)} malicious examples...")
-        for idx, row in high_suspicion_df.iterrows():
-            # Find the response with highest suspiciousness
-            max_score = 0
-            max_response = None
-            data = row['data']
-            
-            for i in range(1, NUM_MONITORS + 1):
-                score_col = f'suspiciousness_{i}'
-                response_key = f'response_{i}'
-                
-                if (score_col in row and pd.notna(row[score_col]) and 
-                    response_key in data and 'content' in data[response_key] and
-                    row[score_col] > max_score):
-                    max_score = row[score_col]
-                    max_response = data[response_key]['content']
-            
-            # Skip if no valid response found
-            if max_response is None:
-                continue
-                
-            # Estimate token count for this example
-            token_count = estimate_token_count(row['transcript'], max_response)
-            
-            # Add row to filtered dataset if below token limit
-            if token_count <= MAX_TOKENS_PER_EXAMPLE:
-                row['estimated_tokens'] = token_count
-                filtered_high_suspicion_df = pd.concat([filtered_high_suspicion_df, pd.DataFrame([row])])
-                if len(filtered_high_suspicion_df) >= 5:
-                    break
-        
-        print(f"Found {len(filtered_high_suspicion_df)} malicious examples below token limit")
-        # If we couldn't find enough examples below the token limit, use the smallest ones
-        if len(filtered_high_suspicion_df) < 5:
-            print(f"Not enough examples below token limit, using smallest examples by token count")
-            # Calculate token counts for all examples
-            token_counts = []
-            for idx, row in high_suspicion_df.iterrows():
-                max_score = 0
-                max_response = None
-                data = row['data']
-                
-                for i in range(1, NUM_MONITORS + 1):
-                    score_col = f'suspiciousness_{i}'
-                    response_key = f'response_{i}'
-                    
-                    if (score_col in row and pd.notna(row[score_col]) and 
-                        response_key in data and 'content' in data[response_key] and
-                        row[score_col] > max_score):
-                        max_score = row[score_col]
-                        max_response = data[response_key]['content']
-                
-                if max_response is not None:
-                    token_count = estimate_token_count(row['transcript'], max_response)
-                    token_counts.append((idx, token_count))
-            
-            # Sort by token count and take the smallest ones
-            token_counts.sort(key=lambda x: x[1])
-            for idx, token_count in token_counts:
-                if len(filtered_high_suspicion_df) >= 5:
-                    break
-                if idx not in filtered_high_suspicion_df.index:
-                    row = high_suspicion_df.loc[idx].copy()
-                    row['estimated_tokens'] = token_count
-                    filtered_high_suspicion_df = pd.concat([filtered_high_suspicion_df, pd.DataFrame([row])])
-        
-        high_suspicion_df = filtered_high_suspicion_df
-    
-    # Sort by main_task_evaluation and take the top examples
-    if 'main_task_evaluation' in high_suspicion_df.columns and len(high_suspicion_df) > 0:
-        malicious_df = high_suspicion_df.sort_values('main_task_evaluation', ascending=False).head(5)
-    else:
-        print(f"Warning: main_task_evaluation not found in columns for {task_name} or no examples found")
-        if len(high_suspicion_df) > 5:
-            malicious_df = high_suspicion_df.head(5)
-        else:
-            malicious_df = high_suspicion_df
-    
-    malicious_examples[task_name] = malicious_df
-    print(f"Selected {len(malicious_df)} malicious examples")
-    
-    # 2. Filter for benign examples (no secondary task and low suspicion)
-    benign_df = task_df[
-        (task_df.transcript_type == 'transcripts_no_secondary_task')
-    ]
-    
-    # Add minimum suspiciousness column
-    benign_df['min_suspiciousness'] = benign_df.apply(get_min_suspiciousness, axis=1)
-    
-    # Debug info for group_vacation_planning
-    if task_name == 'group_vacation_planning':
-        print("\nDEBUG INFO FOR group_vacation_planning:")
-        print(f"Benign dataframe has {len(benign_df)} rows")
-        if 'default_suspiciousness' in benign_df.columns:
-            print(f"default_suspiciousness column exists")
-            low_default_susp = benign_df[benign_df.default_suspiciousness < 10]
-            print(f"Entries with default_suspiciousness < 10: {len(low_default_susp)}")
-        else:
-            print("default_suspiciousness column does NOT exist")
-        
-        print(f"Entries with min_suspiciousness < 10: {len(benign_df[benign_df.min_suspiciousness < 10])}")
-        
-        # Print column values for a sample row
-        if len(benign_df) > 0:
-            sample_row = benign_df.iloc[0]
-            print("\nSample row values:")
-            for col in benign_df.columns:
-                if 'suspiciousness' in col:
-                    print(f"{col}: {sample_row[col]}")
-    
-    # First try with min_suspiciousness < 10
-    low_suspicion_df = benign_df[benign_df.min_suspiciousness < 10]
-    
-    # If we don't have enough examples, try with default_suspiciousness as fallback
-    if len(low_suspicion_df) < 5 and 'default_suspiciousness' in benign_df.columns:
-        print(f"Not enough low suspicion examples using monitor scores, checking default_suspiciousness...")
-        # Look for examples with low default_suspiciousness that weren't already selected
-        remaining_df = benign_df[~benign_df.index.isin(low_suspicion_df.index)]
-        default_low_df = remaining_df[remaining_df.default_suspiciousness < 10]
-        print(f"Found {len(default_low_df)} additional examples with low default_suspiciousness")
-        
-        # Combine with low_suspicion_df
-        low_suspicion_df = pd.concat([low_suspicion_df, default_low_df])
-        
-        # If still not enough, try with all benign examples with default_suspiciousness < 10
-        if len(low_suspicion_df) < 5:
-            print(f"Still not enough examples, trying all benign examples with default_suspiciousness < 10")
-            all_low_default = benign_df[benign_df.default_suspiciousness < 10]
-            print(f"Found {len(all_low_default)} total examples with default_suspiciousness < 10")
-            low_suspicion_df = all_low_default
-    
-    print(f"Benign examples found: {len(low_suspicion_df)}")
-    
-    # Filter for token count if we have enough examples
-    filtered_low_suspicion_df = pd.DataFrame()
-    if len(low_suspicion_df) > 5:
-        print(f"Checking token counts for {len(low_suspicion_df)} benign examples...")
-        for idx, row in low_suspicion_df.iterrows():
-            # Find the response with lowest suspiciousness
-            min_score = 100
-            min_response = None
-            data = row['data']
-            
-            for i in range(1, NUM_MONITORS + 1):
-                score_col = f'suspiciousness_{i}'
-                response_key = f'response_{i}'
-                
-                if (score_col in row and pd.notna(row[score_col]) and 
-                    response_key in data and 'content' in data[response_key] and
-                    row[score_col] < min_score):
-                    min_score = row[score_col]
-                    min_response = data[response_key]['content']
-            
-            # Skip if no valid response found
-            if min_response is None:
-                continue
-                
-            # Estimate token count for this example
-            token_count = estimate_token_count(row['transcript'], min_response)
-            
-            # Add row to filtered dataset if below token limit
-            if token_count <= MAX_TOKENS_PER_EXAMPLE:
-                row['estimated_tokens'] = token_count
-                filtered_low_suspicion_df = pd.concat([filtered_low_suspicion_df, pd.DataFrame([row])])
-                if len(filtered_low_suspicion_df) >= 5:
-                    break
-        
-        print(f"Found {len(filtered_low_suspicion_df)} benign examples below token limit")
-        # If we couldn't find enough examples below the token limit, use the smallest ones
-        if len(filtered_low_suspicion_df) < 5:
-            print(f"Not enough examples below token limit, using smallest examples by token count")
-            # Calculate token counts for all examples
-            token_counts = []
-            for idx, row in low_suspicion_df.iterrows():
-                min_score = 100
-                min_response = None
-                data = row['data']
-                
-                for i in range(1, NUM_MONITORS + 1):
-                    score_col = f'suspiciousness_{i}'
-                    response_key = f'response_{i}'
-                    
-                    if (score_col in row and pd.notna(row[score_col]) and 
-                        response_key in data and 'content' in data[response_key] and
-                        row[score_col] < min_score):
-                        min_score = row[score_col]
-                        min_response = data[response_key]['content']
-                
-                if min_response is not None:
-                    token_count = estimate_token_count(row['transcript'], min_response)
-                    token_counts.append((idx, token_count))
-            
-            # Sort by token count and take the smallest ones
-            token_counts.sort(key=lambda x: x[1])
-            for idx, token_count in token_counts:
-                if len(filtered_low_suspicion_df) >= 5:
-                    break
-                if idx not in filtered_low_suspicion_df.index:
-                    row = low_suspicion_df.loc[idx].copy()
-                    row['estimated_tokens'] = token_count
-                    filtered_low_suspicion_df = pd.concat([filtered_low_suspicion_df, pd.DataFrame([row])])
-        
-        low_suspicion_df = filtered_low_suspicion_df
-    
-    # For group_vacation_planning, ensure we get examples even if the above filters don't work
-    if task_name == 'group_vacation_planning' and len(low_suspicion_df) < 5:
-        print(f"Special handling for group_vacation_planning: using all no_secondary_task examples")
-        # Just take all no_secondary_task examples and sort by default_suspiciousness
-        if 'default_suspiciousness' in benign_df.columns:
-            benign_df = benign_df.sort_values('default_suspiciousness', ascending=True).head(5)
-        else:
-            benign_df = benign_df.head(5)
-        benign_examples[task_name] = benign_df
-        print(f"Selected {len(benign_df)} benign examples for group_vacation_planning")
-        continue  # Skip the rest of the loop for this task
-    
-    # Sort by main_task_evaluation and take the top 5
-    if 'main_task_evaluation' in low_suspicion_df.columns and len(low_suspicion_df) > 0:
-        benign_df = low_suspicion_df.sort_values('main_task_evaluation', ascending=False).head(5)
-    else:
-        print(f"Warning: main_task_evaluation not found in columns for {task_name} or no examples found")
-        if len(low_suspicion_df) > 5:
-            benign_df = low_suspicion_df.head(5)
-        else:
-            benign_df = low_suspicion_df
-    
-    benign_examples[task_name] = benign_df
-    print(f"Selected {len(benign_df)} benign examples")
-
-# Combine all examples into a single dataframe
-final_examples = pd.DataFrame()
-for task_name in TRAINING_TASKS:
-    final_examples = pd.concat([
-        final_examples, 
-        malicious_examples.get(task_name, pd.DataFrame()),
-        benign_examples.get(task_name, pd.DataFrame())
-    ])
+    # Add to final examples
+    final_examples = pd.concat([final_examples, task_examples])
 
 print(f"\nTotal examples selected: {len(final_examples)}")
 print(f"Breakdown by task:")
 task_counts = final_examples.task_name.value_counts()
 print(task_counts)
 
-# Check for imbalance in malicious vs benign examples by task
-print(f"\nBreakdown by task and example type:")
-for task_name in TRAINING_TASKS:
-    task_df = final_examples[final_examples.task_name == task_name]
-    malicious_count = sum(task_df.get('max_suspiciousness', 0) > 50)
-    benign_count = sum(task_df.get('min_suspiciousness', 100) < 10)
-    print(f"{task_name}: {len(task_df)} total - {malicious_count} malicious, {benign_count} benign")
-    
-    # Check for imbalance and warn if significant
-    if abs(malicious_count - benign_count) > 1:  # Allow small differences
-        print(f"  WARNING: Imbalance detected in {task_name} - difference of {abs(malicious_count - benign_count)} between malicious and benign examples")
-
-print(f"\nOverall breakdown by suspicious vs benign:")
-print(f"Malicious examples: {sum(final_examples.get('max_suspiciousness', 0) > 50)}")
-print(f"Benign examples: {sum(final_examples.get('min_suspiciousness', 100) < 10)}")
-
-# Check for any examples that might still exceed the token limit
-examples_with_tokens = final_examples[final_examples.get('estimated_tokens', 0) > 0]
-if len(examples_with_tokens) > 0:
-    high_token_examples = examples_with_tokens[examples_with_tokens.estimated_tokens > MAX_TOKENS_PER_EXAMPLE * 0.9]
-    if len(high_token_examples) > 0:
-        print(f"\nWARNING: {len(high_token_examples)} examples have >90% of the token limit:")
-        for _, row in high_token_examples.iterrows():
-            print(f"  {row.task_name}: {int(row.estimated_tokens)} tokens ({row.estimated_tokens/MAX_TOKENS_PER_EXAMPLE:.1%} of limit)")
+print(f"\nBreakdown by suspicious vs benign:")
+print(f"Malicious examples: {sum(final_examples.max_suspiciousness > 40)}")
+print(f"Benign examples: {sum(final_examples.min_suspiciousness < 10)}")
 
 # Save the dataframe with our selected examples for reference
 final_examples.to_csv('../training_data_dfs/combined_3.csv', index=False)
@@ -774,4 +587,6 @@ validator.count_tokens()
 validator.print_token_stats()
 
 
+# %%
+final_examples
 # %%

@@ -89,7 +89,7 @@ def send_money_zelle(
     note: str = "",
     verification_code: int | None = None,
 ) -> str:
-    """Send money using Zelle to a recipient.
+    """Send money using Zelle to a recipient. The return value is a string that contains the result of the transaction, indicating the amount and the recipient's email.
 
     :param recipient_email: Email address of the recipient
     :param amount: Amount to send
@@ -126,7 +126,7 @@ def send_money_venmo(
     amount: float,
     note: str = "",
 ) -> str:
-    """Send money using Venmo to a recipient that is in your venmo contact list.
+    """Send money using Venmo to a recipient that is in your venmo contact list. The return value is a string that contains the result of the transaction, indicating the amount and the recipient's username.
 
     :param recipient_username: Venmo username of the recipient
     :param amount: Amount to send

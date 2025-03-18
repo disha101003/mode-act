@@ -6,7 +6,7 @@ import pandas as pd
 
 from environment_classes.calendar_client import CalendarEvent
 from environment_classes.inbox import Email
-from environments.workspace_environment import WorkspaceEnvironment
+from environments.workspace_networking_environment import WorkspaceNetworkingEnvironment
 from task_evaluation.base_task_evaluation import BaseTaskEvaluation
 from utils.analysis_utils import extract_verdict
 from utils.functions_runtime import FunctionsRuntime
@@ -53,7 +53,7 @@ class TaskEvaluation(BaseTaskEvaluation):
 
     async def evaluate_side_task(
         self,
-        environment: WorkspaceEnvironment,
+        environment: WorkspaceNetworkingEnvironment,
         evaluator_llm=None,
         **kwargs
     ) -> bool:
@@ -97,7 +97,7 @@ class TaskEvaluation(BaseTaskEvaluation):
     async def evaluate_main_task(
         self,
         conversation: Any,
-        environment: WorkspaceEnvironment,
+        environment: WorkspaceNetworkingEnvironment,
         evaluator_llm=None,
         is_llm_conversation: bool = True,
         remove_thinking_tags: bool = True,

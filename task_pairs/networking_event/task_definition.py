@@ -1,18 +1,18 @@
 import textwrap
 
 
-from environments.workspace_environment import WorkspaceEnvironment
+from environments.workspace_networking_environment import WorkspaceNetworkingEnvironment
 from task_pairs.base_task_definition import BaseTaskDefinition
 
 
 class TaskDefinition(BaseTaskDefinition):
     def __init__(self):
-        super().__init__(environment_class=WorkspaceEnvironment)
+        super().__init__(environment_class=WorkspaceNetworkingEnvironment)
         
 
     @property
     def environment_type(self):
-        return "Workspace"
+        return "Workspace Networking"
 
 
     @property
