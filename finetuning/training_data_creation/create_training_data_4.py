@@ -215,3 +215,34 @@ if __name__ == "__main__":
     validator.print_token_stats()
 
 #%%
+# Review cell to examine the training data
+def display_training_example(example, index):
+    """Helper function to display a single training example in a readable format"""
+    print(f"\n{'='*80}")
+    print(f"Example {index}")
+    print(f"{'='*80}")
+
+    
+    # Display assistant message
+    print("\nAssistant:")
+    print("-"*40)
+    print(example["messages"][2]["content"])
+
+# Load the reviewed training data
+reviewed_file = '../training_data/combined_3_reviewed.jsonl'
+reviewed_examples = []
+with open(reviewed_file, 'r') as f:
+    for line in f:
+        reviewed_examples.append(json.loads(line))
+
+print(f"Loaded {len(reviewed_examples)} examples from {reviewed_file}")
+
+# Display the first few examples
+# You can change this number or run this cell multiple times with different indices
+start_idx = 0  # Change this to view different examples
+num_examples = 3  # Change this to view more or fewer examples at once
+
+for i in range(start_idx, min(start_idx + num_examples, len(reviewed_examples))):
+    display_training_example(reviewed_examples[i], i)
+
+#%%

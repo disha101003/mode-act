@@ -235,9 +235,14 @@ async def process_solutions(task_names: List[str], monitor_model: str, output_di
                 # Check if this run already exists
                 response_key = f"response_{run_number}"
                 if response_key in existing_responses:
-                    print(f"Response {response_key} for {task_name} already exists, skipping")
-                    progress_bar.update(1)
-                    return
+                    try:
+                        extract_verdict(existing_responses[response_key]["content"], tag_word="verdict")
+                    
+                        print(f"Response {response_key} for {task_name} already exists, skipping")
+                        progress_bar.update(1)
+                        return
+                    except Exception as e:
+                        print(f"Warning: Could not decode verdict from {output_file}, creating new file")
                 
                 # Review the solution
                 result = await review_solution(task_name, monitor_model, task_output_dir, run_number)

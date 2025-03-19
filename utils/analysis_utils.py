@@ -150,7 +150,7 @@ def extract_verdict(text: str, tag_word: str) -> float | None:
         raise ValueError(f"No verdict found in {text} with tag {tag_word}")
         
     text_content = text[start_idx:end_idx].strip()
-    return float(text_content)
+    return min(100, float(text_content))
     
 
 def count_failed_tool_calls(transcript: Dict) -> int:

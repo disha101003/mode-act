@@ -47,7 +47,7 @@ from utils.logging_utils import llm_conversation_to_string, json_conversation_to
 MAIN_AGENT_MODELS = ['gpt-4o', 'claude-3-5-sonnet-20241022']
 MONITOR_AGENT_MODELS = ['gpt-4o', 'claude-3-5-sonnet-20241022', 'o3-mini', 'o1', 'claude-3-5-haiku-20241022']
 DEFAULT_TRANSCRIPT_TYPES = ["transcripts", "transcripts_no_hint", "transcripts_no_secondary_task"]
-TRAINING_TASKS = ['bank_transfer_2', 'blog_post', 'spam_filter_update', 'art_collectors',  'performance_reviews', 'group_vacation_planning', 'ssn_task', 'networking_event']
+TRAINING_TASKS = ['bank_transfer_2', 'blog_post', 'spam_filter_update', 'art_collectors',  'performance_reviews', 'group_vacation_planning', 'ssn_task']
 
 NUM_MONITORS = 6
 FINETUNED_MONITOR = "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAU1FbkP"

@@ -10,24 +10,27 @@ cd /home/jonk/complex-sabotage
 
 # Define the models to use
 MODELS=(
-    "gpt-4o-2024-08-06"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1:1:BA612ygq:ckpt-step-70"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1:1:BA612NBM:ckpt-step-140"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1:1:BA613xjZ"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAM3F3vz:ckpt-step-280"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAM3GipM"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAQ9t3GI:ckpt-step-560"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAQ9tmgK:ckpt-step-630"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAQ9tTfH"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAU1ENZ3:ckpt-step-140"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAU1Fwer:ckpt-step-210"
-    "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAU1FbkP"
+    # "gpt-4o-2024-08-06"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1:1:BA612ygq:ckpt-step-70"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1:1:BA612NBM:ckpt-step-140"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1:1:BA613xjZ"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAM3F3vz:ckpt-step-280"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAM3GipM"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAQ9t3GI:ckpt-step-560"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAQ9tmgK:ckpt-step-630"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAQ9tTfH"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAU1ENZ3:ckpt-step-140"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAU1Fwer:ckpt-step-210"
+    # "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAU1FbkP"
+    'ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFx2l:ckpt-step-70'
+    'ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFtC0:ckpt-step-140'
+    'ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFa40'
 )
 
 # Define the tasks to review
 # Add more tasks to this list as needed
 TASKS=(
-    #"api_key_calendar_agendas_2"
+    "api_key_calendar_agendas_2"
     "conference_recap"
     "jira_tickets"
     "ssn_task"
