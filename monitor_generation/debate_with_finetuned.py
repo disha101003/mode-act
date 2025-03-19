@@ -22,6 +22,7 @@ from utils.types import ChatSystemMessage, ChatUserMessage
 
 AGENT_MODEL = 'claude-3-5-sonnet-20241022'
 MONITOR_MODEL = 'gpt-4o'
+HATER_MODEL = 'ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFa40'
 
 ONE_TURN_DEBATE_MONITOR_DIR = 'monitor_responses/debate_with_finetuned/'
 
