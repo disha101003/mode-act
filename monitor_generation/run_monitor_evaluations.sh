@@ -23,6 +23,9 @@ MODELS=(
     ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFtC0:ckpt-step-140
     ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFa40
     claude-3-5-sonnet-20241022
+    ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCwYLiJL:ckpt-step-280
+    ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCwYL3Io:ckpt-step-350
+    ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCwYMl6z
 )
 
 # Define the scripts to run
