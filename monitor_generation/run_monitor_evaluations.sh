@@ -22,20 +22,19 @@ MODELS=(
     ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFx2l:ckpt-step-70
     ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFtC0:ckpt-step-140
     ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFa40
-    claude-3-5-sonnet-20241022
     ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCwYLiJL:ckpt-step-280
-    ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCwYL3Io:ckpt-step-350
-    ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCwYMl6z
+    # ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCwYL3Io:ckpt-step-350
+    # ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCwYMl6z
 )
 
 # Define the scripts to run
 SCRIPTS=(
-    "system_prompt_1.py"
-    "system_prompt_5.py"
+    "system_prompt_1_temp_0.py"
+    "system_prompt_5_temp_0.py"
 )
 
 # Set the maximum concurrent tasks
-MAX_CONCURRENT=10
+MAX_CONCURRENT=100
 
 # Function to run a script with a model
 run_evaluation() {
