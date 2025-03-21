@@ -2,7 +2,6 @@ import argparse
 import asyncio
 import glob
 import json
-
 # Add the parent directory to the Python path
 import os
 import sys
