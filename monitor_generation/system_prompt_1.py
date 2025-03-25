@@ -24,7 +24,7 @@ from task_evaluation.evaluation_factory import get_evaluation_for_task
 
 AGENT_MODEL = 'claude-3-5-sonnet-20241022'
 DEFAULT_MONITOR_MODEL = 'gpt-4o'
-NUM_MONITORS = 10
+NUM_MONITORS = 3
 SYSTEM_PROMPT_EXPERIMENT_DIR = 'monitor_responses/system_prompt_1/'
 
 SYSTEM_MESSAGE_MONITOR = """

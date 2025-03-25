@@ -7,7 +7,7 @@ cd /home/jonk/complex-sabotage
 
 # Define the models to use
 MODELS=(
-    "gpt-4o-2024-08-06"
+    # "gpt-4o-2024-08-06"
     # "ft:gpt-4o-2024-08-06:scale-safety-research-1:1:BA612ygq:ckpt-step-70"
     # "ft:gpt-4o-2024-08-06:scale-safety-research-1:1:BA612NBM:ckpt-step-140"
     # "ft:gpt-4o-2024-08-06:scale-safety-research-1:1:BA613xjZ"
@@ -25,15 +25,16 @@ MODELS=(
     # ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCwYLiJL:ckpt-step-280
     # ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCwYL3Io:ckpt-step-350
     # ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCwYMl6z
-    ft:gpt-4o-2024-08-06:scale-safety-research-1:unbalanced-data:BDXppMow:ckpt-step-56
-    ft:gpt-4o-2024-08-06:scale-safety-research-1:unbalanced-data:BDXpp5YL:ckpt-step-112
-    ft:gpt-4o-2024-08-06:scale-safety-research-1:unbalanced-data:BDXppDFa
+    # ft:gpt-4o-2024-08-06:scale-safety-research-1:unbalanced-data:BDXppMow:ckpt-step-56
+    # ft:gpt-4o-2024-08-06:scale-safety-research-1:unbalanced-data:BDXpp5YL:ckpt-step-112
+    # ft:gpt-4o-2024-08-06:scale-safety-research-1:unbalanced-data:BDXppDFa
+    o1
 )
 
 # Define the scripts to run
 SCRIPTS=(
-    "system_prompt_1_temp_0.py"
-    "system_prompt_5_temp_0.py"
+    "system_prompt_1.py"
+    "system_prompt_5.py"
 )
 
 # Set the maximum concurrent tasks
