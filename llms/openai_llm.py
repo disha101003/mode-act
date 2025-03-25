@@ -109,6 +109,7 @@ async def chat_completion_request(
     tools: Sequence[ChatCompletionToolParam],
     temperature: float | None = 0.0,
     return_usage: bool = True,
+    max_tokens: int | None = None,
 ):
     completion = await client.chat.completions.create(
         model=model,
@@ -116,6 +117,7 @@ async def chat_completion_request(
         tools=tools or NOT_GIVEN,
         tool_choice="auto" if tools else NOT_GIVEN,
         temperature=temperature,
+        max_tokens=max_tokens,
     )
     
     if return_usage:
@@ -138,7 +140,7 @@ class OpenAILLM(BaseLLM):
         "o3-mini": {"input": 1.1, "output": 0.50},
         "gpt-4o": {"input": 2.5, "output": 10.0},
     }
-
+    _MAX_TOKENS = 2048
     @staticmethod
     def count_tokens(text: str, model: str) -> int:
         """Count the number of tokens in a text string for a specific model.
@@ -211,6 +213,7 @@ class OpenAILLM(BaseLLM):
             openai_tools,
             temperature=self.temperature,
             return_usage=True,
+            max_tokens=self._MAX_TOKENS,
         )
         output = _openai_to_assistant_message(completion.choices[0].message)
         

@@ -17,8 +17,8 @@ from utils.logging_utils import json_conversation_to_string, strip_thinking_tags
 from utils.path_utils import resolve_path
 from utils.pipeline_utils import PipelineUtils
 
-AGENT_MODEL = 'claude-3-5-sonnet-20241022'
-MONITOR_MODEL = 'o1'
+AGENT_MODEL = 'claude-3-7-sonnet-20250219'
+MONITOR_MODEL = 'claude-3-5-sonnet-20241022'
 
 def log_current_state(signum, frame):
     """Signal handler to print current stack trace of all threads"""

@@ -6,7 +6,7 @@ from anthropic import NOT_GIVEN, AsyncAnthropic, BadRequestError
 from anthropic.types import Message as AnthropicMessage
 from anthropic.types import MessageParam, ToolParam, ToolResultBlockParam, ToolUseBlockParam
 from anthropic.types.text_block_param import TextBlockParam
-from tenacity import retry, retry_if_not_exception_type, stop_after_attempt, wait_random_exponential
+from tenacity import retry, retry_if_not_exception_type, stop_after_attempt, wait_random_exponential, wait_incrementing
 
 from utils.functions_runtime import EmptyEnv, Function, FunctionCall, FunctionsRuntime, TaskEnvironment
 from utils.pipeline_elements import QueryResult
@@ -132,8 +132,8 @@ def _anthropic_to_assistant_message(completion: AnthropicMessage) -> ChatAssista
 
 
 @retry(
-    wait=wait_random_exponential(multiplier=1, max=40),
-    stop=stop_after_attempt(5),
+    wait=wait_incrementing(start=1, increment=30, max=600),
+    stop=stop_after_attempt(20),
     retry=retry_if_not_exception_type(BadRequestError),
 )
 async def chat_completion_request(

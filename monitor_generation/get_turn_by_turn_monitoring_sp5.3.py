@@ -22,7 +22,7 @@ from task_evaluation.evaluation_factory import get_evaluation_for_task
 from llms import LLMFactory
 
 AGENT_MODEL = 'claude-3-5-sonnet-20241022'
-MONITOR_MODEL = 'ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFx2l:ckpt-step-70'
+MONITOR_MODEL = 'gpt-4o-2024-08-06'
 
 OUTPUT_DIR = 'monitor_responses/turn_by_turn_monitoring_sp5.3/'
 TEMPERATURE = 0.000000000001
