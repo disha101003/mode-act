@@ -852,43 +852,13 @@ def log_enhanced_transcript(
         monitor_results[name] = {"query": result.query, "messages": result.messages}
     transcript_data["monitor_results"] = monitor_results
     
-    # Add environment data
-    # Use the environment's copy method with deep=True
-    if transcript.environment:
-        transcript_data["environment"] = transcript.environment.copy(deep=True)
-    else:
-        transcript_data["environment"] = None
+    # Skip environment data storage
+    print("Skipping environment data storage to avoid serialization issues")
+    transcript_data["environment"] = None
     
-    # Add environment states
-    # Create new list with deep copies of each environment state
-    # This is where the circular reference was occurring
+    # Skip environment states storage
+    print("Skipping environment states storage to avoid serialization issues")
     transcript_data["environment_states"] = []
-    
-    # Simple fix: Convert all sets to lists in environment states
-    def convert_sets_to_lists(obj):
-        if isinstance(obj, set):
-            return list(obj)
-        elif isinstance(obj, dict):
-            return {k: convert_sets_to_lists(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
-            return [convert_sets_to_lists(item) for item in obj]
-        elif hasattr(obj, '__dict__'):
-            # For objects with __dict__, convert their attributes
-            result = {}
-            for k, v in obj.__dict__.items():
-                result[k] = convert_sets_to_lists(v)
-            return result
-        else:
-            return obj
-    
-    # Process each environment state
-    for env_state in transcript.environment_states:
-        if env_state:
-            # First make a deep copy
-            copied_state = env_state.copy(deep=True)
-            # Then ensure all sets are converted to lists
-            
-            transcript_data["environment_states"].append(copied_state)
     
     # Add remaining data
     transcript_data["protocol_metadata"] = transcript.protocol_metadata

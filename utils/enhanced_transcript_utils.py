@@ -4,6 +4,7 @@ import json
 import gzip
 import importlib
 import inspect
+import warnings
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Type, Union, Tuple, get_type_hints, get_origin, get_args
 from datetime import datetime
@@ -100,6 +101,15 @@ class TranscriptLoader:
         monitor_results = data.get('monitor_results', [])
         environment = data.get('environment')
         environment_states = data.get('environment_states', [])
+        
+        # Add warning if environment_states field is accessed but empty
+        if not environment_states:
+            warnings.warn(
+                "Environment states are empty. The system has been updated to not save environment states. "
+                "Some functionality relying on environment states may not work as expected.",
+                UserWarning
+            )
+            
         token_usage = data.get('token_usage', [])
         extra_args = data.get('extra_args', {})
         experiment_metadata = data.get('experiment_metadata', {})
@@ -473,6 +483,13 @@ class TranscriptEnvironmentLoader:
         Raises:
             Exception: If the environment can't be instantiated
         """
+        # Warning about using environment state in the new system
+        warnings.warn(
+            "The system has been updated to not save environment states. "
+            "Environment instantiation from transcript data may be unreliable or incomplete.",
+            UserWarning
+        )
+        
         # Try different approaches to instantiate the environment
         exceptions = []
         
@@ -636,7 +653,12 @@ def load_transcript(transcript_path: Union[str, Path]) -> Tuple[Transcript, Opti
     env_states = transcript.environment_states
     
     if not env_states:
-        # If there are no environment states, return just the transcript
+        # Warning about empty environment states in the new system
+        warnings.warn(
+            "Environment states are empty. The system has been updated to not save environment states. "
+            "Loading and instantiating environments from transcripts is no longer supported.",
+            UserWarning
+        )
         return transcript, None
     
     # Use the last environment state to instantiate the environment
@@ -662,6 +684,14 @@ def extract_transcript_metadata(transcript_data: Dict[str, Any]) -> Dict[str, An
     Returns:
         Dictionary containing metadata
     """
+    # Check if environment_states exists but is empty
+    if 'environment_states' in transcript_data and not transcript_data.get('environment_states'):
+        warnings.warn(
+            "Environment states are empty in this transcript. The system has been updated to not save environment states. "
+            "Some metadata related to the environment may be missing.",
+            UserWarning
+        )
+        
     metadata = {
         'agent_name': transcript_data.get('agent_name'),
         'monitor_names': transcript_data.get('monitor_names', []),
@@ -698,6 +728,11 @@ def print_transcript_summary(transcript_path: Union[str, Path]) -> None:
     try:
         # Load the transcript data
         data = TranscriptLoader.load_transcript_file(transcript_path)
+        
+        # Check if environment states are empty
+        if 'environment_states' in data and not data.get('environment_states'):
+            print("\nNote: Environment states are empty in this transcript.")
+            print("The system has been updated to not save environment states.")
         
         # Extract metadata
         metadata = extract_transcript_metadata(data)

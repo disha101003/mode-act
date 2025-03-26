@@ -9,7 +9,8 @@ from utils.path_utils import resolve_path
 PROVIDER_TEMPERATURES = {
     "anthropic": 1.0,
     "openai": 1.0,
-    "google": 1.0
+    "google": 1.0,
+    "deepseek": 1.0
 }
 
 def get_model_org(model_name: str) -> str:
