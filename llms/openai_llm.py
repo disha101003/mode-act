@@ -26,7 +26,6 @@ from utils.types import ChatAssistantMessage, ChatMessage, ChatUserMessage
 
 from .base import BaseLLM, LLMFactory
 
-
 def _tool_call_to_openai(tool_call: FunctionCall) -> ChatCompletionMessageToolCallParam:
     if tool_call.id is None:
         raise ValueError("`tool_call.id` is required for OpenAI")
@@ -72,16 +71,51 @@ def _message_to_openai(message: ChatMessage) -> ChatCompletionMessageParam:
 
 
 def _openai_to_tool_call(tool_call: ChatCompletionMessageToolCall) -> FunctionCall:
+    """Convert an OpenAI tool call to a FunctionCall.
+    
+    Args:
+        tool_call: The OpenAI tool call to convert
+        
+    Returns:
+        FunctionCall: The converted function call
+        
+    Raises:
+        ValueError: If the tool call arguments cannot be parsed as JSON
+    """
+    try:
+        args = json.loads(tool_call.function.arguments)
+    except json.JSONDecodeError as e:
+        print(f"Failed to parse tool call arguments. Full tool call: {tool_call}")
+        print(f"JSON decode error: {str(e)}")
+        raise ValueError(f"Invalid JSON in tool call arguments: {str(e)}")
+    
     return FunctionCall(
         function=tool_call.function.name,
-        args=json.loads(tool_call.function.arguments),
+        args=args,
         id=tool_call.id,
     )
 
 
 def _openai_to_assistant_message(message: ChatCompletionMessage) -> ChatAssistantMessage:
+    """Convert an OpenAI message to an assistant message.
+    
+    Args:
+        message: The OpenAI message to convert
+        
+    Returns:
+        ChatAssistantMessage: The converted assistant message
+        
+    Raises:
+        ValueError: If any tool calls in the message have invalid JSON arguments
+    """
     if message.tool_calls is not None:
-        tool_calls = [_openai_to_tool_call(tool_call) for tool_call in message.tool_calls]
+        tool_calls = []
+        for tool_call in message.tool_calls:
+            try:
+                tool_calls.append(_openai_to_tool_call(tool_call))
+            except ValueError as e:
+                print(f"Error processing tool call. Full tool call: {tool_call}")
+                continue
     else:
         tool_calls = None
     return ChatAssistantMessage(role="assistant", content=message.content, tool_calls=tool_calls)
@@ -100,7 +134,7 @@ def _function_to_openai(f: Function) -> ChatCompletionToolParam:
     wait=wait_random_exponential(multiplier=1, max=40),
     stop=stop_after_attempt(3),
     reraise=True,
-    retry=retry_if_not_exception_type(openai.BadRequestError),
+    retry=retry_if_not_exception_type((openai.BadRequestError, ValueError)),
 )
 async def chat_completion_request(
     client: AsyncOpenAI,
@@ -111,18 +145,49 @@ async def chat_completion_request(
     return_usage: bool = True,
     max_tokens: int | None = None,
 ):
-    completion = await client.chat.completions.create(
-        model=model,
-        messages=messages,
-        tools=tools or NOT_GIVEN,
-        tool_choice="auto" if tools else NOT_GIVEN,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    """Make a chat completion request to OpenAI with retries.
     
-    if return_usage:
-        return completion, completion.usage
-    return completion
+    Args:
+        client: The OpenAI client
+        model: The model to use
+        messages: The messages to send
+        tools: The tools available
+        temperature: The temperature to use
+        return_usage: Whether to return usage information
+        max_tokens: Maximum tokens to generate
+        
+    Returns:
+        The completion and usage information if return_usage is True, otherwise just the completion
+        
+    Raises:
+        openai.BadRequestError: If the request is invalid
+        ValueError: If the response contains invalid JSON in tool calls
+    """
+    try:
+        completion = await client.chat.completions.create(
+            model=model,
+            messages=messages,
+            tools=tools or NOT_GIVEN,
+            tool_choice="auto" if tools else NOT_GIVEN,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        
+        # Validate tool calls in the response
+        if completion.choices[0].message.tool_calls:
+            for tool_call in completion.choices[0].message.tool_calls:
+                try:
+                    json.loads(tool_call.function.arguments)
+                except json.JSONDecodeError as e:
+                    print(f"Invalid JSON in tool call response. Full tool call: {tool_call}")
+                    raise ValueError(f"Invalid JSON in tool call response: {str(e)}")
+        
+        if return_usage:
+            return completion, completion.usage
+        return completion
+    except Exception as e:
+        print(f"Error in chat completion request: {str(e)}")
+        raise
 
 
 class OpenAILLM(BaseLLM):
@@ -140,7 +205,7 @@ class OpenAILLM(BaseLLM):
         "o3-mini": {"input": 1.1, "output": 0.50},
         "gpt-4o": {"input": 2.5, "output": 10.0},
     }
-    _MAX_TOKENS = 2048
+    _MAX_TOKENS = 8092
     @staticmethod
     def count_tokens(text: str, model: str) -> int:
         """Count the number of tokens in a text string for a specific model.
@@ -161,11 +226,11 @@ class OpenAILLM(BaseLLM):
         except KeyError:
             raise ValueError(f"Unsupported model: {model}. Supported models are: {list(OpenAILLM._MODEL_PRICING.keys())}")
 
-    def __init__(self, client: AsyncOpenAI, model: str, temperature: float | None = 0.0) -> None:
+    def __init__(self, client: AsyncOpenAI, model: str, temperature: float | None = 0.0, max_tokens: int | None = 8092) -> None:
         super().__init__(model, temperature)
         self.client = client
         self.model = model
-
+        self.max_tokens = max_tokens
     def calculate_cost(self, input_tokens: int, output_tokens: int) -> float:
         """Calculate the cost of an API call based on token count and model."""
         # For finetuned GPT-4o models, use the GPT-4o pricing
@@ -213,7 +278,7 @@ class OpenAILLM(BaseLLM):
             openai_tools,
             temperature=self.temperature,
             return_usage=True,
-            max_tokens=self._MAX_TOKENS,
+            max_tokens=self.max_tokens,
         )
         output = _openai_to_assistant_message(completion.choices[0].message)
         

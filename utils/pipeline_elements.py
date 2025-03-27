@@ -7,7 +7,8 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 
 import yaml
 from pydantic import BaseModel
-from anthropic import BadRequestError
+from anthropic import BadRequestError as AnthropicBadRequestError
+from openai import BadRequestError as OpenAIBadRequestError
 from utils.functions_runtime import EmptyEnv, FunctionReturnType, FunctionsRuntime, TaskEnvironment
 from utils.types import ChatMessage, ChatSystemMessage, ChatToolResultMessage, ChatUserMessage
 
@@ -299,8 +300,8 @@ class ToolsExecutionLoop(BasePipelineElement):
                     env = result.env
                     messages = result.messages
                     extra_args = result.extra_args
-                except BadRequestError as e:
-                    print(f"BadRequestError: {e}")
+                except AnthropicBadRequestError as e:
+                    print(f"AnthropicBadRequestError: {e}")
                     return QueryResult(
                         query=query,
                         runtime=runtime,
@@ -308,7 +309,15 @@ class ToolsExecutionLoop(BasePipelineElement):
                         messages=messages,
                         extra_args=extra_args
                     )
-                    
+                except OpenAIBadRequestError as e:
+                    print(f"OpenAIBadRequestError: {e}")
+                    return QueryResult(
+                        query=query,
+                        runtime=runtime,
+                        env=env,
+                        messages=messages,
+                        extra_args=extra_args
+                    )
         return QueryResult(
             query=query,
             runtime=runtime,

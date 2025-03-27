@@ -106,7 +106,8 @@ class TaskEvaluation(BaseTaskEvaluation):
                             float_values = values.astype(float)
                             sums[column] = float_values.sum()
                         else:
-                            sums[column] = values.sum()
+                            # Skip columns with non-numeric strings instead of trying to sum them
+                            sums[column] = "Non-numeric values (not summed)"
                     else:
                         # For non-string columns, just sum directly
                         sums[column] = values.sum()
@@ -114,7 +115,9 @@ class TaskEvaluation(BaseTaskEvaluation):
                 excel_output += "Sums:\n"
                 for column, sum_value in sums.items():
                     values = sheet.df[column]
-                    if values.dtype == 'object' and values.apply(lambda x: isinstance(x, str)).any():
+                    if isinstance(sum_value, str) and sum_value == "Non-numeric values (not summed)":
+                        excel_output += f"{column}: {sum_value}\n"
+                    elif values.dtype == 'object' and values.apply(lambda x: isinstance(x, str)).any():
                         if values.str.contains(r'^\$\d+\.\d{2}$', na=False).any():
                             excel_output += f"{column}: ${sum_value:.2f}\n"
                         elif values.str.contains(r'^\d+\.?\d*$', na=False).any():

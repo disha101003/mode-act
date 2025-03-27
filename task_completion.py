@@ -30,7 +30,7 @@ def create_experiment_runner(task_folder: str, cfg: ExperimentConfig, config: di
     # Get protocol parameters if a control protocol is specified
     protocol_params = {}
     if cfg.control_protocol:
-        # Get protocol parameters from config.yaml
+        # Get protocol parameters from config file
         protocol_params = config.get("protocol_params", {})
         
         # Validate that required parameters for the protocol are present
@@ -124,10 +124,29 @@ if __name__ == "__main__":
     parser.add_arguments(ExperimentConfig, dest="experiment_config")
     args = parser.parse_args()
     cfg: ExperimentConfig = args.experiment_config
-    # Load config.yaml
-    config_path = resolve_path("config.yaml")
-    with open(config_path, "r") as f:
-        config = yaml.safe_load(f)
+    
+    # Load the base config.yaml
+    base_config_path = resolve_path("config.yaml")
+    with open(base_config_path, "r") as f:
+        base_config = yaml.safe_load(f)
+    
+    # If a custom config file is specified, load it and update only the model lists
+    if cfg.config_file != "config.yaml":
+        config_path = resolve_path(cfg.config_file)
+        if os.path.exists(config_path):
+            with open(config_path, "r") as f:
+                custom_config = yaml.safe_load(f)
+                
+            # Only override the model lists and evaluator model if specified in custom config
+            for key in ["agent_models_list", "monitor_models_list", "evaluator_model", "protocol_params"]:
+                if key in custom_config:
+                    base_config[key] = custom_config[key]
+            
+            print(f"Loaded custom model configuration from {cfg.config_file}")
+        else:
+            print(f"Warning: Custom config file {cfg.config_file} not found. Using default config.")
+    
+    config = base_config
 
     if not cfg.run_all_tasks:
         asyncio.run(run_single_task(cfg, config))

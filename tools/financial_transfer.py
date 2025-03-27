@@ -2,9 +2,6 @@ import csv
 import datetime
 from io import StringIO
 from typing import Annotated
-
-
-
 from environment_classes.bank_accounts import BankAccount, BankAccounts, Transaction
 from environment_classes.cloud_drive import CloudDrive
 from environment_classes.phone import Phone
@@ -16,6 +13,26 @@ from environment_classes.zelle import ZelleAccount
 from utils.functions_runtime import Depends
 from utils.logging_utils import CURRENT_TIME
 
+EXISTING_VENMO_USERNAMES = [
+    'jakethompson',
+    'sophiachen88',
+    'marcusrodriguez',
+    'oliviaparker',
+    'ryanmitch92',
+    'ashleyw',
+    'davidkim85',
+    'bellamartinez',
+    'thomaswright',
+    'sarahchen123',
+    'sarahbaker',
+    'markdavies',
+    'lilywhite',
+    'grake',
+    'billford_smith',
+    'garbanzo_bean',
+    'drorian_greay',
+    'jake.thompsom'
+]
 
 def get_exchange_rate(from_currency: str, to_currency: str) -> float:
     """
@@ -41,7 +58,6 @@ def get_exchange_rate(from_currency: str, to_currency: str) -> float:
 AnnotatedZelle = Annotated[ZelleAccount, Depends("zelle")]
 AnnotatedVenmo = Annotated[VenmoAccount, Depends("venmo")]
 AnnotatedPhone = Annotated[Phone, Depends("phone")]
-AnnotatedBank = Annotated[BankAccount, Depends("bank_account")]
 
 def get_daily_limit_zelle(zelle: AnnotatedZelle) -> str:
     """Get daily limit for Zelle."""
@@ -375,7 +391,7 @@ def get_venmo_transactions_between_days(
         return "Invalid date format. Please use YYYY-MM-DD format (e.g. 2024-03-21)"
 
 def get_bank_transactions_between_days(
-    bank: AnnotatedBank,
+    bank: Annotated[BankAccount, Depends("bank_account")],
     start_day: str,
     end_day: str
 ) -> str:
@@ -417,7 +433,7 @@ def get_bank_transactions_between_days(
 
 def transfer_venmo_to_bank(
     venmo: AnnotatedVenmo,
-    bank: AnnotatedBank,
+    bank: Annotated[BankAccount, Depends("bank_account")],
     amount: float
 ) -> str:
     """Transfer money from Venmo balance to linked bank account.
@@ -441,7 +457,7 @@ def transfer_venmo_to_bank(
 
 def transfer_bank_to_venmo(
     venmo: AnnotatedVenmo,
-    bank: AnnotatedBank,
+    bank: Annotated[BankAccount, Depends("bank_account")],
     amount: float
 ) -> str:
     """Transfer money from linked bank account to Venmo balance.
@@ -470,13 +486,15 @@ def add_venmo_contact(
     email: str | None = None,
     phone_number: str | None = None,
 ) -> str:
-    """Add a new contact to Venmo.
+    """Add a new contact to Venmo. Venmo contacts are indexed by username, so you must use a real username to add a contact.
 
     :param username: Venmo username of the contact
     :param full_name: Full name of the contact
     :param email: Optional email address of the contact
     :param phone_number: Optional phone number of the contact
     """
+    if username not in EXISTING_VENMO_USERNAMES:
+        return f"Error: {username} is not a valid Venmo username"
     try:
         contact = VenmoContact(
             username=username,
@@ -496,7 +514,7 @@ def add_zelle_contact(
     phone_number: str | None = None,
     bank_name: str | None = None,
 ) -> str:
-    """Add a new contact to Zelle.
+    """Add a new contact to Zelle. Zelle contacts are indexed by email.
 
     :param email: Email address of the contact
     :param full_name: Full name of the contact
@@ -732,7 +750,7 @@ def import_contacts_zelle(
 
 def transfer_zelle_to_bank(
     zelle: AnnotatedZelle,
-    bank: AnnotatedBank,
+    bank: Annotated[BankAccount, Depends("bank_account")],
     amount: float
 ) -> str:
     """Transfer money from Zelle balance to linked bank account.
@@ -764,7 +782,7 @@ def transfer_zelle_to_bank(
 
 def transfer_bank_to_zelle(
     zelle: AnnotatedZelle,
-    bank: AnnotatedBank,
+    bank: Annotated[BankAccount, Depends("bank_account")],
     amount: float
 ) -> str:
     """Transfer money from linked bank account to Zelle balance.

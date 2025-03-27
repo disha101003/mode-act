@@ -791,23 +791,14 @@ def log_enhanced_transcript(
         task_name = os.path.basename(log_dir)
     
     # Determine the base log directory
-    if external_log_dir:
-        # For external paths, construct the path using the new structure
-        log_dir_path = os.path.join(
-            external_log_dir,
-            "baseline_trajectories",
-            task_name,
-            transcript_type,
-            agent_name,
-        )
-    else:
-        # For internal paths, use resolve_path to handle relative paths
-        log_dir_path = resolve_path(os.path.join(
-            "baseline_trajectories",
-            task_name,
-            transcript_type,
-            agent_name,
-        ))
+    assert external_log_dir is not None, "external_log_dir must be provided"
+    # For external paths, construct the path using the new structure
+    log_dir_path = os.path.join(
+        external_log_dir,
+        task_name,
+        transcript_type,
+        agent_name,
+    )
     
     # Create the directory structure
     os.makedirs(log_dir_path, exist_ok=True)

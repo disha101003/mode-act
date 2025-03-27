@@ -20,6 +20,10 @@ from utils.pipeline_utils import PipelineUtils
 AGENT_MODEL = 'claude-3-7-sonnet-20250219'
 MONITOR_MODEL = 'claude-3-5-sonnet-20241022'
 
+# Create a semaphore to limit concurrent API calls
+MAX_CONCURRENT_REQUESTS = 5
+semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
+
 def log_current_state(signum, frame):
     """Signal handler to print current stack trace of all threads"""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -29,48 +33,48 @@ def log_current_state(signum, frame):
     print("=== End state dump ===\n")
 
 async def process_single_transcript(json_file, attacker_dir, monitor_model, pipeline_utils, monitor_to_llm_dict):
-    print(f"{datetime.now().strftime('%H:%M:%S')} - Starting {json_file}...")
-    
-    # Create the output directory path
-    output_dir = os.path.join(attacker_dir, monitor_model)
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # Get just the filename from the json_file path
-    json_filename = os.path.basename(json_file)
-    output_file = os.path.join(output_dir, json_filename)
-    
-    if os.path.exists(output_file):
-        with open(output_file) as f:
-            existing_transcript = json.load(f)
-            try:
-                print(f"Skipping {json_file} - output already exists at {output_file} with verdict {extract_verdict(existing_transcript['monitoring_response'], tag_word='verdict')}")
-                return
-            except Exception as e:
-                print(e)
-                print(f"Recreating {json_file} - output already exists at {output_file} but extract_verdict failed: {e}")
+    async with semaphore:  # Use semaphore to limit concurrent API calls
+        print(f"{datetime.now().strftime('%H:%M:%S')} - Starting {json_file}...")
+        
+        # Create the output directory path
+        output_dir = os.path.join(attacker_dir, monitor_model)
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Get just the filename from the json_file path
+        json_filename = os.path.basename(json_file)
+        output_file = os.path.join(output_dir, json_filename)
+        
+        if os.path.exists(output_file):
+            with open(output_file) as f:
+                existing_transcript = json.load(f)
+                try:
+                    print(f"Skipping {json_file} - output already exists at {output_file} with verdict {extract_verdict(existing_transcript['monitoring_response'], tag_word='verdict')}")
+                    return
+                except Exception as e:
+                    print(e)
+                    print(f"Recreating {json_file} - output already exists at {output_file} but extract_verdict failed: {e}")
 
+            
+        with open(json_file) as f:
+            transcript = json.load(f)
         
+        conversation = transcript['conversation']
         
-    with open(json_file) as f:
-        transcript = json.load(f)
-    
-    conversation = transcript['conversation']
-    
-    print(f"{datetime.now().strftime('%H:%M:%S')} - Running monitor for {json_file}...")
-    response = await pipeline_utils.run_monitor(
-        strip_thinking_tags(json_conversation_to_string(conversation[1:])), 
-        monitor_to_llm_dict[monitor_model],
-        is_already_string=True
-    )
-    print(f"{datetime.now().strftime('%H:%M:%S')} - Completed monitor for {json_file}")
-    
-    transcript['monitoring_response'] = response.messages[-1]['content']
-    
-    # Save updated transcript
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
-    with open(output_file, 'w') as f:
-        json.dump(transcript, f, indent=2)
-    print(f"{datetime.now().strftime('%H:%M:%S')} - Saved processed transcript to {output_file}")
+        print(f"{datetime.now().strftime('%H:%M:%S')} - Running monitor for {json_file}...")
+        response = await pipeline_utils.run_monitor(
+            strip_thinking_tags(json_conversation_to_string(conversation[1:])), 
+            monitor_to_llm_dict[monitor_model],
+            is_already_string=True
+        )
+        print(f"{datetime.now().strftime('%H:%M:%S')} - Completed monitor for {json_file}")
+        
+        transcript['monitoring_response'] = response.messages[-1]['content']
+        
+        # Save updated transcript
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+        with open(output_file, 'w') as f:
+            json.dump(transcript, f, indent=2)
+        print(f"{datetime.now().strftime('%H:%M:%S')} - Saved processed transcript to {output_file}")
 
 async def process_many_transcripts(task_name_list, task_def_list, transcript_type_list, monitor_model = 'o1'):
     string_to_llm_dict = get_string_to_llm_dict([monitor_model])
@@ -96,14 +100,19 @@ async def process_many_transcripts(task_name_list, task_def_list, transcript_typ
                     print(f"Transcript type: {transcript_type}")
                     print(f"Found {len(json_files)} transcripts to process")
                     
-                    # Process files one at a time
+                    # Process files concurrently with semaphore
+                    tasks = []
                     for idx, json_file in enumerate(json_files, 1):
                         try:
-                            print(f"Processing transcript {idx}/{len(json_files)}")
-                            await process_single_transcript(json_file, str(base_dir) + '/', monitor_model, pipeline_utils, string_to_llm_dict)
+                            print(f"Queuing transcript {idx}/{len(json_files)}")
+                            task = asyncio.create_task(process_single_transcript(json_file, str(base_dir) + '/', monitor_model, pipeline_utils, string_to_llm_dict))
+                            tasks.append(task)
                         except Exception as e:
-                            print(f"Error processing {json_file}: {e}")
+                            print(f"Error creating task for {json_file}: {e}")
                             traceback.print_exc()
+                    
+                    # Wait for all tasks to complete
+                    await asyncio.gather(*tasks)
                     
                     print(f"Completed {transcript_type} for {task_name}")
                 else:

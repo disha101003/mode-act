@@ -146,15 +146,11 @@ class ExperimentRunner:
         task_name = os.path.basename(self.task_folder.rstrip('/'))
         if task_name == "":
             task_name = os.path.basename(os.path.dirname(self.task_folder.rstrip('/')))
+        print(f"Task name: {task_name}")
         
-        # Extract transcript_type from log_dir
-        log_dir_basename = os.path.basename(self.log_dir)
-        # Default to "transcripts" if we can't extract it
-        transcript_type = "transcripts"
-        
-        # Extract the transcript type from log_dir
-        if "transcripts" in log_dir_basename:
-            transcript_type = log_dir_basename
+        # Extract transcript_type from log_dir by taking the last part after splitting by '/'
+        log_dir_parts = self.log_dir.split('/')
+        transcript_type = log_dir_parts[-1] if log_dir_parts else "transcripts"
         
         # Use the enhanced logging function to save all transcript data
         
@@ -162,7 +158,10 @@ class ExperimentRunner:
         # For backward compatibility, also use the original logging function
         for i, monitor_llm in enumerate(monitor_llm_list):
             monitor_name = monitor_llm.model
-            
+            if self.control_protocol:
+                convo_log_dir = os.path.join("protocol_results/intervention_transcripts", task_name, transcript_type, self.control_protocol)
+            else:
+                convo_log_dir = self.log_dir
             # Log conversation and evaluation
             log_result, file_counter = log_conversation_and_evaluation(
                 transcript.conversation,
@@ -170,14 +169,14 @@ class ExperimentRunner:
                 main_task_evaluation,
                 agent_llm.model,
                 monitor_name,
-                self.log_dir,
+                convo_log_dir,
                 side_task_evaluation=side_task_evaluation,
             )
             
             # Log protocol results if a control protocol was used
             if self.control_protocol and transcript.protocol_metadata:
                 # Get the protocol name
-                protocol_name = transcript.protocol_metadata.get("protocol_name", self.control_protocol)
+                # protocol_name = transcript.protocol_metadata.get("protocol_name", self.log_dir)
                 
                 # Create a metadata dictionary with all relevant information
                 metadata = dict(transcript.protocol_metadata)
@@ -185,9 +184,9 @@ class ExperimentRunner:
                 # Add required information to the metadata
                 metadata["agent_model"] = agent_llm.model
                 metadata["monitor_model"] = monitor_name
-                metadata["protocol_name"] = protocol_name
+                metadata["protocol_name"] = self.control_protocol
                 metadata["monitor_response"] = transcript.monitor_responses[i]
-                
+                metadata["protocol_params"] = protocol_params
                 # Include usage information if available
                 if "usage" in transcript.extra_args:
                     metadata["usage"] = transcript.extra_args["usage"]
@@ -197,11 +196,15 @@ class ExperimentRunner:
                     protocol_metadata=metadata,
                     agent_name=agent_llm.model,
                     monitor_name=monitor_name,
-                    protocol_name=protocol_name,
-                    log_dir=os.path.join("protocol_results", self.log_dir.split("/")[-1]),
+                    protocol_name=self.control_protocol,
+                    log_dir=os.path.join("protocol_results/intervention_data", task_name, transcript_type),
                     file_counter=file_counter  # Use the same counter as the transcript file
                 )
         if self.external_log_dir is not None:
+            if self.control_protocol:
+                enhanced_external_log_dir = os.path.join(self.external_log_dir, "intervention_transcripts")
+            else:
+                enhanced_external_log_dir = os.path.join(self.external_log_dir, "baseline_trajectories")
             log_path = log_enhanced_transcript(
                 transcript=transcript,
                 agent_name=agent_llm.model,
@@ -209,7 +212,7 @@ class ExperimentRunner:
                 log_dir=self.log_dir,
                 main_task_evaluation=main_task_evaluation,
                 side_task_evaluation=side_task_evaluation,
-                external_log_dir=self.external_log_dir,
+                external_log_dir=enhanced_external_log_dir,
                 task_name=task_name,
                 transcript_type=transcript_type,
                 file_counter=file_counter

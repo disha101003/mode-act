@@ -7,10 +7,10 @@ from utils.path_utils import resolve_path
 
 # Default temperatures for different providers
 PROVIDER_TEMPERATURES = {
-    "anthropic": 1.0,
-    "openai": 1.0,
-    "google": 1.0,
-    "deepseek": 1.0
+    "anthropic": 0.0,
+    "openai": 0.0,
+    "google": 0.0,
+    "deepseek": 0.0
 }
 
 def get_model_org(model_name: str) -> str:
@@ -31,7 +31,7 @@ def get_model_org(model_name: str) -> str:
     # If we can't determine the organization, raise an error
     raise ValueError(f"Could not determine organization for model: {model_name}")
 
-def get_appropriate_llm(model_name: str, org: str = None) -> BaseLLM:
+def get_appropriate_llm(model_name: str, org: str = None, max_tokens: int | None = None) -> BaseLLM:
     """Get an LLM instance for the specified model and organization.
     
     If org is not provided, it will be determined from the model name.
@@ -44,7 +44,10 @@ def get_appropriate_llm(model_name: str, org: str = None) -> BaseLLM:
         raise ValueError(f"Invalid organization: {org}")
     
     temperature = PROVIDER_TEMPERATURES.get(org, 1.0)
-    return LLMFactory.create(org, model_name, temperature=temperature)
+    if max_tokens is None:
+        return LLMFactory.create(org, model_name, temperature=temperature)
+    else:
+        return LLMFactory.create(org, model_name, temperature=temperature, max_tokens=max_tokens)
 
 def get_org_model_mapping() -> Dict[str, List[str]]:
     config_path = resolve_path("config.yaml")

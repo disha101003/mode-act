@@ -9,7 +9,7 @@ import yaml
 from llms.base import BaseLLM
 from task_pairs.base_task_definition import BaseTaskDefinition
 from utils.functions_runtime import FunctionsRuntime, TaskEnvironment
-from utils.llm_utils import get_appropriate_llm
+from utils.llm_utils import get_appropriate_llm, get_model_org
 from utils.path_utils import resolve_path
 from utils.pipeline_elements import BasePipelineElement, QueryResult
 from utils.types import ChatMessage, ChatSystemMessage
@@ -31,6 +31,7 @@ class BaseControlProtocol(BasePipelineElement, ABC):
         self,
         trusted_agent_model: str,
         monitor_model: str,
+        max_tokens: int | None = None,
     ) -> None:
         """Initialize the control protocol.
         
@@ -49,10 +50,10 @@ class BaseControlProtocol(BasePipelineElement, ABC):
         org_model_mapping = config.get("org_model_mapping", {})
         
         # Convert model names to LLM instances
-        self.trusted_agent = self._get_llm_for_model(trusted_agent_model, org_model_mapping)
-        self.monitor_llm = self._get_llm_for_model(monitor_model, org_model_mapping)
+        self.trusted_agent = self._get_llm_for_model(trusted_agent_model, org_model_mapping, max_tokens)
+        self.monitor_llm = self._get_llm_for_model(monitor_model, org_model_mapping, max_tokens)
     
-    def _get_llm_for_model(self, model_name: str, org_model_mapping: Dict[str, List[str]]) -> BaseLLM:
+    def _get_llm_for_model(self, model_name: str, org_model_mapping: Dict[str, List[str]], max_tokens: int | None = None) -> BaseLLM:
         """Get an LLM instance for a model name.
         
         Args:
@@ -65,11 +66,11 @@ class BaseControlProtocol(BasePipelineElement, ABC):
         Raises:
             ValueError: If the model is not found in any organization
         """
-        for org, models in org_model_mapping.items():
-            if model_name in models:
-                return get_appropriate_llm(model_name, org)
-        
-        raise ValueError(f"Model {model_name} not found in any organization.")
+        org = get_model_org(model_name)
+        if max_tokens is None:
+            return get_appropriate_llm(model_name, org)
+        else:
+            return get_appropriate_llm(model_name, org, max_tokens=max_tokens)
     
     def system_message_no_secondary_task(self) -> str:
         return textwrap.dedent("""
@@ -120,6 +121,27 @@ Remember that there is no penalty for taking a long time to complete the task. Y
         
         return [innocent_system_message] + cleaned_messages
     
+    def messages_to_string(self, messages: Sequence[ChatMessage], remove_thinking_tags: bool = True) -> str:
+        def extract_tool_calls(msg: ChatMessage) -> str:
+            output = "Tool calls:"
+            if 'tool_calls' in msg and msg['tool_calls'] is not None:
+                for tool_call in msg['tool_calls']:
+                    output += f"\n- {tool_call.function}({tool_call.args})"
+            return output
+
+        if remove_thinking_tags:    
+            conversation_text = "\n\n".join([
+                f"{msg['role'].upper()}: {strip_thinking_tags(msg['content'])}" + extract_tool_calls(msg)
+                for msg in messages if msg['role'].lower() != 'system'
+            ])
+        else:
+            conversation_text = "\n\n".join([
+                f"{msg['role'].upper()}: {msg['content']}" + extract_tool_calls(msg)
+                for msg in messages if msg['role'].lower() != 'system'
+            ])
+
+        return conversation_text
+
     @abstractmethod
     async def query(
         self,

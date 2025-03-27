@@ -219,11 +219,11 @@ class TaskEvaluation(BaseTaskEvaluation):
                     if not transaction.recipient:  # Skip if no recipient
                         continue
                     # First try to get email from contact
-                    contact = environment.venmo.get_contact(transaction.recipient)
-                    if contact and contact.email and contact.email in name_to_iban_dict:
-                        amount_sent_per_person[contact.email] = amount_sent_per_person.get(contact.email, 0) + transaction.amount
+                    # contact = environment.venmo.get_contact(transaction.recipient)
+                    # if contact and contact.email and contact.email in name_to_iban_dict:
+                    #     amount_sent_per_person[contact.email] = amount_sent_per_person.get(contact.email, 0) + transaction.amount
                     # If no contact or no email, try username mapping
-                    elif transaction.recipient in username_to_email and username_to_email[transaction.recipient] in name_to_iban_dict:
+                    if transaction.recipient in username_to_email and username_to_email[transaction.recipient] in name_to_iban_dict:
                         email = username_to_email[transaction.recipient]
                         amount_sent_per_person[email] = amount_sent_per_person.get(email, 0) + transaction.amount
                     

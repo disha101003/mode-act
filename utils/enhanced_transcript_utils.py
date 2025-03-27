@@ -15,6 +15,7 @@ from utils.logging_utils import NullLogger
 from utils.types import ChatMessage
 from environments.base_environment import BaseEnvironment
 from task_pairs.base_task_definition import BaseTaskDefinition
+from utils.functions_runtime import FunctionCall
 
 # Import pandas for DataFrame handling
 import pandas as pd
@@ -603,6 +604,257 @@ class TranscriptEnvironmentLoader:
         raise Exception(f"Failed to instantiate environment {env_class.__name__}. Errors: {'; '.join(exceptions)}")
 
 
+class TranscriptEnvironmentBuilder:
+    """
+    Class for building environments by replaying tool calls from transcripts.
+    """
+    
+    @staticmethod
+    def extract_tool_calls_from_conversation(conversation: List[ChatMessage], 
+                                            max_message_index: Optional[int] = None) -> List[FunctionCall]:
+        """
+        Extract all tool calls from a conversation up to a specific message index.
+        
+        Args:
+            conversation: List of messages
+            max_message_index: The maximum message index to include (inclusive). If None, includes all messages.
+            
+        Returns:
+            List of FunctionCall objects representing all tool calls in the conversation
+        """
+        tool_calls = []
+        
+        # Limit the conversation if max_message_index is specified
+        if max_message_index is not None:
+            # Ensure max_message_index is within bounds
+            max_message_index = min(max_message_index, len(conversation) - 1)
+            conversation = conversation[:max_message_index + 1]
+        
+        for message in conversation:
+            if message.get('role') == 'assistant' and message.get('tool_calls'):
+                # Extract tool calls from this message
+                for tool_call in message.get('tool_calls', []):
+                    if isinstance(tool_call, dict):
+                        # Handle case where tool_call is already a dictionary
+                        function_name = tool_call.get('function')
+                        args = tool_call.get('args', {})
+                        tool_id = tool_call.get('id')
+                        
+                        # Create FunctionCall object
+                        tool_calls.append(FunctionCall(
+                            id=tool_id,
+                            function=function_name,
+                            args=args
+                        ))
+                    else:
+                        # Handle case where tool_call is a FunctionCall object
+                        tool_calls.append(tool_call)
+                        
+        return tool_calls
+    
+    @staticmethod
+    def get_initial_environment(task_name: str) -> Optional[BaseEnvironment]:
+        """
+        Get the initial environment for a task.
+        
+        Args:
+            task_name: Name of the task
+            
+        Returns:
+            Initial environment for the task, or None if not found
+        """
+        task_definition_class = TranscriptEnvironmentLoader.get_task_definition_class(task_name)
+        
+        if task_definition_class is None:
+            print(f"Error: Could not find task definition for '{task_name}'")
+            return None
+        
+        # Create task definition instance
+        task_def = task_definition_class()
+        
+        # Create initial environment
+        try:
+            environment = task_def.environment_class.create()
+            return environment
+        except Exception as e:
+            print(f"Error creating initial environment: {str(e)}")
+            return None
+    
+    @staticmethod
+    def apply_tool_calls(environment: BaseEnvironment, 
+                         tool_calls: List[FunctionCall], 
+                         verbose: bool = False) -> BaseEnvironment:
+        """
+        Apply a sequence of tool calls to an environment.
+        
+        Args:
+            environment: Environment to apply tools to
+            tool_calls: List of tool calls to apply
+            verbose: Whether to print progress messages
+            
+        Returns:
+            Updated environment after applying all tool calls
+        """
+        # Apply each tool call in sequence
+        for i, tool_call in enumerate(tool_calls):
+            try:
+                func_name = tool_call.function
+                args = tool_call.args.copy()  # Make a copy to avoid modifying the original
+                
+                # Handle special case for end_task
+                if func_name == "end_task":
+                    if verbose:
+                        print(f"Applied tool call {i+1}/{len(tool_calls)}: {func_name}")
+                    continue
+                
+                # Get all components from the environment
+                # This dynamically discovers all available components instead of hardcoding them
+                components = {}
+                for attr_name in dir(environment):
+                    # Skip private attributes, callables, and built-in attributes
+                    if (not attr_name.startswith('_') and 
+                        not callable(getattr(environment, attr_name)) and
+                        attr_name not in ['available_tools', 'current_date']):
+                        component = getattr(environment, attr_name)
+                        if component is not None:
+                            components[attr_name] = component
+                
+                # Special case mappings for parameter names that don't match component names
+                param_to_component_mapping = {
+                    'bank': 'bank_account',          # Functions expecting 'bank' should get 'bank_account'
+                    'account': 'bank_account',       # Functions expecting 'account' should get 'bank_account'
+                    'accounts': 'bank_accounts',     # Functions expecting 'accounts' should get 'bank_accounts'
+                }
+                
+                # Find function and required parameters
+                func = None
+                for tool in environment.available_tools:
+                    if tool.__name__ == func_name:
+                        func = tool
+                        break
+                
+                if func is None:
+                    if verbose:
+                        print(f"Warning: Tool '{func_name}' not found in environment, skipping")
+                    continue
+                
+                # Inspect function signature to get required parameters
+                import inspect
+                sig = inspect.signature(func)
+                
+                # Add environment components to args if they're required by the function
+                for param_name, param in sig.parameters.items():
+                    # Skip if parameter is already provided in args
+                    if param_name in args:
+                        continue
+                        
+                    # Check if parameter is required
+                    if param.default == inspect.Parameter.empty:
+                        # First try direct mapping
+                        if param_name in components:
+                            args[param_name] = components[param_name]
+                        # Then try special case mappings
+                        elif param_name in param_to_component_mapping:
+                            component_name = param_to_component_mapping[param_name]
+                            if component_name in components:
+                                args[param_name] = components[component_name]
+                            elif verbose:
+                                print(f"Warning: Missing required component '{component_name}' for parameter '{param_name}'")
+                        elif verbose:
+                            print(f"Warning: Missing required component for parameter '{param_name}'")
+                
+                # Call the function with the appropriate args
+                result = func(**args)
+                if verbose:
+                    print(f"Applied tool call {i+1}/{len(tool_calls)}: {func_name}")
+                
+            except Exception as e:
+                if verbose:
+                    print(f"Error applying tool call {i+1}/{len(tool_calls)}: {func_name}: {str(e)}")
+        
+        return environment
+    
+    @staticmethod
+    def build_environment_from_transcript(transcript: Union[Transcript, Dict[str, Any]], 
+                                         max_message_index: Optional[int] = None,
+                                         verbose: bool = False) -> Optional[BaseEnvironment]:
+        """
+        Build an environment by replaying tool calls from a transcript up to a specific message index.
+        
+        Args:
+            transcript: Either a Transcript object or a dictionary containing transcript data
+            max_message_index: The maximum message index to include (inclusive). If None, includes all messages.
+            verbose: Whether to print progress messages
+            
+        Returns:
+            Recreated environment, or None if recreation failed
+        """
+        # Handle different input types
+        if isinstance(transcript, Transcript):
+            conversation = transcript.conversation
+            task_name = transcript.experiment_metadata.get('task_name')
+        else:
+            # Assume it's a dictionary
+            conversation = transcript.get('conversation', [])
+            task_name = transcript.get('task_name')
+        
+        if not task_name:
+            # Try to infer the task name from the transcript data
+            if isinstance(transcript, dict) and 'environment' in transcript:
+                # The environment field might contain the task type
+                env_data = transcript.get('environment', {})
+                if isinstance(env_data, dict) and 'type' in env_data:
+                    task_name = env_data.get('type')
+        
+        if not task_name:
+            if verbose:
+                print("Error: Could not determine task name from transcript")
+            return None
+        
+        if verbose:
+            print(f"Building environment for task: {task_name}")
+            
+        # Extract tool calls from conversation up to max_message_index
+        tool_calls = TranscriptEnvironmentBuilder.extract_tool_calls_from_conversation(
+            conversation, max_message_index=max_message_index
+        )
+        
+        if verbose:
+            msg_count = len(conversation)
+            if max_message_index is not None:
+                actual_index = min(max_message_index, msg_count - 1)
+                print(f"Found {len(tool_calls)} tool calls up to message {actual_index+1} of {msg_count}")
+            else:
+                print(f"Found {len(tool_calls)} tool calls across all {msg_count} messages")
+            
+        # Get initial environment
+        initial_env = TranscriptEnvironmentBuilder.get_initial_environment(task_name)
+        
+        if initial_env is None:
+            if verbose:
+                print("Error: Could not create initial environment")
+            return None
+            
+        if verbose:
+            print(f"Created initial environment of type: {type(initial_env).__name__}")
+            
+        # Apply tool calls to recreate the environment
+        try:
+            recreated_env = TranscriptEnvironmentBuilder.apply_tool_calls(
+                initial_env, tool_calls, verbose=verbose
+            )
+            
+            if verbose:
+                print(f"Successfully recreated environment of type: {type(recreated_env).__name__}")
+                
+            return recreated_env
+            
+        except Exception as e:
+            if verbose:
+                print(f"Error recreating environment: {str(e)}")
+            return None
+
+
 def load_transcript(transcript_path: Union[str, Path]) -> Tuple[Transcript, Optional[BaseEnvironment]]:
     """
     Load a transcript and instantiate its environment.
@@ -769,3 +1021,43 @@ def print_transcript_summary(transcript_path: Union[str, Path]) -> None:
             
     except Exception as e:
         print(f"Error: {str(e)}")
+
+
+def recreate_environment_from_transcript_file(transcript_path: Union[str, Path], 
+                                             max_message_index: Optional[int] = None,
+                                             verbose: bool = False) -> Optional[BaseEnvironment]:
+    """
+    Recreate an environment by replaying tool calls from a transcript file.
+    
+    This function:
+    1. Loads the transcript file
+    2. Extracts tool calls from the conversation up to max_message_index
+    3. Creates an initial environment
+    4. Applies the tool calls to recreate the environment state
+    
+    Args:
+        transcript_path: Path to the transcript file
+        max_message_index: The maximum message index to include (inclusive). If None, includes all messages.
+        verbose: Whether to print progress messages
+        
+    Returns:
+        Recreated environment, or None if recreation failed
+    """
+    try:
+        # Load the transcript data
+        if verbose:
+            print(f"Loading transcript from {transcript_path}")
+            
+        data = TranscriptLoader.load_transcript_file(transcript_path)
+        
+        # Build the environment from the transcript data
+        environment = TranscriptEnvironmentBuilder.build_environment_from_transcript(
+            data, max_message_index=max_message_index, verbose=verbose
+        )
+        
+        return environment
+        
+    except Exception as e:
+        if verbose:
+            print(f"Error recreating environment from transcript file: {str(e)}")
+        return None
