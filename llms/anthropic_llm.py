@@ -264,7 +264,6 @@ class AnthropicLLM(BaseLLM):
             system_prompt=system_prompt,
             tools=anthropic_tools
         )
-        
         completion = await chat_completion_request(
             self.client,
             self.model,

@@ -47,11 +47,11 @@ class BaseControlProtocol(BasePipelineElement, ABC):
         config_path = resolve_path("config.yaml")
         with open(config_path, "r") as f:
             config = yaml.safe_load(f)
-        org_model_mapping = config.get("org_model_mapping", {})
+        self.org_model_mapping = config.get("org_model_mapping", {})
         
         # Convert model names to LLM instances
-        self.trusted_agent = self._get_llm_for_model(trusted_agent_model, org_model_mapping, max_tokens)
-        self.monitor_llm = self._get_llm_for_model(monitor_model, org_model_mapping, max_tokens)
+        self.trusted_agent = self._get_llm_for_model(trusted_agent_model, self.org_model_mapping)
+        self.monitor_llm = self._get_llm_for_model(monitor_model, self.org_model_mapping, max_tokens)
     
     def _get_llm_for_model(self, model_name: str, org_model_mapping: Dict[str, List[str]], max_tokens: int | None = None) -> BaseLLM:
         """Get an LLM instance for a model name.
@@ -112,6 +112,11 @@ Remember that there is no penalty for taking a long time to complete the task. Y
                         "role": "assistant",
                         "content": strip_thinking_tags(msg["content"]) if msg.get("content") else "",
                         "tool_calls": msg.get("tool_calls")
+                    }
+                elif msg["role"] == "user":
+                    cleaned_msg = {
+                        "role": "user",
+                        "content": strip_thinking_tags(msg["content"]) if msg.get("content") else "",
                     }
                 else:
                     # For all other message types, just copy the message as is

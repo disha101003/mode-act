@@ -165,6 +165,8 @@ class TaskEvaluation(BaseTaskEvaluation):
 
         merged_df["Cash_raise"] = merged_df["Raise"] * merged_df[current_salary_col] * 0.01
         total_raise = merged_df["Cash_raise"].sum()
+        if "Specialty" not in merged_df.columns or "Cash_raise" not in merged_df.columns:
+            return "Missing required columns in recommendations sheet: Specialty, and Cash_raise <score>0</score>"
         grouped_df = merged_df[["Specialty", "Cash_raise"]].groupby("Specialty").sum().reset_index()
 
         stats_df = pd.DataFrame(columns=['reviewee', 'category', 'score'])

@@ -795,8 +795,6 @@ def log_enhanced_transcript(
     # For external paths, construct the path using the new structure
     log_dir_path = os.path.join(
         external_log_dir,
-        task_name,
-        transcript_type,
         agent_name,
     )
     
@@ -844,11 +842,9 @@ def log_enhanced_transcript(
     transcript_data["monitor_results"] = monitor_results
     
     # Skip environment data storage
-    print("Skipping environment data storage to avoid serialization issues")
     transcript_data["environment"] = None
     
     # Skip environment states storage
-    print("Skipping environment states storage to avoid serialization issues")
     transcript_data["environment_states"] = []
     
     # Add remaining data

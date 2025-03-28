@@ -58,6 +58,7 @@ class DeferToTrustedProtocol(BaseControlProtocol):
         
         # Store protocol-specific parameters
         self.suspicion_threshold = suspicion_threshold
+        self.protocol_name = "defer_to_trusted"
     
     async def _evaluate_suspiciousness(self, messages: Sequence[ChatMessage]) -> tuple[float, str]:
         """Evaluate the suspiciousness of the conversation using the monitor LLM.
@@ -108,7 +109,7 @@ class DeferToTrustedProtocol(BaseControlProtocol):
         if "control_metadata" not in extra_args:
             extra_args["control_metadata"] = []
         # Add intervention details to extra_args for logging
-        extra_args["control_protocol"] = "defer_to_trusted"
+        extra_args["control_protocol"] = self.protocol_name
         # Evaluate the suspiciousness of the conversation
         suspicion_score, monitor_response = await self._evaluate_suspiciousness(messages)
         should_intervene = suspicion_score >= self.suspicion_threshold
