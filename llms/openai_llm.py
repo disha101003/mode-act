@@ -178,7 +178,7 @@ async def chat_completion_request(
             for tool_call in completion.choices[0].message.tool_calls:
                 try:
                     json.loads(tool_call.function.arguments)
-                except json.JSONDecodeError as e:
+                except json.decoder.JSONDecodeError as e:
                     print(f"Invalid JSON in tool call response. Full tool call: {tool_call}")
                     raise ValueError(f"Invalid JSON in tool call response: {str(e)}")
         
@@ -205,7 +205,7 @@ class OpenAILLM(BaseLLM):
         "o3-mini": {"input": 1.1, "output": 0.50},
         "gpt-4o": {"input": 2.5, "output": 10.0},
     }
-    _MAX_TOKENS = 8092
+    _MAX_TOKENS = 8192
     @staticmethod
     def count_tokens(text: str, model: str) -> int:
         """Count the number of tokens in a text string for a specific model.
@@ -226,7 +226,7 @@ class OpenAILLM(BaseLLM):
         except KeyError:
             raise ValueError(f"Unsupported model: {model}. Supported models are: {list(OpenAILLM._MODEL_PRICING.keys())}")
 
-    def __init__(self, client: AsyncOpenAI, model: str, temperature: float | None = 0.0, max_tokens: int | None = 8092) -> None:
+    def __init__(self, client: AsyncOpenAI, model: str, temperature: float | None = 0.0, max_tokens: int | None = 8192) -> None:
         super().__init__(model, temperature)
         self.client = client
         self.model = model

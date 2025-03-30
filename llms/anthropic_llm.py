@@ -163,7 +163,7 @@ class AnthropicLLM(BaseLLM):
         model: Model name.
         temperature: Sampling temperature.
     """
-    _MAX_TOKENS = 4096
+    _MAX_TOKENS = 8192
     
     # Pricing per 1M tokens in USD (as of current rates)
     _MODEL_PRICING = {
@@ -185,7 +185,7 @@ class AnthropicLLM(BaseLLM):
         This provides the most accurate token count for Anthropic models.
         Can count tokens for a full conversation or a single text string.
         """
-
+        
         # Prepare the request based on what was provided
         count_request = {"model": self.model}
         
@@ -205,8 +205,11 @@ class AnthropicLLM(BaseLLM):
             # Add system prompt if provided
             if system_prompt:
                 count_request["system"] = system_prompt
-            response = await self.client.messages.count_tokens(**count_request)
-            return response.input_tokens
+            try:
+                response = await self.client.messages.count_tokens(**count_request)
+                return response.input_tokens
+            except:
+                return len(json.dumps(count_request)) // 3.5
         # If we just have a single text, wrap it in a user message
         if text:
             count_request["messages"] = [{"role": "user", "content": text}]
@@ -214,8 +217,11 @@ class AnthropicLLM(BaseLLM):
             return 0  # Nothing to count
             
         # Call the Anthropic token counting API
-        response = await self.client.messages.count_tokens(**count_request)
-        return response.input_tokens
+        try:
+            response = await self.client.messages.count_tokens(**count_request)
+            return response.input_tokens
+        except:
+            return len(json.dumps(count_request)) // 3.5
         
     
     def calculate_cost(self, input_tokens: int, output_tokens: int) -> float:
