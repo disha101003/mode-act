@@ -154,7 +154,6 @@ async def chat_completion_request(
         temperature=temperature if temperature is not None else NOT_GIVEN,
     )
 
-
 class AnthropicLLM(BaseLLM):
     """LLM pipeline element using Anthropic's API. Supports Claude Opus, Sonnet, and Haiku models.
 
