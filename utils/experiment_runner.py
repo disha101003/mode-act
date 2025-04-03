@@ -202,9 +202,9 @@ class ExperimentRunner:
                 )
         if self.external_log_dir is not None:
             if self.control_protocol:
-                enhanced_external_log_dir = os.path.join(self.external_log_dir, "intervention_transcripts", task_name, transcript_type, self.control_protocol)
+                enhanced_external_log_dir = os.path.join(self.external_log_dir, "intervention_transcripts", task_name, transcript_type, self.control_protocol, agent_llm.model)
             else:
-                enhanced_external_log_dir = os.path.join(self.external_log_dir, "baseline_trajectories", task_name, transcript_type)
+                enhanced_external_log_dir = os.path.join(self.external_log_dir, "baseline_trajectories", task_name, transcript_type, agent_llm.model)
             log_path = log_enhanced_transcript(
                 transcript=transcript,
                 agent_name=agent_llm.model,

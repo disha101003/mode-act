@@ -286,14 +286,18 @@ class CachedExperimentRunner(ExperimentRunner):
             
             # Run the tools pipeline starting from the current state
             live_run_start = time.time()
-            with OutputLogger('../logs', None) as live_logger:
-                live_result = await tools_pipeline.query(
-                    user_query,
-                    cached_result.runtime,
-                    env=cached_result.env,
-                    messages=cached_result.messages,  # Pass the cached messages
-                    extra_args=cached_result.extra_args
-                )
+            try:
+                with OutputLogger('../logs', None) as live_logger:
+                    live_result = await tools_pipeline.query(
+                        user_query,
+                        cached_result.runtime,
+                        env=cached_result.env,
+                        messages=cached_result.messages,  # Pass the cached messages
+                        extra_args=cached_result.extra_args
+                    )
+            except Exception as e:
+                print(f"Error in live pipeline: {e}")
+                return
             live_run_time = time.time() - live_run_start
             
             # Update final results

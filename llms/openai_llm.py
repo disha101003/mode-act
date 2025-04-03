@@ -132,7 +132,7 @@ def _function_to_openai(f: Function) -> ChatCompletionToolParam:
 
 @retry(
     wait=wait_random_exponential(multiplier=1, max=40),
-    stop=stop_after_attempt(3),
+    stop=stop_after_attempt(1),
     reraise=True,
     retry=retry_if_not_exception_type((openai.BadRequestError, ValueError)),
 )

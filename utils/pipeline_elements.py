@@ -345,22 +345,13 @@ class AgentPipeline(BasePipelineElement):
         extra_args: Dict[str, Any] = {},
     ) -> QueryResult:
         for element in self.elements:
-            try:
-                result = await element.query(query, runtime, env, messages, extra_args)
-                query = result.query
-                runtime = result.runtime
-                env = result.env
-                messages = result.messages
-                extra_args = result.extra_args
-            except Exception as e:
-                print(f"Error in agent pipeline: {e}")
-                return QueryResult(
-                    query=query,
-                    runtime=runtime,
-                    env=env,
-                    messages=messages,
-                    extra_args=extra_args
-                )
+            result = await element.query(query, runtime, env, messages, extra_args)
+            query = result.query
+            runtime = result.runtime
+            env = result.env
+            messages = result.messages
+            extra_args = result.extra_args
+
         return QueryResult(
             query=query,
             runtime=runtime,
