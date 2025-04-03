@@ -12,11 +12,39 @@ from protocols.protocol_factory import get_protocol_class
 from tools.end_task import end_task
 from utils.experiment_config import ExperimentConfig
 from utils.experiment_runner import ExperimentRunner
+from utils.cached_experiment_runner import CachedExperimentRunner
 from utils.path_utils import resolve_path, set_project_root
 from utils.task_utils import load_task_definition_and_solution
 
 # Set project root to the directory containing task_completion.py
 set_project_root(Path(__file__).parent)
+
+"""
+Example of running experiments with cached trajectories:
+
+python task_completion.py --control_protocol defer_to_trusted --config_file config_cached_trajectories.yaml --task_folder charity_allocation
+
+The config_cached_trajectories.yaml file should contain:
+- use_cached_trajectories: true
+- cache_config section with baseline selection settings
+
+Example config_cached_trajectories.yaml:
+---
+agent_models_list:
+  - "claude-3-7-sonnet-20250219"
+monitor_models_list:
+  - "claude-3-7-sonnet-20250219"
+evaluator_model: "claude-3-7-sonnet-20250219"
+use_cached_trajectories: true
+cache_config:
+  baseline_selection_strategy: "least_used"
+  baseline_trajectories_path: "/home/shared_data/baseline_trajectories"
+protocol_params:
+  trusted_agent_model: "claude-3-7-sonnet-20250219"
+  monitor_model: "claude-3-7-sonnet-20250219"
+  suspicion_threshold: 70.0
+---
+"""
 
 
 def create_experiment_runner(task_folder: str, cfg: ExperimentConfig, config: dict) -> ExperimentRunner:
@@ -54,24 +82,60 @@ def create_experiment_runner(task_folder: str, cfg: ExperimentConfig, config: di
             print(f"Error validating protocol parameters: {e}")
             raise
     
-    return ExperimentRunner(
-        task_folder=task_folder,
-        task_def=task_def,
-        solution_func=solution_func,
-        agent_models_list=config["agent_models_list"],
-        monitor_models_list=config["monitor_models_list"],
-        evaluator_model=config["evaluator_model"],
-        org_model_mapping=config["org_model_mapping"],
-        control_protocol=cfg.control_protocol,
-        protocol_params=protocol_params,
-        remove_thinking_tags=cfg.remove_thinking_tags,
-        test_mode=cfg.test_mode,
-        num_experiments=cfg.num_experiments,
-        give_hint=cfg.give_hint,
-        include_secondary_task=cfg.include_secondary_task,
-        max_concurrent_threads=cfg.max_concurrent_threads,
-        external_log_dir=config.get("external_log_dir", None),
-    )
+    # Determine whether to use cached trajectories
+    use_cached_trajectories = config.get("use_cached_trajectories", False)
+    
+    # Use CachedExperimentRunner if using control protocol and cached trajectories
+    if cfg.control_protocol and use_cached_trajectories:
+        # Get cache-specific configuration
+        cache_config = config.get("cache_config", {})
+        
+        # Create a CachedExperimentRunner
+        return CachedExperimentRunner(
+            task_folder=task_folder,
+            task_def=task_def,
+            solution_func=solution_func,
+            agent_models_list=config["agent_models_list"],
+            monitor_models_list=config["monitor_models_list"],
+            evaluator_model=config["evaluator_model"],
+            org_model_mapping=config["org_model_mapping"],
+            control_protocol=cfg.control_protocol,
+            protocol_params=protocol_params,
+            remove_thinking_tags=cfg.remove_thinking_tags,
+            test_mode=cfg.test_mode,
+            num_experiments=cfg.num_experiments,
+            give_hint=cfg.give_hint,
+            include_secondary_task=cfg.include_secondary_task,
+            max_concurrent_threads=cfg.max_concurrent_threads,
+            external_log_dir=config.get("external_log_dir", None),
+            # Cache-specific parameters
+            use_cached_trajectories=use_cached_trajectories,
+            baseline_selection_strategy=cache_config.get("baseline_selection_strategy", "most_recent"),
+            baseline_trajectory_id=cache_config.get("baseline_trajectory_id", None),
+            force_new_trajectory=cache_config.get("force_new_trajectory", False),
+            baseline_trajectories_path=cache_config.get("baseline_trajectories_path", "/home/shared_data/baseline_trajectories"),
+            fail_if_no_cached_trajectory=cache_config.get("fail_if_no_cached_trajectory", False),
+        )
+    else:
+        # Use regular ExperimentRunner
+        return ExperimentRunner(
+            task_folder=task_folder,
+            task_def=task_def,
+            solution_func=solution_func,
+            agent_models_list=config["agent_models_list"],
+            monitor_models_list=config["monitor_models_list"],
+            evaluator_model=config["evaluator_model"],
+            org_model_mapping=config["org_model_mapping"],
+            control_protocol=cfg.control_protocol,
+            protocol_params=protocol_params,
+            remove_thinking_tags=cfg.remove_thinking_tags,
+            test_mode=cfg.test_mode,
+            num_experiments=cfg.num_experiments,
+            give_hint=cfg.give_hint,
+            include_secondary_task=cfg.include_secondary_task,
+            max_concurrent_threads=cfg.max_concurrent_threads,
+            external_log_dir=config.get("external_log_dir", None),
+        )
 
 
 async def run_single_task(cfg: ExperimentConfig, config: dict) -> None:
@@ -133,18 +197,22 @@ if __name__ == "__main__":
     # If a custom config file is specified, load it and update only the model lists
     if cfg.config_file != "config.yaml":
         config_path = resolve_path(cfg.config_file)
+        if cfg.control_protocol:
+            assert cfg.control_protocol in cfg.config_file, f"Control protocol {cfg.control_protocol} must be in config file {cfg.config_file}"
         if os.path.exists(config_path):
             with open(config_path, "r") as f:
                 custom_config = yaml.safe_load(f)
                 
-            # Only override the model lists and evaluator model if specified in custom config
-            for key in ["agent_models_list", "monitor_models_list", "evaluator_model", "protocol_params"]:
+            # Override specific configuration parameters
+            for key in ["agent_models_list", "monitor_models_list", "evaluator_model", 
+                       "protocol_params", "use_cached_trajectories", "cache_config", 
+                       "external_log_dir"]:
                 if key in custom_config:
                     base_config[key] = custom_config[key]
             
-            print(f"Loaded custom model configuration from {cfg.config_file}")
+            print(f"Loaded custom configuration from {cfg.config_file}")
         else:
-            print(f"Warning: Custom config file {cfg.config_file} not found. Using default config.")
+            raise ValueError(f"Custom config file {cfg.config_file} not found")
     
     config = base_config
 

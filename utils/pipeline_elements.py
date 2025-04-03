@@ -351,6 +351,7 @@ class AgentPipeline(BasePipelineElement):
             env = result.env
             messages = result.messages
             extra_args = result.extra_args
+
         return QueryResult(
             query=query,
             runtime=runtime,

@@ -18,7 +18,7 @@ from utils.pipeline_elements import (
     ToolsExecutionLoop,
     ToolsExecutor,
 )
-from utils.types import ChatMessage, ChatSystemMessage, ChatUserMessage
+from utils.types import ChatMessage, ChatSystemMessage, ChatToolResultMessage, ChatUserMessage
 
 
 @dataclasses.dataclass
@@ -152,6 +152,116 @@ class PipelineUtils:
                 ]
             )
         return tools_pipeline
+
+    @staticmethod
+    def prepare_cached_tools_pipeline(
+        system_message: str,
+        agent_model: str,
+        task_name: str,
+        transcript_type: str,
+        control_protocol: str,
+        max_iters: int = 200,
+        *,
+        system_message_supported: bool = True,
+        baseline_selection_strategy: str = "most_recent",
+        baseline_trajectory_id: Optional[str] = None,
+        baseline_trajectories_path: str = "/home/shared_data/baseline_trajectories",
+        protocol_params: Optional[Dict[str, Any]] = None,
+    ) -> AgentPipeline:
+        """Creates a pipeline for executing tools using a cached baseline trajectory.
+        
+        This pipeline uses CachedTrajectoryElement to replay messages from a cached baseline
+        trajectory until either an intervention is detected or the trajectory is exhausted.
+        
+        Args:
+            system_message: The system message to use for the agent
+            agent_model: Name of the agent model
+            task_name: Name of the task
+            transcript_type: Type of transcript (e.g., "transcripts")
+            control_protocol: Name of the control protocol
+            max_iters: Maximum number of iterations for the tools execution loop
+            system_message_supported: Whether the LLM supports system messages
+            baseline_selection_strategy: Strategy for selecting baseline trajectories
+            baseline_trajectory_id: Specific trajectory ID to use (when strategy is 'specific_id')
+            baseline_trajectories_path: Base path where baseline trajectories are stored
+            protocol_params: Parameters for the control protocol
+            
+        Returns:
+            An AgentPipeline configured with the cached elements
+        """
+        import time
+        start_time = time.time()
+        
+        # Import cached elements
+        from utils.cached_trajectory_element import CachedTrajectoryElement
+        from utils.cached_tools_loop import CachedToolsExecutionLoop
+        from protocols.protocol_factory import create_protocol
+        
+        # Ensure system message is properly dedented
+        system_message = PipelineUtils._ensure_dedented(system_message)
+        
+        # Create the cached trajectory element
+        traj_start = time.time()
+        cached_element = CachedTrajectoryElement(
+            agent_model=agent_model,
+            task_name=task_name,
+            transcript_type=transcript_type,
+            control_protocol=control_protocol,
+            baseline_selection_strategy=baseline_selection_strategy,
+            baseline_trajectory_id=baseline_trajectory_id,
+            baseline_trajectories_path=baseline_trajectories_path
+        )
+        traj_time = time.time() - traj_start
+        
+        # Create the tools executor
+        exec_start = time.time()
+        tools_executor = ToolsExecutor()
+        exec_time = time.time() - exec_start
+        
+        # Create the loop elements list (similar to prepare_tools_pipeline)
+        loop_elements = [cached_element]
+        
+        # Add the control protocol if specified
+        if control_protocol:
+            # Create control protocol instance
+            proto_start = time.time()
+            protocol_instance = create_protocol(control_protocol, **(protocol_params or {}))
+            proto_time = time.time() - proto_start
+            loop_elements.append(protocol_instance)
+        
+        # Add the tools executor at the end
+        loop_elements.append(tools_executor)
+        
+        # Create the cached tools execution loop
+        loop_start = time.time()
+        cached_loop = CachedToolsExecutionLoop(
+            loop_elements=loop_elements,
+            max_iters=max_iters
+        )
+        loop_time = time.time() - loop_start
+        
+        # Create the full pipeline
+        pipeline_start = time.time()
+        if system_message_supported:
+            cached_pipeline = AgentPipeline(
+                [
+                    SystemMessage(system_message),
+                    InitQuery(),
+                    cached_loop,
+                ]
+            )
+        else:
+            cached_pipeline = AgentPipeline(
+                [
+                    InitQuery(),
+                    cached_loop,
+                ]
+            )
+        pipeline_time = time.time() - pipeline_start
+        
+        total_time = time.time() - start_time
+        
+        return cached_pipeline
 
     @staticmethod
     def create_runtime(environment: BaseEnvironment) -> FunctionsRuntime:

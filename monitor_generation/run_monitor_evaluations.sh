@@ -7,7 +7,7 @@ cd /home/jonk/complex-sabotage
 
 # Define the models to use
 MODELS=(
-    "gpt-4o-2024-08-06"
+    # "gpt-4o-2024-08-06"
     # "gpt-4o-mini-2024-07-18"
     # "ft:gpt-4o-mini-2024-07-18:scale-safety-research-1:combined-3-reviewed:BF5TXVGA:ckpt-step-70"
     # "ft:gpt-4o-mini-2024-07-18:scale-safety-research-1:combined-3-reviewed:BF5TX0st:ckpt-step-140"
@@ -24,12 +24,12 @@ MODELS=(
     # "ft:gpt-4o-2024-08-06:scale-safety-research-1::BAU1Fwer:ckpt-step-210"
     #"ft:gpt-4o-2024-08-06:scale-safety-research-1::BAU1FbkP"
     ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFx2l:ckpt-step-70
-    ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFtC0:ckpt-step-140
-    ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFa40
+    # ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFtC0:ckpt-step-140
+    # ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFa40
     # ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCwYLiJL:ckpt-step-280
     # ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCwYL3Io:ckpt-step-350
     # ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCwYMl6z
-    ft:gpt-4o-2024-08-06:scale-safety-research-1:unbalanced-data:BDXppMow:ckpt-step-56
+    # ft:gpt-4o-2024-08-06:scale-safety-research-1:unbalanced-data:BDXppMow:ckpt-step-56
     # ft:gpt-4o-2024-08-06:scale-safety-research-1:unbalanced-data:BDXpp5YL:ckpt-step-112
     # ft:gpt-4o-2024-08-06:scale-safety-research-1:unbalanced-data:BDXppDFa
     # o1

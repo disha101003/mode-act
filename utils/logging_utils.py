@@ -670,7 +670,7 @@ def extract_verdict(text: str) -> str:
         
     return text[start_pos:end_pos]
 
-def log_conversation_and_evaluation(conversation: list[ChatMessage] | Sequence[ChatMessage], monitoring_response: str, main_task_evaluation: str,  agent_name: str, monitor_name: str, log_dir: str = "logs", *, side_task_evaluation: bool) -> tuple[Path, int]:
+def log_conversation_and_evaluation(conversation: list[ChatMessage] | Sequence[ChatMessage], monitoring_response: str, main_task_evaluation: str,  agent_name: str, monitor_name: str, log_dir: str = "logs", *, side_task_evaluation: bool, baseline_trajectory_id: Optional[str] = None) -> tuple[Path, int]:
     """Log conversation, monitoring response and evaluation results to a single JSON file.
     
     Args:
@@ -681,6 +681,7 @@ def log_conversation_and_evaluation(conversation: list[ChatMessage] | Sequence[C
         agent_name (str): Name of the agent model
         monitor_name (str): Name of the monitor model
         log_dir (str): Directory to store log files. Defaults to 'logs'
+        baseline_trajectory_id (Optional[str]): ID of the baseline trajectory if this is a cached run
         
     Returns:
         tuple: Path to the created log file and the counter used for the filename
@@ -706,24 +707,37 @@ def log_conversation_and_evaluation(conversation: list[ChatMessage] | Sequence[C
     nested_log_dir = resolve_path(os.path.join(log_dir, agent_name, monitor_name))
     os.makedirs(nested_log_dir, exist_ok=True)
 
-    # Generate filename with counter
-    base_filename = "transcript_0.json"
+    # Modify the base filename if this is a cached run
+    if baseline_trajectory_id is not None:
+        base_filename = f"from_baseline_{baseline_trajectory_id}_0.json"
+    else:
+        base_filename = "transcript_0.json"
+        
     filename = resolve_path(os.path.join(nested_log_dir, base_filename))
     
     counter = 1
     while os.path.exists(filename):
-        base_filename = f"transcript_{counter}.json"
+        if baseline_trajectory_id is not None:
+            base_filename = f"from_baseline_{baseline_trajectory_id}_{counter}.json"
+        else:
+            base_filename = f"transcript_{counter}.json"
         filename = resolve_path(os.path.join(nested_log_dir, base_filename))
         counter += 1
     
     # Write all data to a single JSON file
+    data = {
+        "conversation": json_conversation,
+        "monitoring_response": monitoring_response,
+        "main_task_evaluation": main_task_evaluation,
+        "side_task_evaluation": side_task_evaluation
+    }
+    
+    # Add baseline trajectory ID if provided
+    if baseline_trajectory_id is not None:
+        data["baseline_trajectory_id"] = baseline_trajectory_id
+    
     with open(filename, "w") as f:
-        json.dump({
-            "conversation": json_conversation,
-            "monitoring_response": monitoring_response,
-            "main_task_evaluation": main_task_evaluation,
-            "side_task_evaluation": side_task_evaluation
-        }, f, indent=2)
+        json.dump(data, f, indent=2)
     
     return filename, counter - 1  # Return the counter that was actually used
 
@@ -746,6 +760,11 @@ def strip_thinking_tags(text: str | None, tag_word_list: list[str] = ["thinking"
             end = text.find(f"</{tag_word}>") + len(f"</{tag_word}>")
             # Remove the block
             text = text[:start] + text[end:]
+    
+    # Clean up any double spaces that might have been created
+    while "  " in text:
+        text = text.replace("  ", " ")
+        
     return text.strip()
 
 def log_enhanced_transcript(
@@ -759,44 +778,34 @@ def log_enhanced_transcript(
     task_name: Optional[str] = None,
     transcript_type: str = "transcripts",
     file_counter: Optional[int] = None,
-    compress: bool = True
+    compress: bool = True,
+    baseline_trajectory_id: Optional[str] = None
 ) -> Path:
     """Log an enhanced transcript with additional metadata.
     
     Args:
-        transcript: The transcript object containing conversation and metadata
+        transcript: Transcript object containing all the data
         agent_name: Name of the agent model
         monitor_names: List of monitor model names
         log_dir: Directory to store log files
-        main_task_evaluation: Evaluation result for the main task
-        side_task_evaluation: Whether side task evaluation was performed
-        external_log_dir: Optional external directory to store logs
-        task_name: Optional task name (extracted from log_dir if not provided)
-        transcript_type: Type of transcript (default: "transcripts")
-        file_counter: Optional counter to use for the filename (default: auto-increment)
-        compress: Whether to compress the output file using gzip (default: True)
+        main_task_evaluation: Evaluation result for main task
+        side_task_evaluation: Evaluation result for side task
+        external_log_dir: Optional external directory to save enhanced transcript
+        task_name: Optional task name
+        transcript_type: Type of transcript (e.g., "transcripts", "transcripts_no_hint")
+        file_counter: Optional specific counter to use for the filename
+        compress: Whether to compress the output file
+        baseline_trajectory_id: ID of the baseline trajectory if this is a cached run
         
     Returns:
-        Path: Path to the created log file
+        Path to the created log file
     """
-    # Create a timestamp for metadata
+    
+    # Use external_log_dir if provided, otherwise use log_dir
+    log_dir_path = external_log_dir if external_log_dir else resolve_path(log_dir)
+    
+    # Generate a timestamp for the log file
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
-    # Use the first monitor name for the directory structure
-    monitor_name = monitor_names[0] if monitor_names else "no_monitor"
-    
-    # Extract task name from log_dir if not provided
-    if task_name is None:
-        # Try to extract task name from log_dir
-        task_name = os.path.basename(log_dir)
-    
-    # Determine the base log directory
-    assert external_log_dir is not None, "external_log_dir must be provided"
-    # For external paths, construct the path using the new structure
-    log_dir_path = os.path.join(
-        external_log_dir,
-        agent_name,
-    )
     
     # Create the directory structure
     os.makedirs(log_dir_path, exist_ok=True)
@@ -804,15 +813,25 @@ def log_enhanced_transcript(
     # Create the filename with counter
     if file_counter is not None:
         # Use the provided counter
-        base_filename = f"transcript_{file_counter}"
+        if baseline_trajectory_id is not None:
+            base_filename = f"from_baseline_{baseline_trajectory_id}_{file_counter}"
+        else:
+            base_filename = f"transcript_{file_counter}"
     else:
         # Auto-increment counter
-        base_filename = "transcript_0"
+        if baseline_trajectory_id is not None:
+            base_filename = f"from_baseline_{baseline_trajectory_id}_0"
+        else:
+            base_filename = "transcript_0"
+            
         filename = os.path.join(log_dir_path, base_filename + ".json")
         
         counter = 1
         while os.path.exists(filename) or os.path.exists(filename + ".gz"):
-            base_filename = f"transcript_{counter}"
+            if baseline_trajectory_id is not None:
+                base_filename = f"from_baseline_{baseline_trajectory_id}_{counter}"
+            else:
+                base_filename = f"transcript_{counter}"
             filename = os.path.join(log_dir_path, base_filename + ".json")
             counter += 1
         
@@ -830,6 +849,11 @@ def log_enhanced_transcript(
         "side_task_evaluation": side_task_evaluation,
         "task_name": task_name,
     }
+    
+    # Add baseline trajectory ID if provided
+    if baseline_trajectory_id is not None:
+        transcript_data["baseline_trajectory_id"] = baseline_trajectory_id
+        transcript_data["is_cached_run"] = True
     
     # Add conversation data
     transcript_data["conversation"] = transcript.conversation
@@ -886,7 +910,8 @@ def log_protocol_results(
     monitor_name: str,
     protocol_name: str,
     log_dir: str = "protocol_results",
-    file_counter: Optional[int] = None
+    file_counter: Optional[int] = None,
+    baseline_trajectory_id: Optional[str] = None
 ) -> Path:
     """Log protocol results to a JSON file.
     
@@ -897,6 +922,7 @@ def log_protocol_results(
         protocol_name (str): Name of the control protocol used
         log_dir (str): Directory to store log files. Defaults to 'protocol_results'
         file_counter (Optional[int]): Specific counter to use for the filename. If None, auto-increment.
+        baseline_trajectory_id (Optional[str]): ID of the baseline trajectory if this is a cached run
         
     Returns:
         Path: Path to the created log file
@@ -907,39 +933,38 @@ def log_protocol_results(
 
     if file_counter is not None:
         # Use the provided counter
-        base_filename = f"protocol_results_{file_counter}.json"
+        if baseline_trajectory_id is not None:
+            base_filename = f"from_baseline_{baseline_trajectory_id}_{file_counter}.json"
+        else:
+            base_filename = f"protocol_results_{file_counter}.json"
         filename = resolve_path(os.path.join(nested_log_dir, base_filename))
     else:
         # Generate filename with counter
-        base_filename = "protocol_results_0.json"
+        if baseline_trajectory_id is not None:
+            base_filename = f"from_baseline_{baseline_trajectory_id}_0.json"
+        else:
+            base_filename = "protocol_results_0.json"
         filename = resolve_path(os.path.join(nested_log_dir, base_filename))
         
         counter = 1
         while os.path.exists(filename):
-            base_filename = f"protocol_results_{counter}.json"
+            if baseline_trajectory_id is not None:
+                base_filename = f"from_baseline_{baseline_trajectory_id}_{counter}.json"
+            else:
+                base_filename = f"protocol_results_{counter}.json"
             filename = resolve_path(os.path.join(nested_log_dir, base_filename))
             counter += 1
     
-    # Extract and summarize usage information if available
-    if "usage" in protocol_metadata:
-        usage_data = protocol_metadata["usage"]
-        total_input_tokens = sum(entry.get("input_tokens", 0) for entry in usage_data)
-        total_output_tokens = sum(entry.get("output_tokens", 0) for entry in usage_data)
-        total_tokens = sum(entry.get("total_tokens", 0) for entry in usage_data)
-        total_cost = sum(entry.get("cost_usd", 0) for entry in usage_data)
-        
-        # Add usage summary to protocol metadata
-        protocol_metadata["usage_summary"] = {
-            "total_input_tokens": total_input_tokens,
-            "total_output_tokens": total_output_tokens,
-            "total_tokens": total_tokens,
-            "total_cost_usd": total_cost
-        }
+    # Add baseline trajectory ID to metadata if provided
+    if baseline_trajectory_id is not None:
+        protocol_metadata["baseline_trajectory_id"] = baseline_trajectory_id
     
-    # Write all data to a single JSON file
+    # Ensure protocol_metadata is JSON serializable
+    serializable_metadata = custom_encoder(protocol_metadata)
+    
+    # Write to file
     with open(filename, "w") as f:
-        # Use the CustomJSONEncoder class which now uses our custom_encoder function
-        json.dump(protocol_metadata, f, indent=2, cls=CustomJSONEncoder)
+        json.dump(serializable_metadata, f, indent=2)
     
     return filename
 

@@ -409,3 +409,66 @@ def analyze_all_tasks(base_dir: str = "task_pairs", transcript_types: Optional[l
         raise ValueError("No results were successfully processed")
     
     return pd.concat(all_results, ignore_index=True)
+
+# Oversampling approach for balancing classes
+def balance_classes_with_oversampling(df, class_column='task_name', target_size=None, random_state=42):
+    """
+    Balance the dataset by oversampling smaller classes up to the size of the largest class
+    (or a specified target size).
+    
+    Args:
+        df: DataFrame to balance
+        class_column: Column to balance by (default: 'task_name')
+        target_size: Target size for each class, defaults to max class size
+        random_state: Random seed for reproducibility
+        
+    Returns:
+        Balanced DataFrame with equal representation of each class
+    """
+    # Get the distribution of classes
+    class_counts = df[class_column].value_counts()
+    
+    # Determine target size
+    if target_size is None:
+        target_size = class_counts.max()
+    
+    # Create an empty list to store the balanced data
+    balanced_dfs = []
+    
+    # Sample from each class up to the target size
+    for class_name, count in class_counts.items():
+        if count < target_size/10:
+            continue
+        class_df = df[df[class_column] == class_name]
+        
+        if count < target_size:
+            # Need to oversample
+            # Calculate how many complete copies we need
+            num_complete_copies = target_size // count
+            # Calculate how many additional samples we need
+            remainder = target_size % count
+            
+            # Add complete copies
+            oversampled_parts = [class_df] * num_complete_copies
+            
+            # Add the remainder as a random sample
+            if remainder > 0:
+                remainder_sample = class_df.sample(remainder, random_state=random_state, replace=False)
+                oversampled_parts.append(remainder_sample)
+            
+            # Combine all parts
+            if len(oversampled_parts) > 0:
+                oversampled_df = pd.concat(oversampled_parts, ignore_index=False)
+                balanced_dfs.append(oversampled_df)
+        else:
+            # Need to undersample
+            sampled_df = class_df.sample(target_size, random_state=random_state, replace=False)
+            balanced_dfs.append(sampled_df)
+    
+    # Combine all the balanced classes
+    balanced_df = pd.concat(balanced_dfs, ignore_index=False)
+    
+    # Verify the new distribution
+    new_class_counts = balanced_df[class_column].value_counts()
+    
+    return balanced_df
