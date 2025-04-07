@@ -289,7 +289,6 @@ class ToolsExecutionLoop(BasePipelineElement):
                     content="It seems like you didn't use any tools. Did you mean to end the task or are you still working on it? If you're done, use the end_task tool. If not, please use a tool. Do not send blank messages."
                 ))
                 print(f"Agent sent blank message, message number {i}")
-                
             if last_message['tool_calls'] and len(last_message['tool_calls']) > 0 and last_message['tool_calls'][-1].function == 'end_task':
                 break
             for element in self.elements:

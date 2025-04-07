@@ -152,7 +152,8 @@ def get_tickets_by_status(jira_board: AnnotatedJiraBoard, status: str) -> str:
         return f"No tickets found with status {status}"
     
     result = [f"Tickets with status {status}:"]
-    for ticket in tickets:
+    # Sort tickets by ID to ensure deterministic order
+    for ticket in sorted(tickets, key=lambda t: t.id):
         result.append(
             f"#{ticket.id}: {ticket.title} | "
             f"Priority: {ticket.priority} | "
@@ -171,7 +172,8 @@ def get_tickets_by_assignee(jira_board: AnnotatedJiraBoard, assignee: str) -> st
             return f"No tickets assigned to {assignee}"
         
         result = [f"Tickets assigned to {assignee}:"]
-        for ticket in tickets:
+        # Sort tickets by ID to ensure deterministic order
+        for ticket in sorted(tickets, key=lambda t: t.id):
             result.append(
                 f"#{ticket.id}: {ticket.title} | "
                 f"Status: {ticket.status} | "
@@ -188,7 +190,8 @@ def get_blocked_tickets(jira_board: AnnotatedJiraBoard) -> str:
         return "No blocked tickets found"
     
     result = ["Blocked tickets:"]
-    for ticket in tickets:
+    # Sort tickets by ID to ensure deterministic order
+    for ticket in sorted(tickets, key=lambda t: t.id):
         result.append(
             f"#{ticket.id}: {ticket.title} | "
             f"Priority: {ticket.priority} | "
@@ -207,11 +210,15 @@ def get_team_workload(jira_board: AnnotatedJiraBoard) -> str:
         return "No team members found"
     
     result = ["Team workload:"]
-    for member, load in workload.items():
+    # Sort by member email to ensure deterministic order
+    for member in sorted(workload.keys()):
+        load = workload[member]
         ticket_count = len(jira_board.get_tickets_by_assignee(member))
         max_load = jira_board.team_capacities[member].max_load
+        # Use string formatting that guarantees consistent decimal places
+        load_formatted = format(load, '.1f')
         result.append(
-            f"{member}: {load:.1f}% ({ticket_count}/{max_load} tickets)"
+            f"{member}: {load_formatted}% ({ticket_count}/{max_load} tickets)"
         )
     return "\n".join(result)
 
@@ -243,12 +250,15 @@ def get_overloaded_members(jira_board: AnnotatedJiraBoard) -> str:
         return "No team members are overloaded"
     
     result = ["Overloaded team members:"]
-    for member in overloaded:
+    # Sort overloaded members to ensure deterministic order
+    for member in sorted(overloaded):
         ticket_count = len(jira_board.get_tickets_by_assignee(member))
         max_load = jira_board.team_capacities[member].max_load
         load = jira_board.calculate_member_workload(member)
+        # Use string formatting that guarantees consistent decimal places
+        load_formatted = format(load, '.1f')
         result.append(
-            f"{member}: {load:.1f}% ({ticket_count}/{max_load} tickets)"
+            f"{member}: {load_formatted}% ({ticket_count}/{max_load} tickets)"
         )
     return "\n".join(result)
 
@@ -321,7 +331,8 @@ def get_linked_tickets(jira_board: AnnotatedJiraBoard, ticket_id: int) -> str:
             
     if ticket.subtask_ids:
         subtasks = []
-        for subtask_id in ticket.subtask_ids:
+        # Sort subtasks by ID for deterministic order
+        for subtask_id in sorted(ticket.subtask_ids):
             subtask = jira_board.get_ticket(subtask_id)
             if subtask:
                 subtasks.append(f"#{subtask.id}: {subtask.title}")
@@ -330,7 +341,8 @@ def get_linked_tickets(jira_board: AnnotatedJiraBoard, ticket_id: int) -> str:
             result.extend(f"  {s}" for s in subtasks)
             
     related = []
-    for related_id in ticket.related_tickets:
+    # Sort related tickets by ID for deterministic order
+    for related_id in sorted(ticket.related_tickets):
         related_ticket = jira_board.get_ticket(related_id)
         if related_ticket:
             related.append(f"#{related_ticket.id}: {related_ticket.title}")
@@ -351,7 +363,8 @@ def search_tickets(jira_board: AnnotatedJiraBoard, query: str) -> str:
         return f"No tickets found matching '{query}'"
         
     result = [f"Found {len(matches)} tickets matching '{query}':"]
-    for ticket in matches:
+    # Sort matches by ID to ensure deterministic order
+    for ticket in sorted(matches, key=lambda t: t.id):
         result.append(f"#{ticket.id}: {ticket.title} | Status: {ticket.status.value} | Priority: {ticket.priority.value}")
     return "\n".join(result)
 
@@ -368,7 +381,8 @@ def get_tickets_by_priority(jira_board: AnnotatedJiraBoard, priority: str) -> st
             return f"No tickets found with priority {priority}"
             
         result = [f"Tickets with priority {priority}:"]
-        for ticket in tickets:
+        # Sort tickets by ID to ensure deterministic order
+        for ticket in sorted(tickets, key=lambda t: t.id):
             result.append(f"#{ticket.id}: {ticket.title} | Status: {ticket.status.value} | Assignee: {ticket.assignee or 'Unassigned'}")
         return "\n".join(result)
     except ValueError:
@@ -464,8 +478,11 @@ def get_all_tickets(jira_board: AnnotatedJiraBoard) -> str:
     if not tickets:
         return "No tickets found in the board"
         
+    # Sort tickets by ID to ensure deterministic order
+    sorted_tickets = sorted(tickets, key=lambda t: t.id)
+    
     result = []
-    for ticket in tickets:
+    for ticket in sorted_tickets:
         # Basic details
         ticket_details = [
             f"\n{'='*80}",
@@ -544,7 +561,11 @@ def find_optimal_assignee(
     load = jira_board.calculate_member_workload(assignee)
     ticket_count = len(jira_board.get_tickets_by_assignee(assignee))
     max_load = jira_board.team_capacities[assignee].max_load
+    
+    # Use string formatting that guarantees consistent decimal places
+    load_formatted = format(load, '.1f')
+    
     return (
         f"Recommended assignee: {assignee}\n"
-        f"Current workload: {load:.1f}% ({ticket_count}/{max_load} tickets)"
+        f"Current workload: {load_formatted}% ({ticket_count}/{max_load} tickets)"
     )

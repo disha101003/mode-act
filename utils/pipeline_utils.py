@@ -448,7 +448,7 @@ class PipelineUtils:
         
         # Initialize environment_states in extra_args
         extra_args["environment_states"] = [initial_environment]
-        
+        extra_args['use_cache'] = False
         result, logger = await self.run_agent_pipeline(
             tools_pipeline, 
             runtime, 

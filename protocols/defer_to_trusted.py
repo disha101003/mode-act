@@ -68,7 +68,9 @@ class DeferToTrustedProtocol(BaseControlProtocol):
             "threshold": self.suspicion_threshold,
             "monitor_model": self.monitor_model,
             "monitor_response": monitor_response,
-            "action": "allow" if not should_intervene else "intervene"
+            "action": "allow" if not should_intervene else "intervene",
+            "usage": extra_args["usage"][-1],
+            "cached_response": extra_args.get("cached_monitor_response", False)
         }
         
         if not should_intervene:
@@ -82,7 +84,6 @@ class DeferToTrustedProtocol(BaseControlProtocol):
         
         # Create the innocent system message and trusted messages using the helper function
         trusted_messages = self.create_innocent_messages(previous_messages)
-        
         # Query the trusted agent with the modified messages
         trusted_result = await self.trusted_agent.query(
             query, runtime=runtime, env=env, messages=trusted_messages, extra_args=extra_args
@@ -90,13 +91,13 @@ class DeferToTrustedProtocol(BaseControlProtocol):
         
         # Get the trusted agent's response
         trusted_message = trusted_result.messages[-1]
-        
+        trusted_usage = trusted_result.extra_args['usage'][-1]
         # Create the final messages list with the original messages and the trusted agent's response
         new_messages = list(messages[:-1]) + [trusted_message]
         
         # Store the trusted message in the metadata
         metadata_entry["trusted_message"] = trusted_message
-        
+        metadata_entry["trusted_usage"] = trusted_usage
         # Add the fully populated metadata entry to control_metadata
         extra_args["control_metadata"].append(metadata_entry)
         

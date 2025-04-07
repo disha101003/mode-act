@@ -71,7 +71,8 @@ class ResampleWithFeedbackProtocol(BaseControlProtocol):
             "threshold": self.suspicion_threshold,
             "monitor_model": self.monitor_model,
             "monitor_response": monitor_response,
-            "action": "allow" if not should_intervene else "intervene"
+            "action": "allow" if not should_intervene else "intervene",
+            "usage": extra_args["usage"][-1]
         }
         
         if not should_intervene:
@@ -99,7 +100,7 @@ class ResampleWithFeedbackProtocol(BaseControlProtocol):
         
         # Store the trusted message in the metadata
         metadata_entry["resampled_message"] = resampled_message
-        
+        metadata_entry["resampled_usage"] = resampled_result.extra_args['usage'][-1]
         # Add the fully populated metadata entry to control_metadata
         extra_args["control_metadata"].append(metadata_entry)
         

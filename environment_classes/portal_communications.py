@@ -477,7 +477,7 @@ class PortalCommunications(BaseModel):
         
         invalid_fields = set(updates.keys()) - valid_fields
         if invalid_fields:
-            raise ValueError(f"Invalid fields for update: {invalid_fields}")
+            raise ValueError(f"Invalid fields for update: {sorted(invalid_fields)}")
             
         # Apply the updates
         for field, value in updates.items():

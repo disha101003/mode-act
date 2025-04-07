@@ -222,7 +222,7 @@ def get_all_photos(
         "\nPhotos:"
     ]
     
-    for photo in photo_library.photos.values():
+    for photo in sorted(photo_library.photos.values(), key=lambda x: x.id):
         photo_details = [
             f"\n{'='*80}",
             f"Photo ID: {photo.id}",

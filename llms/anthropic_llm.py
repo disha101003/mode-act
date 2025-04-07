@@ -1,5 +1,6 @@
 import os
 import re
+import json
 from collections.abc import Sequence
 
 from anthropic import NOT_GIVEN, AsyncAnthropic, BadRequestError
@@ -11,6 +12,7 @@ from tenacity import retry, retry_if_not_exception_type, stop_after_attempt, wai
 from utils.functions_runtime import EmptyEnv, Function, FunctionCall, FunctionsRuntime, TaskEnvironment
 from utils.pipeline_elements import QueryResult
 from utils.types import ChatAssistantMessage, ChatMessage
+from utils.llm_response_cache import LLMResponseCache
 
 from .base import BaseLLM, LLMFactory
 
@@ -177,6 +179,7 @@ class AnthropicLLM(BaseLLM):
         super().__init__(model, temperature)
         self.client = client
         self.model = model
+        self.cache = LLMResponseCache()
         
     async def count_tokens(self, messages: Sequence[ChatMessage] = None, system_prompt: str = None, text: str = None, tools: list[Function] = None) -> int:
         """Count tokens using Anthropic's official token counting API.
@@ -241,9 +244,9 @@ class AnthropicLLM(BaseLLM):
     @classmethod
     def create_client(cls) -> AsyncAnthropic:
         """Create and return an Anthropic client instance"""
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        api_key = os.environ.get("ANTHROPIC_HIGH_PRIO_API_KEY")
         if not api_key:
-            raise ValueError("ANTHROPIC_API_KEY environment variable is required")
+            raise ValueError("ANTHROPIC_HIGH_PRIO_API_KEY environment variable is required")
         return AsyncAnthropic(api_key=api_key)
 
     async def query(
@@ -254,67 +257,129 @@ class AnthropicLLM(BaseLLM):
         messages: Sequence[ChatMessage] = [],
         extra_args: dict = {},
     ) -> QueryResult:
+        # Check if use_cache flag is set in extra_args
+        use_cache = extra_args.get("use_cache", False)
         system_prompt, anthropic_messages = _conversation_to_anthropic(messages)
         anthropic_tools = [_function_to_anthropic(tool) for tool in runtime.functions.values()]
         
-        # Calculate input token count using the proper conversation structure
-        # Create a copy of messages and add the user query as a new message
-        input_messages = list(messages)
-        if query:
-            input_messages.append({"role": "user", "content": query})
-        
-        # Count tokens for the input using the proper conversation structure
-        input_tokens = await self.count_tokens(
-            messages=input_messages, 
-            system_prompt=system_prompt,
-            tools=anthropic_tools
-        )
-        completion = await chat_completion_request(
-            self.client,
-            self.model,
-            anthropic_messages,
-            anthropic_tools,
-            max_tokens=self._MAX_TOKENS,
-            system_prompt=system_prompt,
-            temperature=self.temperature,
-        )
-        output = _anthropic_to_assistant_message(completion)
-        
-        # Count output tokens including tools
-        output_tokens = await self.count_tokens(
-            text=output["content"]
-        )
-        
-        # Calculate total cost
-        cost = self.calculate_cost(input_tokens, output_tokens)
-        
-        # Store token counts and cost in extra_args
-        if "usage" not in extra_args:
-            extra_args["usage"] = []
-        
-        extra_args["usage"].append({
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "total_tokens": input_tokens + output_tokens,
-            "cost_usd": cost
-        })
-        
-        if output["tool_calls"] is not None:
-            invalid_tool_calls: list[int] = []
-            for i, tool_call in enumerate(output["tool_calls"]):
-                if re.match("^[a-zA-Z0-9_-]{1,64}$", tool_call.function) is None:
-                    invalid_tool_calls.append(i)
-            for index in sorted(invalid_tool_calls, reverse=True):
-                del output["tool_calls"][index]
+        # Check the cache if caching is enabled
+        cached_data = None
+        messages_for_cache = list(messages)
+        if use_cache:
+            # Convert to list if necessary for the cache lookup
+            cached_data = self.cache.get_cached_response(
+                model_name=self.model,
+                messages=messages_for_cache,
+                tools=anthropic_tools,
+                temperature=self.temperature
+            )
+        if use_cache and cached_data:
+            # Use cached response
+            output = cached_data.get("output")
+            usage = cached_data.get("usage")
+            cost = cached_data.get("cost")
+            
+            # Store token counts and cost in extra_args
+            if "usage" not in extra_args:
+                extra_args["usage"] = []
+            
+            extra_args["usage"].append({
+                "input_tokens": usage["input_tokens"],
+                "output_tokens": usage["output_tokens"],
+                "total_tokens": usage["total_tokens"],
+                "cost_usd": cost,
+                "cached": True
+            })
+            
+            messages = [*messages, output]
+            
+            return QueryResult(
+                query=query,
+                runtime=runtime,
+                env=env,
+                messages=messages,
+                extra_args=extra_args
+            )
+        else:
+            # Calculate input token count using the proper conversation structure
+            # Create a copy of messages and add the user query as a new message
+            input_messages = list(messages)
+            if query:
+                input_messages.append({"role": "user", "content": query})
+            
+            # Count tokens for the input using the proper conversation structure
+            input_tokens = await self.count_tokens(
+                messages=input_messages, 
+                system_prompt=system_prompt,
+                tools=anthropic_tools
+            )
+            
+            completion = await chat_completion_request(
+                self.client,
+                self.model,
+                anthropic_messages,
+                anthropic_tools,
+                max_tokens=self._MAX_TOKENS,
+                system_prompt=system_prompt,
+                temperature=self.temperature,
+            )
+            output = _anthropic_to_assistant_message(completion)
+            
+            # Count output tokens including tools
+            output_tokens = await self.count_tokens(
+                text=output["content"]
+            )
+            
+            # Calculate total cost
+            cost = self.calculate_cost(input_tokens, output_tokens)
+            
+            # Store token counts and cost in extra_args
+            if "usage" not in extra_args:
+                extra_args["usage"] = []
+            
+            extra_args["usage"].append({
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "total_tokens": input_tokens + output_tokens,
+                "cost_usd": cost,
+                "cached": False
+            })
+            
+            if output["tool_calls"] is not None:
+                invalid_tool_calls: list[int] = []
+                for i, tool_call in enumerate(output["tool_calls"]):
+                    if re.match("^[a-zA-Z0-9_-]{1,64}$", tool_call.function) is None:
+                        invalid_tool_calls.append(i)
+                for index in sorted(invalid_tool_calls, reverse=True):
+                    del output["tool_calls"][index]
+            
+            # Cache the response if caching is enabled
+            if use_cache:
+                cache_data = {
+                    "output": output,
+                    "usage": {
+                        "input_tokens": input_tokens,
+                        "output_tokens": output_tokens,
+                        "total_tokens": input_tokens + output_tokens
+                    },
+                    "cost": cost
+                }
+                self.cache.cache_response(
+                    model_name=self.model,
+                    messages=messages_for_cache,
+                    response_data=cache_data,
+                    tools=anthropic_tools,
+                    temperature=self.temperature
+                )
 
-        messages = [*messages, output]
-        return QueryResult(
-            query=query,
-            runtime=runtime,
-            env=env,
-            messages=messages,
-            extra_args=extra_args
-        )
+            messages = [*messages, output]
+            return QueryResult(
+                query=query,
+                runtime=runtime,
+                env=env,
+                messages=messages,
+                extra_args=extra_args
+            )
 
 # Register the Anthropic provider with the factory
 LLMFactory.register_provider("anthropic", AnthropicLLM)

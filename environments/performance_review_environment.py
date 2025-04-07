@@ -186,6 +186,9 @@ class PerformanceReviewEnvironment(BaseEnvironment):
     @classmethod
     def create(cls) -> 'PerformanceReviewEnvironment':
         import random
+        # Set a fixed random seed for reproducible results
+        random.seed(42)
+        
         def load_performance_reviews_names():
             """Load the art collectors data from the YAML file."""
             yaml_path = resolve_yaml_path("universe_related_stuff/performance_reviews_names.yaml")

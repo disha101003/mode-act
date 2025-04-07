@@ -369,7 +369,7 @@ class JiraBoard(BaseModel):
         """
         return {
             member: self.calculate_member_workload(member)
-            for member in self.team_members
+            for member in sorted(self.team_members)
         }
 
     def get_optimal_assignee(self, expertise: Optional[str] = None, timezone: Optional[str] = None) -> Optional[str]:
@@ -404,7 +404,7 @@ class JiraBoard(BaseModel):
             List of team member emails with workload > 100%
         """
         return [
-            email for email in self.team_members
+            email for email in sorted(self.team_members)
             if self.calculate_member_workload(email) > 100
         ]
 

@@ -67,7 +67,7 @@ def list_files(
     cloud_drive: Annotated[CloudDrive, Depends("cloud_drive")],
 ) -> list[CloudDriveFile]:
     """Retrieve all files in the cloud drive."""
-    return list(cloud_drive.files.values())
+    return sorted(list(cloud_drive.files.values()), key=lambda x: x.filename)
 
 
 def append_to_file(

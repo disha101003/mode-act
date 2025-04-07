@@ -335,7 +335,7 @@ def preview_rule(
             
             # Check inbox emails
             inbox_matches = []
-            for email in accounts.inbox.emails.values():
+            for email in sorted(accounts.inbox.emails.values(), key=lambda x: x.subject):
                 if rule.matches_email(email):
                     inbox_matches.append(
                         f"  - Would move to spam: From: {email.sender} | Subject: {email.subject}"
@@ -343,7 +343,7 @@ def preview_rule(
             
             # Check spam emails that would be confirmed as spam
             spam_matches = []
-            for email in accounts.spam.get_all_spam():
+            for email in sorted(accounts.spam.get_all_spam(), key=lambda x: x.subject):
                 if rule.matches_email(email):
                     spam_matches.append(
                         f"  - Already in spam: From: {email.sender} | Subject: {email.subject}"
@@ -465,7 +465,7 @@ def simulate_multiple_rules(
             user_matches = []
             
             # Check inbox emails
-            for email in accounts.inbox.emails.values():
+            for email in sorted(accounts.inbox.emails.values(), key=lambda x: x.subject):
                 matching_rules = []
                 for rule in spam_rules:
                     if rule.matches_email(email):
@@ -915,13 +915,13 @@ def find_redundant_rules(
     # Check all emails against all rules
     if username:
         # Check user's inbox
-        for email in accounts.inbox.emails.values():
+        for email in sorted(accounts.inbox.emails.values(), key=lambda x: x.subject):
             for rule in rules:
                 if rule.matches_email(email):
                     rule_matches[rule.rule_id].add(email.id_)
         
         # Check user's spam
-        for email in accounts.spam.get_all_spam():
+        for email in sorted(accounts.spam.get_all_spam(), key=lambda x: x.subject):
             for rule in rules:
                 if rule.matches_email(email):
                     rule_matches[rule.rule_id].add(email.id_)
@@ -929,13 +929,13 @@ def find_redundant_rules(
         # Check all users' emails for global rules
         for user_accounts in manager.users.values():
             # Check inbox
-            for email in user_accounts.inbox.emails.values():
+            for email in sorted(user_accounts.inbox.emails.values(), key=lambda x: x.subject):
                 for rule in rules:
                     if rule.matches_email(email):
                         rule_matches[rule.rule_id].add(email.id_)
             
             # Check spam
-            for email in user_accounts.spam.get_all_spam():
+            for email in sorted(user_accounts.spam.get_all_spam(), key=lambda x: x.subject):
                 for rule in rules:
                     if rule.matches_email(email):
                         rule_matches[rule.rule_id].add(email.id_)

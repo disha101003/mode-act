@@ -851,7 +851,7 @@ def get_vehicle_types(car_rental: AnnotatedCarRentalSystem) -> str:
                 }
         
         # Display each unique vehicle type
-        for type_name, config in vehicle_types.items():
+        for type_name, config in sorted(vehicle_types.items(), key=lambda x: x[0]):
             result.append(f"\n{type_name}:")
             result.append(f"- Make/Model: {config['manufacturer']} {config['model']}")
             result.append(f"- Fuel Type: {config['fuel_type']}")

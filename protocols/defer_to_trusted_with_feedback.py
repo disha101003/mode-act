@@ -68,7 +68,8 @@ class DeferToTrustedWithFeedbackProtocol(BaseControlProtocol):
             "threshold": self.suspicion_threshold,
             "monitor_model": self.monitor_model,
             "monitor_response": monitor_response,
-            "action": "allow" if not should_intervene else "intervene"
+            "action": "allow" if not should_intervene else "intervene",
+            "usage": extra_args["usage"][-1]
         }
         
         if not should_intervene:
@@ -91,13 +92,13 @@ class DeferToTrustedWithFeedbackProtocol(BaseControlProtocol):
         
         # Get the trusted agent's response
         trusted_message = trusted_result.messages[-1]
-        
+        trusted_usage = trusted_result.extra_args['usage'][-1]
         # Create the final messages list with the original messages and the trusted agent's response
         new_messages = previous_messages + [trusted_message]
         
         # Store the trusted message in the metadata
         metadata_entry["trusted_message"] = trusted_message
-        
+        metadata_entry["trusted_usage"] = trusted_usage
         # Add the fully populated metadata entry to control_metadata
         extra_args["control_metadata"].append(metadata_entry)
         

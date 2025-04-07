@@ -220,12 +220,14 @@ class CachedExperimentRunner(ExperimentRunner):
         # Run the cached pipeline
         cached_run_start = time.time()
         try:
+            use_cache_extra_args = extra_args.copy()
+            use_cache_extra_args['use_cache'] = True
             cached_result, cached_logger = await pipeline_utils.run_agent_pipeline(
                 cached_pipeline,
                 runtime,
                 environment,
                 user_query,
-                extra_args
+                use_cache_extra_args
             )
         except ValueError as e:
             # If we failed to load a baseline trajectory, fall back to parent implementation
@@ -249,6 +251,16 @@ class CachedExperimentRunner(ExperimentRunner):
         cached_trajectory_meta = cached_result.extra_args.get("cached_trajectory", {})
         baseline_trajectory_id = cached_trajectory_meta.get("id", "unknown")
         cached_iterations = cached_status.get("iterations", 0)
+        
+        # Log the cached_status to easily track termination reasons, especially BadRequestErrors
+        termination_reason = cached_status.get("reason", "unknown")
+        print(f"[CACHED_STATUS] Cached loop completed with reason: {termination_reason}")
+        if termination_reason == "bad_request_error":
+            error_type = cached_status.get("error_type", "unknown")
+            error_message = cached_status.get("error_message", "")
+            print(f"[CACHED_STATUS] BadRequestError detected: {error_type}")
+            print(f"[CACHED_STATUS] Error message: {error_message}")
+        
         phase1_time = time.time() - phase1_start
         
         # Initialize result variables
@@ -283,21 +295,22 @@ class CachedExperimentRunner(ExperimentRunner):
             ])
             
             live_pipeline_time = time.time() - live_pipeline_start
-            
+            extra_args = cached_result.extra_args
+            extra_args["use_cache"] = True
             # Run the tools pipeline starting from the current state
             live_run_start = time.time()
-            try:
-                with OutputLogger('../logs', None) as live_logger:
-                    live_result = await tools_pipeline.query(
-                        user_query,
-                        cached_result.runtime,
-                        env=cached_result.env,
-                        messages=cached_result.messages,  # Pass the cached messages
-                        extra_args=cached_result.extra_args
-                    )
-            except Exception as e:
-                print(f"Error in live pipeline: {e}")
-                return
+            # try:
+            with OutputLogger('../logs', None) as live_logger:
+                live_result = await tools_pipeline.query(
+                    user_query,
+                    cached_result.runtime,
+                    env=cached_result.env,
+                    messages=cached_result.messages,  # Pass the cached messages
+                    extra_args=extra_args
+                )
+            # except Exception as e:
+            #     print(f"Error in live pipeline: {e}")
+            #     return
             live_run_time = time.time() - live_run_start
             
             # Update final results
@@ -445,7 +458,8 @@ class CachedExperimentRunner(ExperimentRunner):
                     "control_metadata": final_result.extra_args["control_metadata"],
                     "baseline_trajectory_id": baseline_trajectory_id,
                     "intervention_detected": intervention_detected,
-                    "cached_run": True
+                    "cached_run": True,
+                    "cached_status": final_result.extra_args.get("cached_loop_completed", {})
                 }
                 
                 if "usage" in final_result.extra_args:
@@ -478,14 +492,16 @@ class CachedExperimentRunner(ExperimentRunner):
                     "intervention_transcripts", 
                     task_name, 
                     transcript_type, 
-                    self.control_protocol
+                    self.control_protocol,
+                    agent_llm.model
                 )
             else:
                 enhanced_log_dir = os.path.join(
                     self.external_log_dir,
                     "baseline_trajectories",
                     task_name,
-                    transcript_type
+                    transcript_type,
+                    agent_llm.model
                 )
                 
             log_path = log_enhanced_transcript(

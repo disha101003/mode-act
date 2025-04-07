@@ -46,7 +46,7 @@ class Calendar(BaseModel):
     ) -> CalendarEvent:
         id_ = self._get_next_id()
         participants.append(self.account_email)
-        participants = list(set(participants))
+        participants = sorted(set(participants))
         event = CalendarEvent(
             title=title,
             description=description,

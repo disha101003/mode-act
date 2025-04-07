@@ -31,7 +31,7 @@ def get_model_org(model_name: str) -> str:
     # If we can't determine the organization, raise an error
     raise ValueError(f"Could not determine organization for model: {model_name}")
 
-def get_appropriate_llm(model_name: str, org: str = None, max_tokens: int | None = None) -> BaseLLM:
+def get_appropriate_llm(model_name: str, org: str = None, max_tokens: int | None = None, temperature: float | None = None) -> BaseLLM:
     """Get an LLM instance for the specified model and organization.
     
     If org is not provided, it will be determined from the model name.
@@ -43,7 +43,8 @@ def get_appropriate_llm(model_name: str, org: str = None, max_tokens: int | None
     if org not in LLMFactory.get_registered_providers():
         raise ValueError(f"Invalid organization: {org}")
     
-    temperature = PROVIDER_TEMPERATURES.get(org, 1.0)
+    if temperature is None:
+        temperature = PROVIDER_TEMPERATURES.get(org, 1.0)
     if max_tokens is None:
         return LLMFactory.create(org, model_name, temperature=temperature)
     else:

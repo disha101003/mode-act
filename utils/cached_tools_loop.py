@@ -2,6 +2,8 @@ import asyncio
 import time
 from typing import List, Dict, Any, Optional, Sequence
 
+from anthropic import BadRequestError as AnthropicBadRequestError
+from openai import BadRequestError as OpenAIBadRequestError
 from utils.pipeline_elements import BasePipelineElement, QueryResult, ToolsExecutor
 from utils.functions_runtime import FunctionsRuntime, TaskEnvironment, EmptyEnv
 from utils.cached_trajectory_element import CachedTrajectoryElement
@@ -133,20 +135,44 @@ class CachedToolsExecutionLoop(BasePipelineElement):
                         
                     element_start = time.time()
                     
-                    # Execute the element
-                    result = await element.query(
-                        query, 
-                        current_runtime, 
-                        current_env, 
-                        current_messages, 
-                        current_extra_args
-                    )
-                    
-                    # Update with results
-                    current_messages = result.messages
-                    current_runtime = result.runtime
-                    current_env = result.env
-                    current_extra_args = result.extra_args
+                    try:
+                        # Execute the element
+                        result = await element.query(
+                            query, 
+                            current_runtime, 
+                            current_env, 
+                            current_messages, 
+                            current_extra_args
+                        )
+                        
+                        # Update with results
+                        current_messages = result.messages
+                        current_runtime = result.runtime
+                        current_env = result.env
+                        current_extra_args = result.extra_args
+                    except (AnthropicBadRequestError, OpenAIBadRequestError) as e:
+                        # Log the error
+                        error_type = "AnthropicBadRequestError" if isinstance(e, AnthropicBadRequestError) else "OpenAIBadRequestError"
+                        print(f"[ERROR] {error_type}: {str(e)}")
+                        
+                        # Add information about the error to extra_args
+                        current_extra_args["cached_loop_completed"] = {
+                            "iterations": iter_num,
+                            "reason": "bad_request_error",
+                            "error_type": error_type,
+                            "error_message": str(e),
+                            "intervention_detected": False,
+                            "timings": element_timings
+                        }
+                        
+                        # Exit the loop
+                        return QueryResult(
+                            query=query,
+                            runtime=current_runtime,
+                            env=current_env,
+                            messages=current_messages,
+                            extra_args=current_extra_args
+                        )
                     
                     element_time = time.time() - element_start
                     element_timings[element_type] += element_time

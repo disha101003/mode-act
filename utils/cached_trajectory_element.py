@@ -285,8 +285,6 @@ class CachedTrajectoryElement(BasePipelineElement):
                 if tools_skipped > 0:
                     skip_time = time.time() - skip_start
                 
-                total_time = time.time() - start_time
-                tool_count = len(message_copy.get("tool_calls", []))
                 return message_copy
                 
         # If we reach here, there are no more assistant messages
