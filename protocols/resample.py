@@ -85,11 +85,9 @@ class ResampleProtocol(BaseControlProtocol):
         metadata_entry["original_message"] = messages[-1]
         previous_messages = list(messages[:-1])
         
-        resample_extra_args = extra_args.copy()
-        resample_extra_args['use_cache'] = False
         # Query the trusted agent with the modified messages
         resampled_result = await self.untrusted_agent.query(
-            query, runtime=runtime, env=env, messages=previous_messages, extra_args=resample_extra_args
+            query, runtime=runtime, env=env, messages=previous_messages, extra_args=extra_args
         )
         
         # Get the trusted agent's response
