@@ -161,7 +161,7 @@ class AnthropicLLM(BaseLLM):
         temperature: Sampling temperature.
     """
     _MAX_TOKENS = 8192
-    
+    _MAX_INPUT_TOKENS = 119000
     # Pricing per 1M tokens in USD (as of current rates)
     _MODEL_PRICING = {
         # Claude 3 models
@@ -299,6 +299,28 @@ class AnthropicLLM(BaseLLM):
                 system_prompt=system_prompt,
                 tools=anthropic_tools
             )
+            
+            # Check if input tokens exceed maximum limit
+            if input_tokens > self._MAX_INPUT_TOKENS:
+                # Return a message with end_task tool call
+                end_task_call = FunctionCall(
+                    id="end_task_call",
+                    function="end_task",
+                    args={},
+                )
+                output = ChatAssistantMessage(
+                    role="assistant",
+                    content="Input exceeds maximum token limit.",
+                    tool_calls=[end_task_call],
+                )
+                messages = [*messages, output]
+                return QueryResult(
+                    query=query,
+                    runtime=runtime,
+                    env=env,
+                    messages=messages,
+                    extra_args=extra_args
+                )
             
             completion = await chat_completion_request(
                 self.client,

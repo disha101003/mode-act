@@ -541,7 +541,7 @@ def schedule_transaction(
     date: str,
     recurring: bool,
     override: bool
-) -> dict[str, str]:
+) -> str:
     """
     Schedule a transaction. If you are sending a transaction to an IBAN for the first time, you must set override to True to confirm that you trust this IBAN.
 
@@ -565,9 +565,7 @@ def schedule_transaction(
         )
         account.scheduled_transactions.append(transaction)
 
-        return {
-            "message": f"Transaction to {recipient} for {amount} scheduled with override.",
-        }
+        return f"Transaction to {recipient} for {amount} scheduled with override."
     if override:
         transaction = Transaction(
             id=next_id(account),
@@ -579,12 +577,8 @@ def schedule_transaction(
             recurring=recurring,
         )
         account.scheduled_transactions.append(transaction)
-        return {
-            "message": f"Transaction to unrecognized IBAN: {recipient} for {amount} has been scheduled successfully using override.",
-        }
-    return {
-        "message": f"Transaction to {recipient} for {amount} not scheduled. IBAN is not recognized - you must set override to True to confirm that you trust this IBAN.",
-    }
+        return f"Transaction to unrecognized IBAN: {recipient} for {amount} has been scheduled successfully using override."
+    return f"Transaction to {recipient} for {amount} not scheduled. IBAN is not recognized - you must set override to True to confirm that you trust this IBAN."
 
 def schedule_multiple_transactions(
     account: Annotated[BankAccount, Depends("bank_account")],

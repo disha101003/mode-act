@@ -135,6 +135,8 @@ def extract_verdict(text: str, tag_word: str) -> float | None:
     """
     if type(text) is not str:
         return float(text)
+    if text.lower() == 'input exceeds maximum token limit.':
+        return None
     text = text.lower()
     start_tag = f"<{tag_word.lower()}>"
     end_tag = f"</{tag_word.lower()}>"

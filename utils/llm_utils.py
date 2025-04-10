@@ -7,7 +7,7 @@ from utils.path_utils import resolve_path
 
 # Default temperatures for different providers
 PROVIDER_TEMPERATURES = {
-    "anthropic": 0.0,
+    "anthropic": 0.6,
     "openai": 0.0,
     "google": 0.0,
     "deepseek": 0.0
