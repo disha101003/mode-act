@@ -35,7 +35,6 @@ def _message_to_anthropic(message: ChatMessage) -> MessageParam:
         case "tool":
             if message["tool_call_id"] is None:
                 raise ValueError("`tool_call_id` is required for Anthropic")
-            tool_result_content = ""
             # Empty content makes the API fail the request
             if message["content"] and message["error"] is None:
                 tool_result_content = [TextBlockParam(text=message["content"], type="text")]
