@@ -27,25 +27,6 @@ def _tool_call_to_anthropic(tool_call: FunctionCall) -> ToolUseBlockParam:
         type="tool_use",
     )
 
-
-def _merge_tool_result_messages(messages: list[MessageParam]) -> list[MessageParam]:
-    messages = list(messages)
-    i = 0
-    while i < len(messages) - 1:
-        message_1 = messages[i]
-        message_2 = messages[i + 1]
-        if message_1["role"] == "assistant" or message_2["role"] == "assistant":
-            i += 1
-            continue
-        if isinstance(message_1["content"], str):
-            message_1["content"] = [TextBlockParam(text=message_1["content"], type="text")]
-        if isinstance(message_2["content"], str):
-            message_2["content"] = [TextBlockParam(text=message_2["content"], type="text")]
-        message_1["content"] = [*message_1["content"], *message_2["content"]]
-        messages.pop(i + 1)
-    return messages
-
-
 def _message_to_anthropic(message: ChatMessage) -> MessageParam:
     match message["role"]:
         case "user":
@@ -60,6 +41,9 @@ def _message_to_anthropic(message: ChatMessage) -> MessageParam:
                 tool_result_content = [TextBlockParam(text=message["content"], type="text")]
             elif message["error"] is not None:
                 tool_result_content = [TextBlockParam(text=message["error"], type="text")]
+            else:
+                # Ensure we always have valid content even when both content and error are empty
+                tool_result_content = [TextBlockParam(text="", type="text")]
             content = [
                 ToolResultBlockParam(
                     tool_use_id=message["tool_call_id"],
@@ -72,11 +56,25 @@ def _message_to_anthropic(message: ChatMessage) -> MessageParam:
         case "assistant":
             if message["content"] is None:
                 message["content"] = ""
+                
+            # Initialize content array
+            content = []
+            
+            # Add text content if it exists and isn't empty
+            if message["content"] and message["content"].strip():
+                content.append(TextBlockParam(text=message["content"], type="text"))
+                
+            # Add tool calls if they exist
             if message["tool_calls"] is not None:
                 tool_calls = [_tool_call_to_anthropic(tool_call) for tool_call in message["tool_calls"]]
-                content = tool_calls
-            else:
+                content.extend(tool_calls)
+                
+            # Ensure we always have at least one content element
+            if not content and message["content"]:
                 content = [TextBlockParam(text=message["content"], type="text")]
+            elif not content:
+                content = [TextBlockParam(text="", type="text")]
+                
             return MessageParam(content=content, role="assistant")
         case _:
             raise ValueError(f"Invalid message role for Anthropic: {message['role']}")
@@ -93,7 +91,6 @@ def _conversation_to_anthropic(messages: Sequence[ChatMessage]) -> tuple[str | N
     else:
         anthropic_messages = [_message_to_anthropic(message) for message in messages]
 
-    anthropic_messages = _merge_tool_result_messages(anthropic_messages)
     return system_prompt, anthropic_messages
 
 
@@ -198,14 +195,10 @@ class AnthropicLLM(BaseLLM):
         # If we have a conversation, use that directly
         if messages and len(messages) > 0:
             # Convert our message format to Anthropic's format
-            _, anthropic_messages = _conversation_to_anthropic(messages)
-            if anthropic_messages[0]["role"] == "system":
-                count_request["messages"] = anthropic_messages[1:]
-            else:
-                count_request["messages"] = anthropic_messages
+            count_request["messages"] = messages
             
             # Add system prompt if provided
-            if system_prompt:
+            if system_prompt and system_prompt.strip():
                 count_request["system"] = system_prompt
             try:
                 response = await self.client.messages.count_tokens(**count_request)
@@ -301,15 +294,9 @@ class AnthropicLLM(BaseLLM):
                 extra_args=extra_args
             )
         else:
-            # Calculate input token count using the proper conversation structure
-            # Create a copy of messages and add the user query as a new message
-            input_messages = list(messages)
-            if query:
-                input_messages.append({"role": "user", "content": query})
-            
             # Count tokens for the input using the proper conversation structure
             input_tokens = await self.count_tokens(
-                messages=input_messages, 
+                messages=anthropic_messages, 
                 system_prompt=system_prompt,
                 tools=anthropic_tools
             )

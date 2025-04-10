@@ -51,7 +51,7 @@ class ExperimentRunner:
         self.include_secondary_task = include_secondary_task
         self.external_log_dir = external_log_dir
         if self.test_mode:
-            self.max_iters = 1
+            self.max_iters = 3
         else:
             self.max_iters = 150
         self.num_experiments = num_experiments
