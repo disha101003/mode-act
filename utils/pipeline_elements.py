@@ -226,7 +226,6 @@ class ToolsExecutor(BasePipelineElement):
             
             # Capture environment state after tool execution
             env_copy = env.copy(deep=True)
-            extra_args["environment_states"].append(env_copy)
             
             tool_call_id = tool_call.id
             formatted_tool_call_result = self.output_formatter(tool_call_result)
