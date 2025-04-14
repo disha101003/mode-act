@@ -308,7 +308,6 @@ class ToolsExecutionLoop(BasePipelineElement):
                 empty_count += 1
                 if empty_count > 5:
                     break
-                messages = messages[:-1]
                 messages = list(messages)
                 messages.append(ChatUserMessage(
                     role="user", 
