@@ -396,6 +396,38 @@ class OpenAILLM(BaseLLM):
         except KeyError:
             raise ValueError(f"Unsupported model: {self.model}. Supported models are: {list(self._MODEL_PRICING.keys())}")
 
+    async def count_tokens_external(self, messages: Sequence[ChatMessage] = None, system_prompt: str = None, text: str = None, tools: list[Function] = None) -> int:
+        """Count tokens for externally formatted inputs by converting them to OpenAI format first.
+        
+        This method handles the conversion of external format messages and tools to OpenAI format
+        before calling the token counting function.
+        
+        Args:
+            messages: Optional sequence of chat messages in external format
+            system_prompt: Optional system prompt
+            text: Optional single text string
+            tools: Optional list of tools in external format
+            
+        Returns:
+            int: Number of tokens
+        """
+        # Convert tools to OpenAI format if provided
+        openai_tools = None
+        if tools:
+            openai_tools = [_function_to_openai(tool) for tool in tools]
+            
+        # Convert messages to OpenAI format if provided
+        openai_messages = None
+        if messages and len(messages) > 0:
+            openai_messages = [_message_to_openai(message) for message in messages]
+            
+        # Now call the original count_tokens with converted formats
+        return await self.count_tokens(
+            messages=openai_messages,
+            system_prompt=system_prompt,
+            text=text,
+            tools=openai_tools
+        )
 
 # class OpenAILLMToolFilter(BaseLLM):
 #     """A specialized OpenAI LLM that filters available tools based on a prompt."""

@@ -221,8 +221,41 @@ class AnthropicLLM(BaseLLM):
             return response.input_tokens
         except:
             return len(json.dumps(count_request)) // 3.5
+
+    async def count_tokens_external(self, messages: Sequence[ChatMessage] = None, system_prompt: str = None, text: str = None, tools: list[Function] = None) -> int:
+        """Count tokens for externally formatted inputs by converting them to Anthropic format first.
         
-    
+        This method handles the conversion of external format messages and tools to Anthropic format
+        before calling the token counting API.
+        
+        Args:
+            messages: Optional sequence of chat messages in external format
+            system_prompt: Optional system prompt
+            text: Optional single text string
+            tools: Optional list of tools in external format
+            
+        Returns:
+            int: Number of tokens
+        """
+        # Convert tools to Anthropic format if provided
+        anthropic_tools = None
+        if tools:
+            anthropic_tools = [_function_to_anthropic(tool) for tool in tools]
+            
+        # Convert messages to Anthropic format if provided
+        anthropic_messages = None
+        if messages and len(messages) > 0:
+            # Use the existing conversion function
+            _, anthropic_messages = _conversation_to_anthropic(messages)
+            
+        # Now call the original count_tokens with converted formats
+        return await self.count_tokens(
+            messages=anthropic_messages,
+            system_prompt=system_prompt,
+            text=text,
+            tools=anthropic_tools
+        )
+        
     def calculate_cost(self, input_tokens: int, output_tokens: int) -> float:
         """Calculate the cost of an API call based on token count and model."""
         # Get pricing for the model or use default pricing

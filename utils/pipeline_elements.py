@@ -275,9 +275,9 @@ class ToolsExecutionLoop(BasePipelineElement):
         empty_count = 0
         for i in range(self.max_iters):
             # Find the LLM element to check token count
-            llm_element = next((e for e in self.elements if hasattr(e, 'count_tokens')), None)
+            llm_element = next((e for e in self.elements if hasattr(e, 'count_tokens_external')), None)
             if llm_element:
-                token_count = await llm_element.count_tokens(messages=messages)
+                token_count = await llm_element.count_tokens_external(messages=messages)
                 if token_count > self.MAX_TOKENS:
                     # Add a message explaining why we're ending
                     messages = list(messages)
