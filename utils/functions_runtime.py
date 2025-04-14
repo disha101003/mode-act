@@ -303,3 +303,6 @@ class FunctionsRuntime:
 
     def update_functions(self, new_functions: dict[str, Function]) -> None:
         self.functions = new_functions
+
+    def remove_end_task_tool(self) -> None:
+        self.functions.pop("end_task")

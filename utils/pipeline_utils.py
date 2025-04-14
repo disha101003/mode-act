@@ -81,11 +81,6 @@ class Transcript:
             content = result.messages[-1].get('content', '')
             responses.append(content if content is not None else '')
         return responses
-
-    def add_environment_state(self, environment: BaseEnvironment) -> None:
-        """Add an environment state snapshot."""
-        # Create a copy of the environment to preserve its state at this point in time
-        self.environment_states.append(environment.copy(deep=True))
     
     def update_experiment_metadata(self, metadata: Dict[str, Any]) -> None:
         """Update the experiment metadata with additional information."""

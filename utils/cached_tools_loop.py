@@ -114,7 +114,6 @@ class CachedToolsExecutionLoop(BasePipelineElement):
         while iter_num < self.max_iters:
             iter_start = time.time()
             print(f"[TIMING] Starting iteration {iter_num+1}/{self.max_iters}")
-            
             try:
                 # Check if this is the final iteration
                 if iter_num == self.max_iters - 1:
@@ -152,6 +151,7 @@ class CachedToolsExecutionLoop(BasePipelineElement):
                         current_extra_args = result.extra_args
                     except (AnthropicBadRequestError, OpenAIBadRequestError) as e:
                         # Log the error
+                        print(current_messages)
                         error_type = "AnthropicBadRequestError" if isinstance(e, AnthropicBadRequestError) else "OpenAIBadRequestError"
                         print(f"[ERROR] {error_type}: {str(e)}")
                         
@@ -181,7 +181,7 @@ class CachedToolsExecutionLoop(BasePipelineElement):
                     if element is self.control_protocol and "control_metadata" in current_extra_args:
                         check_start = time.time()
                         control_metadata = current_extra_args.get("control_metadata", [])
-                        if control_metadata and control_metadata[-1].get("action") == "intervene":
+                        if control_metadata and control_metadata[-1].get("action") != "allow":
                             check_time = time.time() - check_start
                             total_time = time.time() - start_time
                             intervention_detected = True

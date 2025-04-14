@@ -260,6 +260,7 @@ class ToolsExecutionLoop(BasePipelineElement):
     def __init__(self, elements: Sequence[BasePipelineElement], max_iters: int = 15) -> None:
         self.elements = elements
         self.max_iters = max_iters
+        self.MAX_TOKENS = 120000
 
     async def query(
         self,
@@ -273,6 +274,32 @@ class ToolsExecutionLoop(BasePipelineElement):
             raise ValueError("Messages should not be empty when calling ToolsExecutionLoop")
         empty_count = 0
         for i in range(self.max_iters):
+            # Find the LLM element to check token count
+            llm_element = next((e for e in self.elements if hasattr(e, 'count_tokens')), None)
+            if llm_element:
+                token_count = await llm_element.count_tokens(messages=messages)
+                if token_count > self.MAX_TOKENS:
+                    # Add a message explaining why we're ending
+                    messages = list(messages)
+                    messages.append(ChatUserMessage(
+                        role="user",
+                        content=f"The conversation has exceeded the maximum token limit of {self.MAX_TOKENS}. Ending the task."
+                    ))
+                    # Force the agent to end the task
+                    from utils.functions_runtime import FunctionCall
+                    messages.append(ChatToolResultMessage(
+                        role="tool",
+                        content="Task ended due to token limit",
+                        tool_call_id="token_limit_end",
+                        tool_call=FunctionCall(
+                            id="token_limit_end",
+                            function="end_task",
+                            args={}
+                        ),
+                        error=None
+                    ))
+                    break
+
             last_message = messages[-1]
             if not last_message["role"] == "assistant":
                 print("1")

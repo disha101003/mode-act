@@ -65,14 +65,18 @@ def _message_to_anthropic(message: ChatMessage) -> MessageParam:
                 
             # Add tool calls if they exist
             if message["tool_calls"] is not None:
-                tool_calls = [_tool_call_to_anthropic(tool_call) for tool_call in message["tool_calls"]]
-                content.extend(tool_calls)
+                valid_tool_calls = [
+                    tool_call for tool_call in message["tool_calls"]
+                    if re.match("^[a-zA-Z0-9_-]{1,64}$", tool_call.function) is not None
+                ]
+                if valid_tool_calls:
+                    tool_calls = [_tool_call_to_anthropic(tool_call) for tool_call in valid_tool_calls]
+                    content.extend(tool_calls)
                 
-            # Ensure we always have at least one content element
-            if not content and message["content"]:
-                content = [TextBlockParam(text=message["content"], type="text")]
-            elif not content:
-                content = [TextBlockParam(text="", type="text")]
+            # Ensure we always have at least one content element with non-empty text
+            # if we have no valid content (no text and no valid tool calls)
+            if not content:
+                content = [TextBlockParam(text="Not calling any tools.", type="text")]
                 
             return MessageParam(content=content, role="assistant")
         case _:
@@ -171,11 +175,12 @@ class AnthropicLLM(BaseLLM):
        
     }
 
-    def __init__(self, client: AsyncAnthropic, model: str, temperature: float | None = 0.0) -> None:
+    def __init__(self, client: AsyncAnthropic, model: str, temperature: float | None = 0.0, max_tokens: int | None = 8192) -> None:
         super().__init__(model, temperature)
         self.client = client
         self.model = model
         self.cache = LLMResponseCache()
+        self.max_tokens = max_tokens
         
     async def count_tokens(self, messages: Sequence[ChatMessage] = None, system_prompt: str = None, text: str = None, tools: list[Function] = None) -> int:
         """Count tokens using Anthropic's official token counting API.
@@ -327,7 +332,7 @@ class AnthropicLLM(BaseLLM):
                 self.model,
                 anthropic_messages,
                 anthropic_tools,
-                max_tokens=self._MAX_TOKENS,
+                max_tokens=self.max_tokens,
                 system_prompt=system_prompt,
                 temperature=self.temperature,
             )

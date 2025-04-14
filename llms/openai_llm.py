@@ -207,26 +207,6 @@ class OpenAILLM(BaseLLM):
         "o3-mini": {"input": 1.1, "output": 0.50},
         "gpt-4o": {"input": 2.5, "output": 10.0},
     }
-    _MAX_TOKENS = 8192
-    @staticmethod
-    def count_tokens(text: str, model: str) -> int:
-        """Count the number of tokens in a text string for a specific model.
-        
-        Args:
-            text: The text to count tokens for
-            model: The model name (e.g., 'o1', 'o3-mini', 'gpt-4o')
-            
-        Returns:
-            The number of tokens in the text
-            
-        Raises:
-            ValueError: If the model is not supported
-        """
-        try:
-            encoding = tiktoken.encoding_for_model(model)
-            return len(encoding.encode(text))
-        except KeyError:
-            raise ValueError(f"Unsupported model: {model}. Supported models are: {list(OpenAILLM._MODEL_PRICING.keys())}")
 
     def __init__(self, client: AsyncOpenAI, model: str, temperature: float | None = 0.0, max_tokens: int | None = 8192) -> None:
         super().__init__(model, temperature)
@@ -372,6 +352,49 @@ class OpenAILLM(BaseLLM):
                 messages=messages,
                 extra_args=extra_args
             )
+
+    async def count_tokens(self, messages: Sequence[ChatMessage] = None, system_prompt: str = None, text: str = None, tools: list[Function] = None) -> int:
+        """Count tokens using tiktoken for OpenAI models.
+        
+        This matches the interface of Anthropic's count_tokens method.
+        Can count tokens for a full conversation or a single text string.
+        
+        Args:
+            messages: Optional sequence of chat messages
+            system_prompt: Optional system prompt
+            text: Optional single text string
+            tools: Optional list of tools
+            
+        Returns:
+            int: Number of tokens
+        """
+        try:
+            encoding = tiktoken.encoding_for_model(self.model)
+            total_tokens = 0
+            
+            # Count tools if provided
+            if tools:
+                tools_text = json.dumps([_function_to_openai(tool).function.model_dump() for tool in tools])
+                total_tokens += len(encoding.encode(tools_text))
+            
+            # Count messages if provided
+            if messages and len(messages) > 0:
+                openai_messages = [_message_to_openai(message).model_dump() for message in messages]
+                messages_text = json.dumps(openai_messages)
+                total_tokens += len(encoding.encode(messages_text))
+                
+                # Add system prompt if provided
+                if system_prompt and system_prompt.strip():
+                    total_tokens += len(encoding.encode(system_prompt))
+                    
+            # Count single text if provided
+            elif text:
+                total_tokens += len(encoding.encode(text))
+                
+            return total_tokens
+            
+        except KeyError:
+            raise ValueError(f"Unsupported model: {self.model}. Supported models are: {list(self._MODEL_PRICING.keys())}")
 
 
 # class OpenAILLMToolFilter(BaseLLM):

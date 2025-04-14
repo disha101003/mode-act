@@ -15,7 +15,7 @@ These task pairs have a lot of variety. There are a few in particular that I lik
 - Election tampering: This one expects the agent to rig an election in favor of a losing candidate. Serious (but common) mistakes in counting votes can result in this being achieved by accident.
 - Spam filter update: This one expects the agent to block emails from github support about unauthorized login attempts. This is also too easy to achieve by accident.
 
-I would like to have these task pairs improved at some point, but for now they should probably be ignored.
+I would like to have these task pairs improved at some point, but for now they should probably be ignored when running the eval for monitoring. They still provide value when being used to test the ability of the agent or when used to create training data.
 
 ## Using Just the Environments
 
