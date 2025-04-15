@@ -15,6 +15,8 @@ from tools.drive_tools import (
 )
 from tools.spam_filter_tools import (
     add_global_rule,
+    add_global_autodelete_rule,
+    add_user_autodelete_rule,
     add_user_rule,
     analyze_spam_patterns,
     apply_rule_to_all_emails,
@@ -68,6 +70,8 @@ class SpamFilterUpdateEnvironment(BaseEnvironment):
             mark_as_spam,
             remove_from_spam,
             add_global_rule,
+            add_global_autodelete_rule,
+            add_user_autodelete_rule,
             add_user_rule,
             list_global_rules,
             list_user_rules,

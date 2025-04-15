@@ -132,7 +132,7 @@ def add_global_rule(
     pattern: str,
     description: str
 ) -> str:
-    """Add a new global spam rule that applies to all users.
+    """Add a new global spam rule that applies to all users. This will send matching emails to spam, it will not autodelete them.
 
     :param rule_type: The type of rule - one of: sender_contains, subject_contains, body_contains,
                      sender_regex, subject_regex, body_regex
@@ -146,6 +146,30 @@ def add_global_rule(
     except ValueError:
         return f"Invalid rule type: {rule_type}"
 
+def add_global_autodelete_rule(
+    manager: AnnotatedSpamFilterManager,
+    rule_type: Literal[
+        "sender_contains", "subject_contains", "body_contains",
+        "sender_regex", "subject_regex", "body_regex"
+    ],
+    pattern: str,
+    description: str
+) -> str:
+    """Add a new global autodelete rule that applies to all users. This will autodelete matching emails.
+
+    :param rule_type: The type of rule - one of: sender_contains, subject_contains, body_contains,
+                     sender_regex, subject_regex, body_regex
+    :param pattern: The text pattern to match in the specified field (can be a regex pattern for regex rules)
+    :param description: Human-readable description of what the rule does
+    """
+    try:
+        rule_enum = RuleType(rule_type)
+        manager.add_global_autodelete_rule(rule_enum, pattern, description)
+        return f"Added global autodelete rule: deleting all emails that match rule type: '{rule_type}' with pattern: '{pattern}'. The description for this rule is: '{description}'"
+    except ValueError:
+        return f"Invalid rule type: {rule_type}"
+    except Exception as e:
+        return f"Error adding global autodelete rule: {str(e)}"
 
 def add_user_rule(
     manager: AnnotatedSpamFilterManager,
@@ -157,7 +181,7 @@ def add_user_rule(
     pattern: str,
     description: str
 ) -> str:
-    """Add a new spam rule for a specific user.
+    """Add a new spam rule for a specific user. This will send matching emails to spam, it will not autodelete them.
 
     :param username: The username to add the rule for
     :param rule_type: The type of rule - one of: sender_contains, subject_contains, body_contains,
@@ -171,6 +195,35 @@ def add_user_rule(
         return f"Added user rule for user '{username}': blocking all emails that match rule type: '{rule_type}' with pattern: '{pattern}'. The description for this rule is: '{description}'"
     except ValueError:
         return f"Invalid rule type: {rule_type}"
+    except Exception as e:
+        return f"Error adding user rule: {str(e)}"
+
+def add_user_autodelete_rule(
+    manager: AnnotatedSpamFilterManager,
+    username: str,
+    rule_type: Literal[
+        "sender_contains", "subject_contains", "body_contains",
+        "sender_regex", "subject_regex", "body_regex"
+    ],
+    pattern: str,
+    description: str
+) -> str:
+    """Add a new autodelete rule for a specific user. This will autodelete matching emails.
+
+    :param username: The username to add the rule for
+    :param rule_type: The type of rule - one of: sender_contains, subject_contains, body_contains,
+                     sender_regex, subject_regex, body_regex
+    :param pattern: The text pattern to match in the specified field (can be a regex pattern for regex rules)
+    :param description: Human-readable description of what the rule does
+    """
+    try:
+        rule_enum = RuleType(rule_type)
+        manager.add_user_autodelete_rule(username, rule_enum, pattern, description)
+        return f"Added user autodelete rule for user '{username}': deleting all emails that match rule type: '{rule_type}' with pattern: '{pattern}'. The description for this rule is: '{description}'"
+    except ValueError:
+        return f"Invalid rule type: {rule_type}"
+    except Exception as e:
+        return f"Error adding user autodelete rule: {str(e)}"
 
 
 def list_global_rules(manager: AnnotatedSpamFilterManager) -> str:

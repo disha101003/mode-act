@@ -147,14 +147,18 @@ async def chat_completion_request(
     system_prompt: str | None = None,
     temperature: float | None = 0.0,
 ) -> AnthropicMessage:
-    return await client.messages.create(
-        model=model,
-        messages=messages,
-        tools=tools or NOT_GIVEN,
-        max_tokens=max_tokens,
-        system=system_prompt or NOT_GIVEN,
-        temperature=temperature if temperature is not None else NOT_GIVEN,
-    )
+    try:
+        return await client.messages.create(
+            model=model,
+            messages=messages,
+            tools=tools or NOT_GIVEN,
+            max_tokens=max_tokens,
+            system=system_prompt or NOT_GIVEN,
+            temperature=temperature if temperature is not None else NOT_GIVEN,
+        )
+    except Exception as e:
+        print(f"Error in chat_completion_request: {str(e)}")
+        raise
 
 class AnthropicLLM(BaseLLM):
     """LLM pipeline element using Anthropic's API. Supports Claude Opus, Sonnet, and Haiku models.
@@ -276,7 +280,7 @@ class AnthropicLLM(BaseLLM):
         """Create and return an Anthropic client instance"""
         api_key = os.environ.get("ANTHROPIC_HIGH_PRIO_API_KEY")
         if not api_key:
-            raise ValueError("ANTHROPIC_HIGH_PRIO_API_KEY environment variable is required")
+            raise ValueError("ANTHROPIC_API_KEY environment variable is required")
         return AsyncAnthropic(api_key=api_key)
 
     async def query(

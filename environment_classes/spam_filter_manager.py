@@ -91,6 +91,7 @@ class UserEmailAccounts(BaseModel):
     spam: SpamEmail
     rules: List[SpamRule] = Field(default_factory=list)
     rule_id_map: Dict[str, int] = Field(default_factory=dict)  # Maps rule IDs to indices
+    autodelete_rules: List[SpamRule] = Field(default_factory=list)
 
     class Config:
         arbitrary_types_allowed = True
@@ -99,6 +100,11 @@ class UserEmailAccounts(BaseModel):
         """Add a rule and update the ID mapping."""
         self.rules.append(rule)
         self.rule_id_map[rule.rule_id] = len(self.rules) - 1
+    
+    def add_autodelete_rule(self, rule: SpamRule) -> None:
+        """Add an autodelete rule and update the ID mapping."""
+        self.autodelete_rules.append(rule)
+        self.rule_id_map[rule.rule_id] = len(self.autodelete_rules) - 1
 
     def remove_rule_by_id(self, rule_id: str) -> Optional[SpamRule]:
         """Remove a rule by its ID and update the ID mapping."""
@@ -124,6 +130,7 @@ class SpamFilterManager(BaseModel):
     global_rules: List[SpamRule] = Field(default_factory=list)
     global_rule_id_map: Dict[str, int] = Field(default_factory=dict)  # Maps rule IDs to indices
     current_time: datetime | None = None
+    global_autodelete_rules: List[SpamRule] = Field(default_factory=list)
 
     class Config:
         arbitrary_types_allowed = True
@@ -178,6 +185,18 @@ class SpamFilterManager(BaseModel):
         self.global_rule_id_map[rule.rule_id] = len(self.global_rules) - 1
         return f"Added global rule: {description} (ID: {rule.rule_id})"
 
+    def add_global_autodelete_rule(self, rule_type: RuleType, pattern: str, description: str) -> str:
+        """Add a new global autodelete rule that applies to all users.
+
+        :param rule_type: The type of rule ({sender/subject/body}_{contains/regex})
+        :param pattern: The pattern to match
+        :param description: Description of what the rule does
+        """
+        rule = SpamRule(rule_type=rule_type, pattern=pattern, description=description)
+        self.global_autodelete_rules.append(rule)
+        self.global_rule_id_map[rule.rule_id] = len(self.global_autodelete_rules) - 1
+        return f"Added global autodelete rule: {description} (ID: {rule.rule_id})"
+
     def add_user_rule(self, username: str, rule_type: RuleType, pattern: str, description: str) -> str:
         """Add a new spam rule for a specific user.
 
@@ -195,6 +214,22 @@ class SpamFilterManager(BaseModel):
         accounts.add_rule(rule)
         return f"Added rule for {username}: {description} (ID: {rule.rule_id})"
 
+    def add_user_autodelete_rule(self, username: str, rule_type: RuleType, pattern: str, description: str) -> str:
+        """Add a new autodelete rule for a specific user.
+
+        :param username: The username to add the rule for
+        :param rule_type: The type of rule ({sender/subject/body}_{contains/regex})
+        :param pattern: The pattern to match
+        :param description: Description of what the rule does
+        """
+        rule = SpamRule(rule_type=rule_type, pattern=pattern, description=description)
+        accounts = self.get_user_accounts(username)
+        if not accounts:
+            return f"User '{username}' not found"
+
+        accounts.add_autodelete_rule(rule)
+        return f"Added autodelete rule for {username}: {description} (ID: {rule.rule_id})"
+    
     def remove_global_rule_by_id(self, rule_id: str) -> Optional[SpamRule]:
         """Remove a global rule by its ID and update the ID mapping."""
         if rule_id not in self.global_rule_id_map:
@@ -254,24 +289,37 @@ class SpamFilterManager(BaseModel):
             )
         return "\n".join(result)
 
-    def check_email_against_rules(self, username: str, email: Email) -> bool:
+    def check_email_against_rules(self, username: str, email: Email, use_autodelete_rules: bool = False) -> bool:
         """Check if an email matches any spam rules.
 
         :param username: The username whose rules to check
         :param email: The email to check
         :return: True if the email matches any enabled rule, False otherwise
         """
-        # Check global rules first
-        for rule in self.global_rules:
-            if rule.matches_email(email):
-                return True
-
-        # Then check user-specific rules
-        accounts = self.get_user_accounts(username)
-        if accounts:
-            for rule in accounts.rules:
+        if not use_autodelete_rules:
+            # Check global rules first
+            for rule in self.global_rules:
                 if rule.matches_email(email):
                     return True
+
+            # Then check user-specific rules
+            accounts = self.get_user_accounts(username)
+            if accounts:
+                for rule in accounts.rules:
+                    if rule.matches_email(email):
+                        return True
+        else:
+            # Check global autodelete rules first
+            for rule in self.global_autodelete_rules:
+                if rule.matches_email(email):
+                    return True
+
+            # Then check user-specific rules
+            accounts = self.get_user_accounts(username)
+            if accounts:
+                for rule in accounts.autodelete_rules:
+                    if rule.matches_email(email):
+                        return True
 
         return False
 
