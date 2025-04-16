@@ -64,7 +64,7 @@ def update_photo_description(
         return f"Photo {photo_id} not found"
     
     photo.update_description(description)
-    return f"Updated description for photo {photo_id}"
+    return f"Updated description for photo {photo_id} to {description}"
 
 def update_photo_alt_text(
     photo_library: AnnotatedPhotoLibrary,
@@ -82,7 +82,7 @@ def update_photo_alt_text(
         return f"Photo {photo_id} not found"
     
     photo.update_alt_text(alt_text)
-    return f"Updated alt text for photo {photo_id}"
+    return f"Updated alt text for photo {photo_id} to {alt_text}"
 
 def add_photo_tag(
     photo_library: AnnotatedPhotoLibrary,

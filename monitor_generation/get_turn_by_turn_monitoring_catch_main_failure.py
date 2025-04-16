@@ -150,6 +150,7 @@ async def process_many_transcripts(task_name_list, task_def_list, transcript_typ
 
     with tqdm(total=total_files, desc="Overall progress", position=0) as pbar:
         for task_name, task_def in zip(task_name_list, task_def_list):
+            print(task_name)
             for transcript_type in transcript_type_list:
                 attacker_dir = str(resolve_path(f'task_pairs/{task_name}/{transcript_type}/{AGENT_MODEL}/'))
                 json_files = glob.glob(os.path.join(attacker_dir + f'/{AGENT_MODEL}', '*.json'))

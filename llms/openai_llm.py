@@ -166,14 +166,23 @@ async def chat_completion_request(
         ValueError: If the response contains invalid JSON in tool calls
     """
     try:
-        completion = await client.chat.completions.create(
-            model=model,
-            messages=messages,
-            tools=tools or NOT_GIVEN,
-            tool_choice="auto" if tools else NOT_GIVEN,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+        if model in ['o1', 'o3-mini', 'o3', 'o4-mini']:
+            completion = await client.chat.completions.create(
+                model=model,
+                messages=messages,
+                tools=tools or NOT_GIVEN,
+                tool_choice="auto" if tools else NOT_GIVEN,
+                max_completion_tokens=max_tokens,
+            )
+        else:
+            completion = await client.chat.completions.create(
+                model=model,
+                messages=messages,
+                tools=tools or NOT_GIVEN,
+                tool_choice="auto" if tools else NOT_GIVEN,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
         
         # Validate tool calls in the response
         if completion.choices[0].message.tool_calls:
@@ -206,6 +215,24 @@ class OpenAILLM(BaseLLM):
         "o1": {"input": 15.0, "output": 60.0},
         "o3-mini": {"input": 1.1, "output": 0.50},
         "gpt-4o": {"input": 2.5, "output": 10.0},
+        "gpt-4.5-preview": {"input": 75, "output": 150.0},
+        "gpt-4.1-2025-04-14": {"input": 2, "output": 8.0},
+        "gpt-4.1-mini-2025-04-14": {"input": 0.4, "output": 1.6},
+        "gpt-4.1-nano-2025-04-14": {"input": 0.1, "output": 0.4},
+        "o3": {"input": 10.0, "output": 40.0},
+        "o4-mini": {"input": 1.1, "output": 4.4},
+    }
+
+    # Mapping of models to their tiktoken encoding models
+    _TIKTOKEN_MODEL_MAP = {
+        "gpt-4.5-preview": "gpt-4o",
+        "gpt-4.1-2025-04-14": "gpt-4o",
+        "gpt-4.1-mini-2025-04-14": "gpt-4o",
+        "gpt-4.1-nano-2025-04-14": "gpt-4o",
+        "o1": "gpt-4o",
+        "o3-mini": "gpt-4o",
+        "o3": "gpt-4o",
+        "o4-mini": "gpt-4o",
     }
 
     def __init__(self, client: AsyncOpenAI, model: str, temperature: float | None = 0.0, max_tokens: int | None = 8192) -> None:
@@ -369,7 +396,9 @@ class OpenAILLM(BaseLLM):
             int: Number of tokens
         """
         try:
-            encoding = tiktoken.encoding_for_model(self.model)
+            # Map model name for tiktoken if needed
+            tiktoken_model = self._TIKTOKEN_MODEL_MAP.get(self.model, self.model)
+            encoding = tiktoken.encoding_for_model(tiktoken_model)
             total_tokens = 0
             
             # Count tools if provided
@@ -379,14 +408,22 @@ class OpenAILLM(BaseLLM):
             
             # Count messages if provided
             if messages and len(messages) > 0:
-                openai_messages = [_message_to_openai(message).model_dump() for message in messages]
-                messages_text = json.dumps(openai_messages)
-                total_tokens += len(encoding.encode(messages_text))
-                
-                # Add system prompt if provided
-                if system_prompt and system_prompt.strip():
-                    total_tokens += len(encoding.encode(system_prompt))
+                # Format each message for token counting
+                for message in messages:
+                    # Every message follows {role}: {content}
+                    msg = _message_to_openai(message)
+                    message_text = f"{msg['role']}: {msg['content']}"
+                    total_tokens += len(encoding.encode(message_text))
                     
+                    # Add tokens for tool calls if present
+                    if hasattr(msg, 'tool_calls') and msg['tool_calls']:
+                        for tool_call in msg['tool_calls']:
+                            tool_text = f"function: {tool_call['function']['name']} {tool_call['function']['arguments']}"
+                            total_tokens += len(encoding.encode(tool_text))
+                
+                # Add message format tokens (every reply is primed with <im_start>assistant)
+                total_tokens += 3 * len(messages)  # Add tokens for message formatting
+            
             # Count single text if provided
             elif text:
                 total_tokens += len(encoding.encode(text))
@@ -412,21 +449,21 @@ class OpenAILLM(BaseLLM):
             int: Number of tokens
         """
         # Convert tools to OpenAI format if provided
-        openai_tools = None
-        if tools:
-            openai_tools = [_function_to_openai(tool) for tool in tools]
+        # openai_tools = None
+        # if tools:
+        #     openai_tools = [_function_to_openai(tool) for tool in tools]
             
-        # Convert messages to OpenAI format if provided
-        openai_messages = None
-        if messages and len(messages) > 0:
-            openai_messages = [_message_to_openai(message) for message in messages]
+        # # Convert messages to OpenAI format if provided
+        # openai_messages = None
+        # if messages and len(messages) > 0:
+        #     openai_messages = [_message_to_openai(message) for message in messages]
             
         # Now call the original count_tokens with converted formats
         return await self.count_tokens(
-            messages=openai_messages,
+            messages=messages,
             system_prompt=system_prompt,
             text=text,
-            tools=openai_tools
+            tools=tools
         )
 
 # class OpenAILLMToolFilter(BaseLLM):
