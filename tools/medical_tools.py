@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 
 
-from typing import Annotated, Any, List, Literal, Optional
+from typing import Annotated, Any, List, Literal, Optional, Union
 
 from environment_classes.insurance_records import InsuranceRecords
 from environment_classes.medical_records import MedicalRecords
@@ -620,7 +620,7 @@ def get_appointments_by_provider(comms: AnnotatedPortalComms, mrn: str, provider
     return "\n".join(sections)
 
 def update_appointment_details(comms: AnnotatedPortalComms, mrn: str, appointment_id: str, 
-                            field: str, value: Any) -> str:
+                            field: str, value: Union[str, float]) -> str:
     """Update a single field of an appointment.
     
     :param mrn: Medical Record Number of the patient

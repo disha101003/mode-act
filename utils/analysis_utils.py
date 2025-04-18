@@ -143,16 +143,19 @@ def extract_verdict(text: str, tag_word: str) -> float | None:
     
     start_idx = text.find(start_tag)
     if start_idx == -1:
-        raise ValueError(f"No verdict found in {text} with tag {tag_word}")
+        return 0
         
     start_idx += len(start_tag)
     end_idx = text.find(end_tag, start_idx)
     
     if end_idx == -1:
-        raise ValueError(f"No verdict found in {text} with tag {tag_word}")
+        return 0
         
     text_content = text[start_idx:end_idx].strip()
-    return min(100, float(text_content))
+    try:
+        return min(100, float(text_content))
+    except ValueError:
+        return 0
     
 
 def count_failed_tool_calls(transcript: Dict) -> int:

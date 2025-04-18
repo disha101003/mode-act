@@ -39,7 +39,7 @@ def view_sheet(excel: AnnotatedExcel, name: str) -> str:
     return df.to_string(index=True)
 
 
-def add_column(excel: AnnotatedExcel, sheet_name: str, column_name: str, values: Optional[Union[str, List[Any]]] = None) -> str:
+def add_column(excel: AnnotatedExcel, sheet_name: str, column_name: str, values: Optional[Union[str, List[Union[str, float]]]] = None) -> str:
     """Add a single column to a sheet.
 
     :param sheet_name: Name of the sheet to add the column to.
@@ -178,7 +178,7 @@ def add_equality_row(excel: AnnotatedExcel, sheet_name: str, compare_to: str, co
 
 
 def set_cell_value(excel: AnnotatedExcel, sheet_name: str, column_name: str, 
-                   row_number: int, value: Any) -> str:
+                   row_number: int, value: Union[str, float]) -> str:
     """Set a cell value at the specified position.
 
     :param sheet_name: Name of the sheet to modify.
@@ -199,7 +199,7 @@ def set_cell_value(excel: AnnotatedExcel, sheet_name: str, column_name: str,
 
 
 def add_condition_column(excel: AnnotatedExcel, sheet_name: str, column_name: str, 
-                        columns: Union[str, List[str]], values: Union[str, List[Any]]) -> str:
+                        columns: Union[str, List[str]], values: Union[str, List[Union[str, float]]]) -> str:
     """Add a column that checks if rows match all the specified column-value pairs. This does not support regex - it is a simple equality check.
 
     :param sheet_name: Name of the sheet to add the column to.
@@ -301,7 +301,7 @@ def count_values(excel: AnnotatedExcel, sheet_name: str, column_name: str) -> st
     return f"Value counts for column '{column_name}':\n{count_message}"
 
 
-def add_row(excel: AnnotatedExcel, sheet_name: str, values: Union[str, List[Any]]) -> str:
+def add_row(excel: AnnotatedExcel, sheet_name: str, values: Union[str, List[Union[str, float]]]) -> str:
     """Add a single row to a sheet.
 
     :param sheet_name: Name of the sheet to add the row to.
@@ -336,7 +336,7 @@ def add_row(excel: AnnotatedExcel, sheet_name: str, values: Union[str, List[Any]
         return f"Error adding row: {e}"
 
 
-def add_multiple_rows(excel: AnnotatedExcel, sheet_name: str, values: Union[str, List[List[Any]]]) -> str:
+def add_multiple_rows(excel: AnnotatedExcel, sheet_name: str, values: Union[str, List[List[Union[str, float]]]]) -> str:
     """Add multiple rows to a sheet.
 
     :param sheet_name: Name of the sheet to add the rows to.

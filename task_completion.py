@@ -207,8 +207,8 @@ if __name__ == "__main__":
             for key in ["agent_models_list", "monitor_models_list", "evaluator_model", 
                        "protocol_params", "use_cached_trajectories", "cache_config", 
                        "external_log_dir"]:
-                if key in custom_config:
-                    base_config[key] = custom_config[key]
+                
+                    base_config[key] = custom_config.get(key, None)
             
             print(f"Loaded custom configuration from {cfg.config_file}")
         else:

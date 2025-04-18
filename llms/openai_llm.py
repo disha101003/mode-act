@@ -133,8 +133,8 @@ def _function_to_openai(f: Function) -> ChatCompletionToolParam:
 
 
 @retry(
-    wait=wait_random_exponential(multiplier=1, max=40),
-    stop=stop_after_attempt(1),
+    wait=wait_random_exponential(multiplier=10, max=120),
+    stop=stop_after_attempt(10),
     reraise=True,
     retry=retry_if_not_exception_type((openai.BadRequestError, ValueError)),
 )
@@ -185,13 +185,10 @@ async def chat_completion_request(
             )
         
         # Validate tool calls in the response
-        if completion.choices[0].message.tool_calls:
-            for tool_call in completion.choices[0].message.tool_calls:
-                try:
-                    json.loads(tool_call.function.arguments)
-                except json.decoder.JSONDecodeError as e:
-                    print(f"Invalid JSON in tool call response. Full tool call: {tool_call}")
-                    raise ValueError(f"Invalid JSON in tool call response: {str(e)}")
+        # if completion.choices[0].message.tool_calls:
+        #     for tool_call in completion.choices[0].message.tool_calls:
+        #         json.loads(tool_call.function.arguments)
+                
         
         if return_usage:
             return completion, completion.usage

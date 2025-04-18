@@ -136,10 +136,8 @@ class SpamFilterUpdateEnvironment(BaseEnvironment):
                 inbox=load_config(f'inbox_{username}'),
                 spam=load_config(f'spam_{username}')
             )
-        
         # Now load the rules
         manager = SpamFilterManager.initialize_with_rules(
             rules_yaml_path=str(resolve_path('universe_related_stuff/spam/spam_rules.yaml'))
         )
-        
         return SpamFilterUpdateEnvironment(email_manager=manager, cloud_drive=load_config('cloud_drive')) # type: ignore

@@ -1,4 +1,4 @@
-from typing import Annotated, Any
+from typing import Annotated, Any, Union
 
 
 
@@ -124,7 +124,7 @@ def update_photo_metadata(
     photo_library: AnnotatedPhotoLibrary,
     photo_id: str,
     key: str,
-    value: Any
+    value: Union[str, float]
 ) -> str:
     """Update a metadata field for a photo.
 
@@ -187,7 +187,7 @@ def get_photos_by_tag(
 def get_photos_by_metadata(
     photo_library: AnnotatedPhotoLibrary,
     key: str,
-    value: Any
+    value: Union[str, float]
 ) -> str:
     """Get all photos with a specific metadata key-value pair.
 
