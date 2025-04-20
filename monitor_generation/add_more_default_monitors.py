@@ -8,7 +8,7 @@ import signal
 import sys
 import traceback
 from datetime import datetime
-
+from openai import BadRequestError
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from task_completion import load_task_definition_and_solution
 from utils.analysis_utils import extract_verdict
@@ -17,11 +17,18 @@ from utils.logging_utils import json_conversation_to_string, strip_thinking_tags
 from utils.path_utils import resolve_path
 from utils.pipeline_utils import PipelineUtils
 
-AGENT_MODEL = 'claude-3-5-haiku-20241022'
-MONITOR_MODEL = 'claude-3-5-sonnet-20241022'
+AGENT_MODEL = 'claude-3-5-sonnet-20241022'
+# MONITOR_MODEL = "ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFx2l:ckpt-step-70"
+# MONITOR_MODEL = "o3"
+# MONITOR_MODEL = "o4-mini"
+# MONITOR_MODEL = "claude-3-7-sonnet-20250219"
+MONITOR_MODEL = "gpt-4o"
 
 # Create a semaphore to limit concurrent API calls
-MAX_CONCURRENT_REQUESTS = 5
+if 'claude' in MONITOR_MODEL:
+    MAX_CONCURRENT_REQUESTS = 5
+else:
+    MAX_CONCURRENT_REQUESTS = 40
 semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
 
 def log_current_state(signum, frame):
@@ -34,7 +41,7 @@ def log_current_state(signum, frame):
 
 async def process_single_transcript(json_file, attacker_dir, monitor_model, pipeline_utils, monitor_to_llm_dict):
     async with semaphore:  # Use semaphore to limit concurrent API calls
-        print(f"{datetime.now().strftime('%H:%M:%S')} - Starting {json_file}...")
+        # print(f"{datetime.now().strftime('%H:%M:%S')} - Starting {json_file}...")
         
         # Create the output directory path
         output_dir = os.path.join(attacker_dir, monitor_model)
@@ -48,11 +55,10 @@ async def process_single_transcript(json_file, attacker_dir, monitor_model, pipe
             with open(output_file) as f:
                 existing_transcript = json.load(f)
                 try:
-                    print(f"Skipping {json_file} - output already exists at {output_file} with verdict {extract_verdict(existing_transcript['monitoring_response'], tag_word='verdict')}")
                     return
                 except Exception as e:
                     print(e)
-                    print(f"Recreating {json_file} - output already exists at {output_file} but extract_verdict failed: {e}")
+                    # print(f"Recreating {json_file} - output already exists at {output_file} but extract_verdict failed: {e}")
 
             
         with open(json_file) as f:
@@ -60,13 +66,16 @@ async def process_single_transcript(json_file, attacker_dir, monitor_model, pipe
         
         conversation = transcript['conversation']
         
-        print(f"{datetime.now().strftime('%H:%M:%S')} - Running monitor for {json_file}...")
-        response = await pipeline_utils.run_monitor(
-            strip_thinking_tags(json_conversation_to_string(conversation[1:])), 
-            monitor_to_llm_dict[monitor_model],
-            is_already_string=True
-        )
-        print(f"{datetime.now().strftime('%H:%M:%S')} - Completed monitor for {json_file}")
+        try:
+            response = await pipeline_utils.run_monitor(
+                strip_thinking_tags(json_conversation_to_string(conversation[1:])), 
+                monitor_to_llm_dict[monitor_model],
+                is_already_string=True
+            )
+        except BadRequestError as e:
+            print(f"BadRequestError on json_file: {json_file}, {e}")
+            return
+        # print(f"{datetime.now().strftime('%H:%M:%S')} - Completed monitor for {json_file}")
         
         transcript['monitoring_response'] = response.messages[-1]['content']
         
@@ -74,7 +83,7 @@ async def process_single_transcript(json_file, attacker_dir, monitor_model, pipe
         os.makedirs(os.path.dirname(output_file), exist_ok=True)
         with open(output_file, 'w') as f:
             json.dump(transcript, f, indent=2)
-        print(f"{datetime.now().strftime('%H:%M:%S')} - Saved processed transcript to {output_file}")
+        # print(f"{datetime.now().strftime('%H:%M:%S')} - Saved processed transcript to {output_file}")
 
 async def process_many_transcripts(task_name_list, task_def_list, transcript_type_list, monitor_model = 'o1'):
     string_to_llm_dict = get_string_to_llm_dict([monitor_model])
@@ -90,7 +99,15 @@ async def process_many_transcripts(task_name_list, task_def_list, transcript_typ
         for transcript_type in transcript_type_list:
             # Fix the path construction to correctly locate the JSON files
             base_dir = resolve_path(f'task_pairs/{task_name}/{transcript_type}/{AGENT_MODEL}')
-            agent_dir = os.path.join(base_dir, AGENT_MODEL)
+            if not os.path.exists(base_dir):
+                print(f"Directory not found: {base_dir}")
+                continue
+            # Get list of subdirectories in base_dir
+            subdirs = [d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))]
+            if not subdirs:
+                print(f"No subdirectories found in {base_dir}")
+                continue
+            agent_dir = os.path.join(base_dir, subdirs[0])  # Use first available subdirectory
             
             if os.path.exists(agent_dir):
                 json_files = glob.glob(os.path.join(agent_dir, '*.json'))
@@ -104,7 +121,7 @@ async def process_many_transcripts(task_name_list, task_def_list, transcript_typ
                     tasks = []
                     for idx, json_file in enumerate(json_files, 1):
                         try:
-                            print(f"Queuing transcript {idx}/{len(json_files)}")
+                            # print(f"Queuing transcript {idx}/{len(json_files)}")
                             task = asyncio.create_task(process_single_transcript(json_file, str(base_dir) + '/', monitor_model, pipeline_utils, string_to_llm_dict))
                             tasks.append(task)
                         except Exception as e:

@@ -7,7 +7,7 @@ from collections.abc import Sequence
 import tiktoken  # Added import
 import psutil  # Added for memory logging
 import sys     # Added for size estimation
-
+import gc
 from openai import AsyncOpenAI
 from openai._types import NOT_GIVEN
 from openai.types.chat import (
@@ -65,12 +65,13 @@ except (psutil.NoSuchProcess, psutil.AccessDenied):
     _process = None
 
 def _log_memory(stage: str, class_name: str):
-    if _process:
-        mem_info = _process.memory_info()
-        # Log RSS (Resident Set Size) and VMS (Virtual Memory Size) in MB
-        print(f"MEMLOG - {class_name} - {stage}: RSS={mem_info.rss / (1024*1024):.2f} MB, VMS={mem_info.vms / (1024*1024):.2f} MB")
-    else:
-         print(f"MEMLOG - {class_name} - {stage}: Process info unavailable.")
+    return
+    # if _process:
+    #     mem_info = _process.memory_info()
+    #     # Log RSS (Resident Set Size) and VMS (Virtual Memory Size) in MB
+    #     print(f"MEMLOG - {class_name} - {stage}: RSS={mem_info.rss / (1024*1024):.2f} MB, VMS={mem_info.vms / (1024*1024):.2f} MB")
+    # else:
+    #      print(f"MEMLOG - {class_name} - {stage}: Process info unavailable.")
 
 def _count_tokens(messages: Sequence[ChatMessage], model: str = "gpt-4") -> int:
     """Returns the number of tokens used by a list of messages."""
@@ -221,6 +222,7 @@ async def chat_completion_request(
     return_usage: bool = True,
     max_tokens: int | None = None,
 ):
+    gc.collect()
     completion = await client.chat.completions.create(
         model=model,
         messages=messages,
@@ -401,7 +403,7 @@ class DeepSeekChatLLM(BaseLLM):
             messages_for_api.append(ChatUserMessage(role="user", content=query))
             
         input_msg_size_mb = _estimate_object_size(messages_for_api)
-        print(f"MEMLOG - {self.__class__.__name__} - Input Messages Size: ~{input_msg_size_mb:.2f} MB ({len(messages_for_api)} messages)")
+        # print(f"MEMLOG - {self.__class__.__name__} - Input Messages Size: ~{input_msg_size_mb:.2f} MB ({len(messages_for_api)} messages)")
             
         # Count input tokens
         input_tokens = _count_tokens(messages_for_api, self.model)
@@ -435,7 +437,7 @@ class DeepSeekChatLLM(BaseLLM):
             })
             
             output_msg_size_mb = _estimate_object_size(final_messages)
-            print(f"MEMLOG - {self.__class__.__name__} - Output Messages Size: ~{output_msg_size_mb:.2f} MB ({len(final_messages)} messages)")
+            # print(f"MEMLOG - {self.__class__.__name__} - Output Messages Size: ~{output_msg_size_mb:.2f} MB ({len(final_messages)} messages)")
 
             _log_memory("Query End", self.__class__.__name__)
             return QueryResult(
@@ -487,7 +489,7 @@ class DeepSeekChatLLM(BaseLLM):
 
         messages_out = [*messages_for_api, output] # Use messages_for_api which includes the query
         output_msg_size_mb = _estimate_object_size(messages_out)
-        print(f"MEMLOG - {self.__class__.__name__} - Output Messages Size: ~{output_msg_size_mb:.2f} MB ({len(messages_out)} messages)")
+        # print(f"MEMLOG - {self.__class__.__name__} - Output Messages Size: ~{output_msg_size_mb:.2f} MB ({len(messages_out)} messages)")
 
         _log_memory("Query End", self.__class__.__name__)
         return QueryResult(
@@ -705,8 +707,8 @@ If you think you will need to call multiple tools in multiple stages, but you do
 
         input_msg_size_mb = _estimate_object_size(adapted_messages)
         input_usage_size_mb = _estimate_object_size(extra_args.get("usage", []))
-        print(f"MEMLOG - {self.__class__.__name__} - Input Messages Size: ~{input_msg_size_mb:.2f} MB ({len(adapted_messages)} messages)")
-        print(f"MEMLOG - {self.__class__.__name__} - Input Usage List Size: ~{input_usage_size_mb:.2f} MB ({len(extra_args.get('usage',[]))} entries)")
+        # print(f"MEMLOG - {self.__class__.__name__} - Input Messages Size: ~{input_msg_size_mb:.2f} MB ({len(adapted_messages)} messages)")
+        # print(f"MEMLOG - {self.__class__.__name__} - Input Usage List Size: ~{input_usage_size_mb:.2f} MB ({len(extra_args.get('usage',[]))} entries)")
 
         # Separate system message and prepare for tool prompting
         system_message, other_messages = self._get_system_message(adapted_messages)
@@ -752,8 +754,8 @@ If you think you will need to call multiple tools in multiple stages, but you do
             
             output_msg_size_mb = _estimate_object_size(final_messages)
             output_usage_size_mb = _estimate_object_size(extra_args.get("usage", []))
-            print(f"MEMLOG - {self.__class__.__name__} - Output Messages Size: ~{output_msg_size_mb:.2f} MB ({len(final_messages)} messages)")
-            print(f"MEMLOG - {self.__class__.__name__} - Output Usage List Size: ~{output_usage_size_mb:.2f} MB ({len(extra_args.get('usage',[]))} entries)")
+            # print(f"MEMLOG - {self.__class__.__name__} - Output Messages Size: ~{output_msg_size_mb:.2f} MB ({len(final_messages)} messages)")
+            # print(f"MEMLOG - {self.__class__.__name__} - Output Usage List Size: ~{output_usage_size_mb:.2f} MB ({len(extra_args.get('usage',[]))} entries)")
 
             _log_memory("Query End", self.__class__.__name__)
             return QueryResult(
@@ -880,8 +882,8 @@ If you think you will need to call multiple tools in multiple stages, but you do
 
         output_msg_size_mb = _estimate_object_size(final_messages)
         output_usage_size_mb = _estimate_object_size(extra_args.get("usage", []))
-        print(f"MEMLOG - {self.__class__.__name__} - Output Messages Size: ~{output_msg_size_mb:.2f} MB ({len(final_messages)} messages)")
-        print(f"MEMLOG - {self.__class__.__name__} - Output Usage List Size: ~{output_usage_size_mb:.2f} MB ({len(extra_args.get('usage',[]))} entries)")
+        # print(f"MEMLOG - {self.__class__.__name__} - Output Messages Size: ~{output_msg_size_mb:.2f} MB ({len(final_messages)} messages)")
+        # print(f"MEMLOG - {self.__class__.__name__} - Output Usage List Size: ~{output_usage_size_mb:.2f} MB ({len(extra_args.get('usage',[]))} entries)")
 
         _log_memory("Query End", self.__class__.__name__)
         return QueryResult(

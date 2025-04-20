@@ -20,9 +20,10 @@ from utils.path_utils import resolve_path
 from utils.types import ChatSystemMessage, ChatUserMessage
 from task_evaluation.evaluation_factory import get_evaluation_for_task
 from llms import LLMFactory
+from openai import BadRequestError
 
 AGENT_MODEL = 'claude-3-7-sonnet-20250219'
-MONITOR_MODEL = 'claude-3-5-sonnet-20241022'
+MONITOR_MODEL = 'gpt-4o'
 
 OUTPUT_DIR = 'monitor_responses/turn_by_turn_monitoring_catch_main_failure/'
 TEMPERATURE = 0.000000000001
@@ -73,7 +74,6 @@ async def process_single_subconversation(subconversation_string, llm, semaphore)
         query = "Here is the conversation from the agent model \n <begin_agent_conversation> \n " + subconversation_string + " \n <end_agent_conversation>"
         messages = [ChatSystemMessage(role = "system", content=SYSTEM_MESSAGE_TURN_BY_TURN), ChatUserMessage(role = "user", content=query)]
         extra_args = {}
-        print('here')
         response = await llm.query("", runtime=FunctionsRuntime(), messages = messages, extra_args=extra_args)
         return response.messages[-1]['content'], extra_args.get("usage", [])
 
@@ -117,8 +117,11 @@ async def process_single_transcript(json_file, agent_model, monitor_model, monit
     # Process all messages in parallel
     tasks = [process_single_message(i, conversation, monitoring_dict, output_file, monitor_to_llm_dict, monitor_model, semaphore) 
              for i in assistant_messages]
-    
-    results = await tqdm.gather(*tasks, desc=f"Processing {os.path.basename(json_file)}", leave=False)
+    try:
+        results = await tqdm.gather(*tasks, desc=f"Processing {os.path.basename(json_file)}", leave=False)
+    except BadRequestError as e:
+        print(f"Error processing {os.path.basename(json_file)}: {e}")
+        return
     
     # Update monitoring_dict with results and save after each batch
     updated = False

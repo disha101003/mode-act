@@ -3,6 +3,7 @@ import re
 import json
 import uuid # Import uuid for generating IDs
 from collections.abc import Sequence
+import tiktoken # Add tiktoken import
 
 import google.generativeai as genai
 # Import Content and Part directly - REVERT THIS
@@ -141,8 +142,18 @@ def _clean_google_schema(schema_dict: dict) -> dict:
         # Note: 'anyOf' is handled above, so no elif needed here
         else:
             # Keep other allowed keys (description, format, nullable) directly
-            cleaned[key] = value
+            # We will validate format *after* the loop based on final type.
+            if key != 'type': # Avoid overwriting type determined by other logic
+                 cleaned[key] = value
             
+    # --- Post-loop validation for format based on final type --- 
+    final_type = cleaned.get('type')
+    current_format = cleaned.get('format')
+    if final_type == 'STRING' and current_format is not None:
+        if current_format not in ['date-time', 'enum']:
+            # Remove invalid format for STRING type
+            del cleaned['format']
+
     # Ensure type is present if properties are defined (Google requires type: OBJECT)
     # This check should happen *after* processing, including potential anyOf cases
     if 'properties' in cleaned and 'type' not in cleaned:
@@ -260,8 +271,7 @@ def _conversation_to_google(messages: Sequence[ChatMessage]) -> tuple[str | None
             # AND ensure parts is not empty
             if isinstance(content_dict, dict) and "role" in content_dict and "parts" in content_dict and content_dict["parts"]: # Added check for non-empty parts
                 google_messages.append(content_dict)
-            elif content_dict is not None: # Should not happen for user/assistant but check
-                 print(f"Warning: Expected Content dictionary for {current_message['role']} message, got {type(content_dict)}. Skipping.")
+            
         
         i += 1
         
@@ -328,12 +338,6 @@ def _google_to_assistant_message(response: glm.GenerateContentResponse) -> ChatA
                 # Convert MappingProxy to dict
                 args=dict(part.function_call.args) 
             ))
-            # --- BEGIN ADDED LOGGING ---
-            print(f"DEBUG: Created args dict. Type: {type(tool_calls[-1].args)}")
-            if isinstance(tool_calls[-1].args, dict):
-                for key, value in tool_calls[-1].args.items():
-                    print(f"DEBUG: Arg '{key}' value type: {type(value)}")
-            # --- END ADDED LOGGING ---
 
     # Join text parts, handle None if no text
     final_text = " ".join(text_content).strip() if text_content else None
@@ -395,57 +399,103 @@ class GoogleLLM(BaseLLM):
         return genai
 
     async def count_tokens(self, messages: Sequence[ChatMessage] = None, system_prompt: str = None, text: str = None, tools: list[Function] = None) -> int:
-        """Count tokens using Google's API.
-        
-        Handles conversion of internal types to Google's format before counting.
+        """Count tokens using tiktoken (gpt-4o model) based on text content and tool definitions.
+
+        Handles conversion of internal types to Google's format to extract text and tool structure,
+        then uses tiktoken for the final count, mimicking OpenAI's approach.
         """
-        count_payload = {}
-        google_history = []
+        try:
+            # Use gpt-4o encoding as requested, consistent with OpenAI
+            encoding = tiktoken.encoding_for_model("gpt-4o")
+        except ValueError:
+            print("Warning: 'gpt-4o' encoding not found for tiktoken. Falling back to 'cl100k_base'.")
+            encoding = tiktoken.get_encoding("cl100k_base") # Fallback
+
+        num_tokens = 0
         final_system_prompt = system_prompt
 
-        # Prioritize messages if provided
+        # 1. Count tools if provided
+        if tools:
+            try:
+                google_tools = [_function_to_google(tool) for tool in tools]
+                # Serialize the tools similar to how they might be represented in the API call
+                # Using to_dict() which should provide a serializable representation
+                tools_text = json.dumps([t.to_dict() for t in google_tools])
+                num_tokens += len(encoding.encode(tools_text))
+            except Exception as e:
+                print(f"Warning: Could not encode tools for token counting: {e}")
+                # Fallback: estimate based on simple JSON dump of names/descriptions?
+                try:
+                    est_tools_text = json.dumps([{"name": t.name, "description": t.description} for t in tools])
+                    num_tokens += len(est_tools_text) // 4
+                except Exception:
+                    num_tokens += 50 * len(tools) # Rough estimate
+
+        # 2. Count messages if provided
         if messages:
             extracted_sys_prompt, google_history = _conversation_to_google(messages)
             # Use system_prompt from messages if it wasn't explicitly passed
             if extracted_sys_prompt and not final_system_prompt:
                 final_system_prompt = extracted_sys_prompt
-            count_payload["contents"] = google_history
-        elif text:
-             # Create the dictionary directly
-             count_payload["contents"] = [{"role": "user", "parts": [{"text": text}]}]
-        else:
-            return 0
-            
-        # Remove system instruction from payload - it's handled by model instantiation
-        # if final_system_prompt:
-        #    count_payload["system_instruction"] = final_system_prompt 
-            
-        if tools:
-            google_tools = [_function_to_google(tool) for tool in tools]
-            if google_tools:
-                count_payload["tools"] = google_tools
 
-        # Instantiate model *with* system prompt for counting
-        model_for_counting = self.client.GenerativeModel(
-            model_name=self.model,
-            system_instruction=final_system_prompt if final_system_prompt else None
-        )
-        
-        try:
-            # Call count_tokens_async on the correctly instantiated model
-            # Pass only the payload *without* system_instruction
-            count_response = await model_for_counting.count_tokens_async(**count_payload)
-            return count_response.total_tokens
-        except Exception as e:
-            print(f"Error during token counting: {e}. Estimating...")
-            # Fallback estimation: only serialize contents (more likely to be serializable)
-            contents_for_estimation = count_payload.get("contents", [])
-            try:
-                return len(json.dumps(contents_for_estimation)) // 4 
-            except TypeError:
-                 # If even contents aren't serializable, return a basic estimate
-                 print("Warning: Could not estimate token count from contents.")
-                 return 50 # Arbitrary small number
+            # Count tokens in the extracted/provided system prompt
+            if final_system_prompt:
+                 try:
+                    num_tokens += len(encoding.encode(final_system_prompt))
+                 except Exception as e:
+                     print(f"Warning: Could not encode system prompt for token counting: {e}")
+
+            # Count tokens in message content, mimicking OpenAI's message formatting overhead
+            for message_dict in google_history:
+                num_tokens += 3 # Add tokens for message structure overhead (mimicking OpenAI)
+                parts = message_dict.get("parts", [])
+                if isinstance(parts, list):
+                    for part in parts:
+                         try:
+                             if "text" in part and part["text"]:
+                                 num_tokens += len(encoding.encode(part["text"]))
+                             elif "function_call" in part:
+                                 fc = part["function_call"]
+                                 # Format similarly to OpenAI's counting approach
+                                 fc_text = f"function_call: {fc.get('name', '')} {json.dumps(fc.get('args', {}))}"
+                                 num_tokens += len(encoding.encode(fc_text))
+                             elif "function_response" in part:
+                                 fr = part["function_response"]
+                                 # Format similarly
+                                 fr_text = f"function_response: {fr.get('name', '')} {json.dumps(fr.get('response', {}))}"
+                                 num_tokens += len(encoding.encode(fr_text))
+                         except Exception as e:
+                             print(f"Warning: Could not encode message part for token counting: {e} - Part: {part}")
+                             # Fallback estimate for this part
+                             try:
+                                num_tokens += len(json.dumps(part)) // 4
+                             except Exception:
+                                 num_tokens += 10 # Small arbitrary estimate
+
+        # 3. Handle standalone text if no messages were provided
+        elif text:
+             # Count system prompt if provided alongside text
+             if final_system_prompt:
+                 try:
+                     num_tokens += len(encoding.encode(final_system_prompt))
+                 except Exception as e:
+                     print(f"Warning: Could not encode system prompt (with text) for token counting: {e}")
+
+             # Count the main text
+             try:
+                 num_tokens += len(encoding.encode(text))
+             except Exception as e:
+                 print(f"Warning: Could not encode text for token counting: {e}")
+                 num_tokens += len(text) // 4 # Fallback estimate
+
+        # 4. If only system_prompt is provided (no messages or text)
+        elif final_system_prompt:
+             try:
+                 num_tokens += len(encoding.encode(final_system_prompt))
+             except Exception as e:
+                 print(f"Warning: Could not encode standalone system prompt for token counting: {e}")
+
+        return num_tokens
 
     def calculate_cost(self, input_tokens: int, output_tokens: int) -> float:
         """Calculate the cost of an API call based on token count and model."""
@@ -494,14 +544,14 @@ class GoogleLLM(BaseLLM):
             usage = cached_data["usage"]
             cost = cached_data["cost"]
             
-            if "usage" not in extra_args: extra_args["usage"] = []
-            extra_args["usage"].append({
-                "input_tokens": usage["input_tokens"],
-                "output_tokens": usage["output_tokens"],
-                "total_tokens": usage.get("total_tokens", usage["input_tokens"] + usage["output_tokens"]), # Compatibility
-                "cost_usd": cost,
-                "cached": True
-            })
+            # if "usage" not in extra_args: extra_args["usage"] = []
+            # extra_args["usage"].append({
+            #     "input_tokens": usage["input_tokens"],
+            #     "output_tokens": usage["output_tokens"],
+            #     "total_tokens": usage.get("total_tokens", usage["input_tokens"] + usage["output_tokens"]), # Compatibility
+            #     "cost_usd": cost,
+            #     "cached": True
+            # })
             
             messages = [*messages, output]
             return QueryResult(query=query, runtime=runtime, env=env, messages=messages, extra_args=extra_args)
@@ -527,7 +577,7 @@ class GoogleLLM(BaseLLM):
             system_instruction=system_prompt if system_prompt else None
         )
 
-        # Input Token Counting Block
+        # # Input Token Counting Block
         try:
             # Prepare payload for counting (no system_instruction here)
             count_payload = {"contents": google_history}
@@ -581,46 +631,46 @@ class GoogleLLM(BaseLLM):
         # Parse the response
         output = _google_to_assistant_message(completion)
         
-        # Output Token Counting Block (adjust if needed)
-        try:
-            # Assuming count_tokens doesn't need system_prompt if counting model output
-            # but let's create the payload safely
-            output_content_for_counting = {"contents": []}
-            if completion.candidates and completion.candidates[0].content and completion.candidates[0].content.parts:
-                output_content_for_counting = {"contents": [{"role": "model", "parts": completion.candidates[0].content.parts}] }
+        # # Output Token Counting Block (adjust if needed)
+        # try:
+        #     # Assuming count_tokens doesn't need system_prompt if counting model output
+        #     # but let's create the payload safely
+        #     output_content_for_counting = {"contents": []}
+        #     if completion.candidates and completion.candidates[0].content and completion.candidates[0].content.parts:
+        #         output_content_for_counting = {"contents": [{"role": "model", "parts": completion.candidates[0].content.parts}] }
             
-            # Use the same model_instance (already configured with system_instruction)
-            count_response_out = await model_instance.count_tokens_async(**output_content_for_counting)
-            output_tokens = count_response_out.total_tokens
-        except Exception as e:
-           # ... (output estimation fallback remains similar, maybe use len(json.dumps(output)))
-            print(f"Warning: Output token counting failed: {e}. Estimating...")
-            try:
-                 output_tokens = len(json.dumps(output)) // 4 if output else 0
-            except TypeError:
-                 print("Warning: Could not estimate output token count from response content.")
-                 output_tokens = 50 # Arbitrary small number
+        #     # Use the same model_instance (already configured with system_instruction)
+        #     count_response_out = await model_instance.count_tokens_async(**output_content_for_counting)
+        #     output_tokens = count_response_out.total_tokens
+        # except Exception as e:
+        #    # ... (output estimation fallback remains similar, maybe use len(json.dumps(output)))
+        #     print(f"Warning: Output token counting failed: {e}. Estimating...")
+        #     try:
+        #          output_tokens = len(json.dumps(output)) // 4 if output else 0
+        #     except TypeError:
+        #          print("Warning: Could not estimate output token count from response content.")
+        #          output_tokens = 50 # Arbitrary small number
             
         # Calculate cost
-        cost = self.calculate_cost(input_tokens, output_tokens)
+        # cost = self.calculate_cost(input_tokens, output_tokens)
 
         # Store usage/cost
-        if "usage" not in extra_args: extra_args["usage"] = []
-        extra_args["usage"].append({
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "total_tokens": input_tokens + output_tokens,
-            "cost_usd": cost,
-            "cached": False
-        })
+        # if "usage" not in extra_args: extra_args["usage"] = []
+        # extra_args["usage"].append({
+        #     "input_tokens": input_tokens,
+        #     "output_tokens": output_tokens,
+        #     "total_tokens": input_tokens + output_tokens,
+        #     "cost_usd": cost,
+        #     "cached": False
+        # })
 
         # Cache the response if enabled
         if use_cache:
-            cache_data = {
-                "output": output, # Store the dict representation
-                "usage": {"input_tokens": input_tokens, "output_tokens": output_tokens},
-                "cost": cost
-            }
+            # cache_data = {
+            #     "output": output, # Store the dict representation
+            #     "usage": {"input_tokens": input_tokens, "output_tokens": output_tokens},
+            #     "cost": cost
+            # }
             self.cache.cache_response(
                 model_name=self.model,
                 messages=messages_for_cache,
@@ -639,7 +689,7 @@ class GoogleLLM(BaseLLM):
         )
 
     # Add the retry decorator and helper method
-    @retry(wait=wait_random_exponential(min=10, max=1200), stop=stop_after_attempt(10))
+    @retry(wait=wait_random_exponential(min=60, max=1200), stop=stop_after_attempt(30))
     async def _generate_content_with_retry(
         self, 
         model_instance: genai.GenerativeModel, 

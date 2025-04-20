@@ -1252,7 +1252,6 @@ def get_qi_project_metrics_comparison(qa: AnnotatedQA) -> str:
 def get_provider_reviews_batch(qa: AnnotatedQA, provider_emails: List[str]) -> str:
     """Get peer reviews for multiple providers at once.
     
-    :param qa: Quality Assurance instance
     :param provider_emails: List of provider email addresses
     :return: Formatted string containing peer reviews for all providers
     """

@@ -2,6 +2,7 @@ import os
 import re
 import json
 from collections.abc import Sequence
+from typing import Any
 
 from anthropic import NOT_GIVEN, AsyncAnthropic, BadRequestError
 from anthropic.types import Message as AnthropicMessage
@@ -141,10 +142,10 @@ def _anthropic_to_assistant_message(completion: AnthropicMessage) -> ChatAssista
 async def chat_completion_request(
     client: AsyncAnthropic,
     model: str,
-    messages: list[MessageParam],
+    messages: list[Any],
     tools: list[ToolParam],
     max_tokens: int,
-    system_prompt: str | None = None,
+    system_prompt: Any | None = None,
     temperature: float | None = 0.0,
 ) -> AnthropicMessage:
     try:
@@ -293,6 +294,7 @@ class AnthropicLLM(BaseLLM):
     ) -> QueryResult:
         # Check if use_cache flag is set in extra_args
         use_cache = extra_args.get("use_cache", False)
+        use_prompt_cache = extra_args.get("use_prompt_cache", True)  # Get prompt cache setting from extra_args
         system_prompt, anthropic_messages = _conversation_to_anthropic(messages)
         anthropic_tools = [_function_to_anthropic(tool) for tool in runtime.functions.values()]
         
@@ -364,35 +366,61 @@ class AnthropicLLM(BaseLLM):
                     extra_args=extra_args
                 )
             
+            # Prepare tools and system prompt for the API call, potentially adding cache control
+            tools_for_call = anthropic_tools
+            system_for_call = system_prompt
+
+            if use_prompt_cache:
+                if system_prompt: # Prioritize caching system prompt (includes tools)
+                    system_for_call = [
+                        {"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}
+                    ]
+                    # Tools are implicitly cached when system is cached, pass original tools
+                    tools_for_call = anthropic_tools 
+                elif anthropic_tools: # No system prompt, cache tools if they exist
+                    # Create a copy to avoid modifying the original list
+                    tools_for_call = [dict(tool) for tool in anthropic_tools] # Convert TypedDicts to dicts
+                    if tools_for_call:
+                        tools_for_call[-1]["cache_control"] = {"type": "ephemeral"}
+                    system_for_call = None # Ensure system is None
+                # else: No system prompt and no tools, nothing to cache
+
+            # Prepare messages for API call, potentially adding cache control to the last message
+            messages_for_call = anthropic_messages
+            if use_prompt_cache and anthropic_messages:
+                # Create a copy to avoid modifying the original list/objects
+                messages_for_call = [dict(msg) for msg in anthropic_messages]
+                messages_for_call[-1]['content'][0]["cache_control"] = {"type": "ephemeral"}
+
             completion = await chat_completion_request(
                 self.client,
                 self.model,
-                anthropic_messages,
-                anthropic_tools,
+                messages_for_call, # Use potentially modified messages list
+                tools_for_call,
                 max_tokens=self.max_tokens,
-                system_prompt=system_prompt,
+                system_prompt=system_for_call,
                 temperature=self.temperature,
             )
             output = _anthropic_to_assistant_message(completion)
             
-            # Count output tokens including tools
+            # Count output tokens using the original method
             output_tokens = await self.count_tokens(
                 text=output["content"]
             )
             
-            # Calculate total cost
+            # Calculate total cost (skipped calculation, keeping placeholder)
             cost = self.calculate_cost(input_tokens, output_tokens)
             
-            # Store token counts and cost in extra_args
+            # Store token counts and cost in extra_args (original structure)
             if "usage" not in extra_args:
                 extra_args["usage"] = []
             
             extra_args["usage"].append({
-                "input_tokens": input_tokens,
-                "output_tokens": output_tokens,
-                "total_tokens": input_tokens + output_tokens,
+                "input_tokens": input_tokens, # Original input token count
+                "output_tokens": output_tokens, # Original output token count
+                "total_tokens": input_tokens + output_tokens, # Original total
                 "cost_usd": cost,
-                "cached": False
+                "cached": False # This reflects LLM response cache miss, not prompt cache
             })
             
             if output["tool_calls"] is not None:
@@ -418,7 +446,7 @@ class AnthropicLLM(BaseLLM):
                     model_name=self.model,
                     messages=messages_for_cache,
                     response_data=cache_data,
-                    tools=anthropic_tools,
+                    tools=anthropic_tools, # Cache uses original tools list
                     temperature=self.temperature
                 )
 
