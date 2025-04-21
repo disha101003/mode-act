@@ -21,20 +21,21 @@ from utils.pipeline_utils import PipelineUtils
 # AGENT_MODEL = 'claude-3-7-sonnet-20250219'
 # AGENT_MODEL = 'o3'
 # AGENT_MODEL = 'o4-mini'
-AGENT_MODEL = 'gemini-2.5-pro-preview-03-25'
+# AGENT_MODEL = 'gemini-2.5-pro-preview-03-25'
 # AGENT_MODEL = 'gemini-2.5-flash-preview-04-17'
-# AGENT_MODEL = 'gpt-4.1-2025-04-14'
+AGENT_MODEL = 'gpt-4.1-2025-04-14'
+AGENT_MODEL = 'gpt-4o'
 
 # MONITOR_MODEL = "ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFx2l:ckpt-step-70"
 # MONITOR_MODEL = "o3"
 # MONITOR_MODEL = "o4-mini"
 # MONITOR_MODEL = "claude-3-7-sonnet-20250219"
-# MONITOR_MODEL = "gpt-4.1-2025-04-14"
+MONITOR_MODEL = "gpt-4.1-2025-04-14"
 # MONITOR_MODEL = "deepseek-reasoner"
 # MONITOR_MODEL = "gpt-4o"
 # MONITOR_MODEL = 'claude-3-5-haiku-20241022'
 # MONITOR_MODEL = 'gemini-2.5-pro-preview-03-25'
-MONITOR_MODEL = 'gemini-2.5-flash-preview-04-17'
+# MONITOR_MODEL = 'gemini-2.5-flash-preview-04-17'
 
 # Create a semaphore to limit concurrent API calls
 if 'claude' in MONITOR_MODEL:

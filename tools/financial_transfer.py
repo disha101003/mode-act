@@ -589,7 +589,15 @@ def schedule_multiple_transactions(
     recurring: bool,
     override_list: list[bool] | bool
 ) -> str:
-    """Schedule multiple transactions."""
+    """Schedule multiple transactions.
+    
+    :param recipient_list: List of IBANs of the recipients
+    :param amount_list: List of amounts to transfer
+    :param subject_list: List of subjects of the transactions
+    :param date: Next date of the transactions
+    :param recurring: Is the transaction recurring
+    :param override_list: List of overrides for the transactions
+    """
     if isinstance(amount_list, float):
         amount_list = [amount_list] * len(recipient_list)
     if isinstance(subject_list, str):

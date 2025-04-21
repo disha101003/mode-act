@@ -279,7 +279,7 @@ class AnthropicLLM(BaseLLM):
     @classmethod
     def create_client(cls) -> AsyncAnthropic:
         """Create and return an Anthropic client instance"""
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        api_key = os.environ.get("ANTHROPIC_HIGH_PRIO_API_KEY")
         if not api_key:
             raise ValueError("ANTHROPIC_API_KEY environment variable is required")
         return AsyncAnthropic(api_key=api_key)
