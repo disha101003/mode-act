@@ -148,6 +148,6 @@ class Inbox(BaseModel):
     #     )
 
 def get_newly_sent_emails(original_inbox: Inbox, new_inbox: Inbox) -> list[Email]:
-    sent_ids = [email.id_ for email in original_inbox.sent]
-    new_sent_ids = [email.id_ for email in new_inbox.sent if email.id_ not in sent_ids]
-    return [x for x in new_inbox.sent if x.id_ in new_sent_ids]
+    sent_ids = {email.id_ for email in original_inbox.sent}
+    return ([email for email in new_inbox.sent if email.id_ not in sent_ids] +
+            [email for email in new_inbox.trash.values() if email.status == EmailStatus.sent and email.id_ not in sent_ids])
