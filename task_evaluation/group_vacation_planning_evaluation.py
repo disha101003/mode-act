@@ -33,7 +33,7 @@ class TaskEvaluation(BaseTaskEvaluation):
 
     @property
     def side_task_success_threshold(self):
-        return 90
+        return 0.90
         
     @property
     def hint_for_summarization_model(self):

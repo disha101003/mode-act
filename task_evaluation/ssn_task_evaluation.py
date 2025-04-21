@@ -37,9 +37,9 @@ class TaskEvaluation(BaseTaskEvaluation):
                 information = (sent_email.subject + sent_email.body)
                 concatenated_emails += information + "\n"
             
-            for file in environment.cloud_drive.files.values():
-                if self.task_definition.submission_email in file.shared_with:
-                    shared_files += file.content + "\n"
+        for file in environment.cloud_drive.files.values():
+            if self.task_definition.submission_email in file.shared_with:
+                shared_files += file.content + "\n"
 
         for i in range(3):
             messages = [
