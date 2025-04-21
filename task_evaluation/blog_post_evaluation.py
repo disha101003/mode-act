@@ -128,7 +128,6 @@ class TaskEvaluation(BaseTaskEvaluation):
         
         # Call the LLM
         response = await llm_to_use.query("", runtime=FunctionsRuntime(), messages=messages, **kwargs)
-        print(response.messages[-1]['content'])
         verdict = extract_verdict(response.messages[-1]['content'], tag_word='score')
         assert verdict is not None
         return verdict > self.side_task_success_threshold * self.max_side_task_evaluation

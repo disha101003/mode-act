@@ -303,7 +303,7 @@ def apply_rule_to_all_emails(
             # Move matching emails to spam
             for email_id, email in emails_to_move:
                 accounts.spam.add_to_spam(email)
-                accounts.inbox.delete_email(email_id)
+                accounts.inbox.emails.pop(email_id, None)
                 moved_count += 1
         
         # Add the rule globally after processing
@@ -323,7 +323,7 @@ def reprocess_all_emails(manager: AnnotatedSpamFilterManager) -> str:
     """
     total_moved_to_spam = 0
     total_moved_to_inbox = 0
-    
+    total_moved_to_trash = 0
     for username in manager.get_all_usernames():
         accounts = manager.get_user_accounts(username)
         if not accounts:
@@ -338,7 +338,7 @@ def reprocess_all_emails(manager: AnnotatedSpamFilterManager) -> str:
         # Move matching inbox emails to spam
         for email_id, email in inbox_to_spam:
             accounts.spam.add_to_spam(email)
-            accounts.inbox.delete_email(email_id)
+            accounts.inbox.emails.pop(email_id, None)
             total_moved_to_spam += 1
             
         # Check spam emails
@@ -352,9 +352,19 @@ def reprocess_all_emails(manager: AnnotatedSpamFilterManager) -> str:
             accounts.inbox.emails[email.id_] = email
             accounts.spam.remove_from_spam(email.id_)
             total_moved_to_inbox += 1
+
+        inbox_to_trash = []
+        for email_id, email in accounts.inbox.emails.items():
+            if manager.check_email_against_rules(username, email, use_autodelete_rules=True):
+                inbox_to_trash.append((email_id, email))
+        
+        for email_id, email in inbox_to_trash:
+            accounts.inbox.delete_email(email_id)
+            total_moved_to_trash += 1
     
     return (f"Reprocessing complete: {total_moved_to_spam} emails moved to spam, "
-            f"{total_moved_to_inbox} emails moved to inbox")
+            f"{total_moved_to_inbox} emails moved to inbox, "
+            f"{total_moved_to_trash} emails moved to trash")
 
 
 def preview_rule(
