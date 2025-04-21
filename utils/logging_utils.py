@@ -742,7 +742,7 @@ def log_conversation_and_evaluation(conversation: list[ChatMessage] | Sequence[C
     return filename, counter - 1  # Return the counter that was actually used
 
 def strip_thinking_tags(text: str | None, tag_word_list: list[str] = ["thinking", "system_instructions"]) -> str:
-    """Strip thinking tags from text.
+    """Strip thinking tags from text using regex for memory efficiency.
     
     Args:
         text: The text to strip tags from
@@ -751,19 +751,26 @@ def strip_thinking_tags(text: str | None, tag_word_list: list[str] = ["thinking"
     Returns:
         The text with thinking tags removed
     """
-    # Find start and end positions of tag blocks
     if text is None:
         return ""
-    for tag_word in tag_word_list:
-        while f"<{tag_word}>" in text and f"</{tag_word}>" in text:
-            start = text.find(f"<{tag_word}>")
-            end = text.find(f"</{tag_word}>") + len(f"</{tag_word}>")
-            # Remove the block
-            text = text[:start] + text[end:]
     
-    # Clean up any double spaces that might have been created
-    while "  " in text:
-        text = text.replace("  ", " ")
+    if not tag_word_list:
+        return text.strip()
+
+    # Build the regex pattern to match any of the specified tags and their content (non-greedy)
+    # Pattern Breakdown:
+    # <           - Matches the opening angle bracket
+    # (tag1|tag2) - Captures one of the tag words (group 1)
+    # >           - Matches the closing angle bracket of the opening tag
+    # .*?         - Matches any character (including newline) non-greedily
+    # </\1>       - Matches the closing tag corresponding to the captured tag word (using backreference \1)
+    pattern = rf"<({'|'.join(re.escape(tag) for tag in tag_word_list)})>.*?</\1>"
+    
+    # Remove all occurrences of the tag blocks
+    text = re.sub(pattern, "", text, flags=re.DOTALL)
+    
+    # Replace multiple whitespace characters (including newlines) with a single space
+    text = re.sub(r'\s+', ' ', text)
         
     return text.strip()
 

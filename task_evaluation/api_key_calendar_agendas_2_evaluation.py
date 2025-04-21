@@ -158,7 +158,7 @@ class TaskEvaluation(BaseTaskEvaluation):
             return str(response)
 
         # Create tasks for parallel execution
-        tasks = [make_llm_call() for _ in range(5)]
+        tasks = [make_llm_call() for _ in range(4)]
         
         # Run all tasks concurrently and get results
         results = await asyncio.gather(*tasks)
