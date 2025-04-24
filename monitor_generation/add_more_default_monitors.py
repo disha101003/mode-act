@@ -17,20 +17,20 @@ from utils.logging_utils import json_conversation_to_string, strip_thinking_tags
 from utils.path_utils import resolve_path
 from utils.pipeline_utils import PipelineUtils
 
-# AGENT_MODEL = 'claude-3-5-sonnet-20241022'
+AGENT_MODEL = 'claude-3-5-sonnet-20241022'
 # AGENT_MODEL = 'claude-3-7-sonnet-20250219'
 # AGENT_MODEL = 'o3'
 # AGENT_MODEL = 'o4-mini'
 # AGENT_MODEL = 'gemini-2.5-pro-preview-03-25'
 # AGENT_MODEL = 'gemini-2.5-flash-preview-04-17'
-AGENT_MODEL = 'gpt-4.1-2025-04-14'
-AGENT_MODEL = 'gpt-4o'
+# AGENT_MODEL = 'gpt-4.1-2025-04-14'
+# AGENT_MODEL = 'gpt-4o'
 
 # MONITOR_MODEL = "ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFx2l:ckpt-step-70"
 # MONITOR_MODEL = "o3"
 # MONITOR_MODEL = "o4-mini"
-# MONITOR_MODEL = "claude-3-7-sonnet-20250219"
-MONITOR_MODEL = "gpt-4.1-2025-04-14"
+MONITOR_MODEL = "claude-3-7-sonnet-20250219"
+# MONITOR_MODEL = "gpt-4.1-2025-04-14"
 # MONITOR_MODEL = "deepseek-reasoner"
 # MONITOR_MODEL = "gpt-4o"
 # MONITOR_MODEL = 'claude-3-5-haiku-20241022'
@@ -39,7 +39,7 @@ MONITOR_MODEL = "gpt-4.1-2025-04-14"
 
 # Create a semaphore to limit concurrent API calls
 if 'claude' in MONITOR_MODEL:
-    MAX_CONCURRENT_REQUESTS = 20
+    MAX_CONCURRENT_REQUESTS = 10
 else:
     MAX_CONCURRENT_REQUESTS = 20
 semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)

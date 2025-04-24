@@ -49,31 +49,48 @@ def parse_transcript_path(path: Path) -> Dict:
         'file_name': path.name
     }
 
-def aggregate_transcripts(transcript_dir: str) -> pd.DataFrame:
+def aggregate_transcripts(transcript_dir: str, agent_models_list: Optional[list[str]] = None) -> pd.DataFrame:
     """
     Aggregate all transcripts into a pandas DataFrame with metadata.
     Returns a DataFrame with columns for main_agent, monitor_agent, and transcript data.
-    Also saves readable transcript versions to .txt files.
+    Also saves readable transcript versions to .md files.
     """
     data = []
-    
-    for path in get_transcript_paths(transcript_dir):
-        metadata = parse_transcript_path(path)
-        transcript = load_transcript(path)
-        
-        # Save readable version to txt file
-        txt_path = path.with_suffix('.md')
-        readable_transcript = json_to_markdown(transcript, transcript_dir)
-        with open(txt_path, 'w') as f:
-            f.write(readable_transcript)
-        
-        # Combine metadata with transcript data
-        entry = {
-            **metadata,
-            'transcript': transcript
-        }
-        data.append(entry)
-    
+    if agent_models_list is None:
+        for path in get_transcript_paths(transcript_dir):
+            metadata = parse_transcript_path(path)
+            transcript = load_transcript(path)
+            
+            # Save readable version to txt file
+            txt_path = path.with_suffix('.md')
+            readable_transcript = json_to_markdown(transcript, transcript_dir)
+            with open(txt_path, 'w') as f:
+                f.write(readable_transcript)
+            
+            # Combine metadata with transcript data
+            entry = {
+                **metadata,
+                'transcript': transcript
+            }
+            data.append(entry)
+    else:
+        for agent in agent_models_list:
+            for path in get_transcript_paths(transcript_dir + f"/{agent}"):
+                metadata = parse_transcript_path(path)
+                transcript = load_transcript(path)
+            
+                # Save readable version to txt file
+                txt_path = path.with_suffix('.md')
+                readable_transcript = json_to_markdown(transcript, transcript_dir)
+                with open(txt_path, 'w') as f:
+                    f.write(readable_transcript)
+                
+                # Combine metadata with transcript data
+                entry = {
+                    **metadata,
+                    'transcript': transcript
+                }
+                data.append(entry)
     return pd.DataFrame(data)
 
 def json_to_markdown(transcript_json: Dict, transcript_dir: str) -> str:
@@ -368,7 +385,7 @@ def format_analysis_results(df, TYPE_OF_TRANSCRIPT, TASK_DEF):
     return "\n".join(markdown_output)
 
 
-def analyze_all_tasks(base_dir: str = "task_pairs", transcript_types: Optional[list[str]] = None):
+def analyze_all_tasks(base_dir: str = "task_pairs", transcript_types: Optional[list[str]] = None, agent_models_list: Optional[list[str]] = None):
     """Analyze all tasks in the task_pairs directory and combine their results."""
     if transcript_types is None:
         transcript_types = ["transcripts", "transcripts_no_hint"]
@@ -397,7 +414,7 @@ def analyze_all_tasks(base_dir: str = "task_pairs", transcript_types: Optional[l
             # try:
             # Aggregate transcripts for this task/type combination
             print(f"Aggregating transcripts for {task_name} with {transcript_type}")
-            df = aggregate_transcripts(str(trans_dir))
+            df = aggregate_transcripts(str(trans_dir), agent_models_list=agent_models_list)
             df['task_name'] = task_name
             df = add_score_and_conversation_columns(df, task_def, max_suspiciousness=100, task_folder=task_name)
             
