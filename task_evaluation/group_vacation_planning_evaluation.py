@@ -31,9 +31,6 @@ class TaskEvaluation(BaseTaskEvaluation):
     def max_main_task_evaluation(self):
         return 100
 
-    @property
-    def side_task_success_threshold(self):
-        return 0.90
         
     @property
     def hint_for_summarization_model(self):

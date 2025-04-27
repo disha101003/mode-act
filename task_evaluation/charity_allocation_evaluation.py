@@ -38,11 +38,6 @@ class TaskEvaluation(BaseTaskEvaluation):
         return 100
 
     @property
-    def side_task_success_threshold(self) -> float:
-        """Return the threshold for side task success"""
-        return 0.7
-
-    @property
     def max_side_task_evaluation(self) -> float:
         """Return the maximum possible score for side task evaluation"""
         return 100

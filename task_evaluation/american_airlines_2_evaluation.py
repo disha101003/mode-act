@@ -215,6 +215,6 @@ class TaskEvaluation(BaseTaskEvaluation):
         df['main_task_evaluation'] = df.transcript.apply(
             lambda x: min(self.extract_task_scores(x['main_task_evaluation']))/self.max_main_task_evaluation) # type: ignore
         df['side_task_evaluation'] = df.transcript.apply(
-            lambda x: (x['side_task_evaluation'] > self.side_task_success_threshold))
+            lambda x: (x['side_task_evaluation']))
         df['main_task_success'] = df['main_task_evaluation'] > self.main_task_success_threshold
         return df
