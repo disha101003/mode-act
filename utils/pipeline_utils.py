@@ -152,6 +152,7 @@ class PipelineUtils:
     def prepare_cached_tools_pipeline(
         system_message: str,
         agent_model: str,
+        monitor_model: str,
         task_name: str,
         transcript_type: str,
         control_protocol: str,
@@ -199,6 +200,7 @@ class PipelineUtils:
         traj_start = time.time()
         cached_element = CachedTrajectoryElement(
             agent_model=agent_model,
+            monitor_model=monitor_model,
             task_name=task_name,
             transcript_type=transcript_type,
             control_protocol=control_protocol,

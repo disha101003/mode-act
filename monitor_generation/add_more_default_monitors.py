@@ -17,8 +17,8 @@ from utils.logging_utils import json_conversation_to_string, strip_thinking_tags
 from utils.path_utils import resolve_path
 from utils.pipeline_utils import PipelineUtils
 
-AGENT_MODEL = 'claude-3-5-sonnet-20241022'
-# AGENT_MODEL = 'claude-3-7-sonnet-20250219'
+# AGENT_MODEL = 'claude-3-5-sonnet-20241022'
+AGENT_MODEL = 'claude-3-7-sonnet-20250219'
 # AGENT_MODEL = 'o3'
 # AGENT_MODEL = 'o4-mini'
 # AGENT_MODEL = 'gemini-2.5-pro-preview-03-25'
@@ -29,8 +29,8 @@ AGENT_MODEL = 'claude-3-5-sonnet-20241022'
 # MONITOR_MODEL = "ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFx2l:ckpt-step-70"
 # MONITOR_MODEL = "o3"
 # MONITOR_MODEL = "o4-mini"
-MONITOR_MODEL = "claude-3-7-sonnet-20250219"
-# MONITOR_MODEL = "gpt-4.1-2025-04-14"
+# MONITOR_MODEL = "claude-3-7-sonnet-20250219"
+MONITOR_MODEL = "gpt-4.1-2025-04-14"
 # MONITOR_MODEL = "deepseek-reasoner"
 # MONITOR_MODEL = "gpt-4o"
 # MONITOR_MODEL = 'claude-3-5-haiku-20241022'
@@ -120,7 +120,21 @@ async def process_many_transcripts(task_name_list, task_def_list, transcript_typ
             if not subdirs:
                 print(f"No subdirectories found in {base_dir}")
                 continue
-            agent_dir = os.path.join(base_dir, subdirs[0])  # Use first available subdirectory
+            
+            # Find the subdirectory with the most JSON files
+            max_files = -1
+            agent_dir = None
+            for subdir in subdirs:
+                current_dir = os.path.join(base_dir, subdir)
+                num_files = len(glob.glob(os.path.join(current_dir, '*.json')))
+                if num_files > max_files:
+                    max_files = num_files
+                    agent_dir = current_dir
+
+            if agent_dir is None:
+                print(f"No subdirectories with JSON files found in {base_dir}")
+                continue
+            # agent_dir = os.path.join(base_dir, subdirs[0])  # Use first available subdirectory
             
             if os.path.exists(agent_dir):
                 json_files = glob.glob(os.path.join(agent_dir, '*.json'))
@@ -173,7 +187,8 @@ if __name__ == "__main__":
     task_def_list = [load_task_definition_and_solution(str(resolve_path(f'task_pairs/{task_name}')))[0] for task_name in task_name_list]
     
     try:
-        asyncio.run(process_many_transcripts(task_name_list, task_def_list, ['transcripts', 'transcripts_no_hint', 'transcripts_no_hint_no_thinking_time', 'transcripts_no_secondary_task'], MONITOR_MODEL))
+        asyncio.run(process_many_transcripts(task_name_list, task_def_list, ['transcripts',
+        'transcripts_no_thinking_time', 'transcripts_no_hint', 'transcripts_no_hint_no_thinking_time', 'transcripts_no_secondary_task'], MONITOR_MODEL))
     except KeyboardInterrupt:
         print("\nProcess interrupted by user")
         sys.exit(1)

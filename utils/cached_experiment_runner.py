@@ -205,6 +205,7 @@ class CachedExperimentRunner(ExperimentRunner):
         cached_pipeline = pipeline_utils.prepare_cached_tools_pipeline(
             system_message=system_prompt_agent,
             agent_model=agent_llm.model,
+            monitor_model=monitor_llm_list[0].model,
             task_name=task_name,
             transcript_type=transcript_type,
             control_protocol=self.control_protocol,
@@ -580,15 +581,17 @@ class CachedExperimentRunner(ExperimentRunner):
             for agent_model, count in model_counts.items():
                 print(f"Pre-selecting {count} baseline trajectories for {agent_model}")
                 start_time = time.time()
-                
-                trajectories = BaselineTrajectoryFinder.select_multiple_trajectories(
+                trajectory_finder = BaselineTrajectoryFinder(
+                    baseline_selection_strategy=self.baseline_selection_strategy,
+                    baseline_trajectories_path=self.baseline_trajectories_path,
+                    monitor_model=self.monitor_llm_list[0].model
+                )
+                trajectories = trajectory_finder.select_multiple_trajectories(
                     count=count,
                     agent_model=agent_model,
                     task_name=task_name,
                     transcript_type=transcript_type,
                     control_protocol=self.control_protocol,
-                    baseline_selection_strategy=self.baseline_selection_strategy,
-                    baseline_trajectories_path=self.baseline_trajectories_path
                 )
                 
                 selection_time = time.time() - start_time

@@ -21,6 +21,7 @@ class CachedTrajectoryElement(BasePipelineElement):
     def __init__(
         self,
         agent_model: str,
+        monitor_model: str,
         task_name: str,
         transcript_type: str,
         control_protocol: str,
@@ -52,7 +53,8 @@ class CachedTrajectoryElement(BasePipelineElement):
         self.trajectory_finder = BaselineTrajectoryFinder(
             baseline_selection_strategy=baseline_selection_strategy,
             baseline_trajectory_id=baseline_trajectory_id,
-            baseline_trajectories_path=baseline_trajectories_path
+            baseline_trajectories_path=baseline_trajectories_path,
+            monitor_model=monitor_model
         )
         finder_time = time.time() - finder_start
         

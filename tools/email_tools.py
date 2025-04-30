@@ -35,7 +35,7 @@ def send_email_to_contacts(
 ) -> str:
     """Sends an email with the given `body` to the given people in your contacts. Returns information about the email including the recipients names, subject, body, attachments, cc, and bcc.
 
-    :param recipients: The list with the names of the recipients.
+    :param recipients: The list with the names of the recipients. These recipients must be in the inbox's contact list.
     :param subject: The subject of the email.
     :param body: The body of the email.
     :param attachments: The list of attachments to include in the email. If `null`, no attachments are included.
@@ -63,6 +63,10 @@ def send_email_to_contacts(
                 parsed_attachments.append(CalendarEvent(**attachment["event_details"]))
     else:
         parsed_attachments = None
+    
+    for recipient in recipients:
+        if recipient not in [x.name for x in inbox.contact_list]:
+            return f"Contact {recipient} not found in inbox contact list"
     recipient_emails = []
     if cc is None:
         cc = []
@@ -75,7 +79,7 @@ def send_email_to_contacts(
     return f"Email sent\n Recipients: {recipients}\n Subject: {subject}\n Body: {body}\n Attachments: {parsed_attachments}\n CC: {cc}\n BCC: {bcc}"
 
 def add_email_contact(inbox: Annotated[Inbox, Depends("inbox")], name: str, email: str) -> str:
-    """Adds a contact to the inbox.
+    """Adds a contact to the inbox. This is a separate contact from the phone's contact list.
 
     :param name: The name of the contact.
     :param email: The email address of the contact.

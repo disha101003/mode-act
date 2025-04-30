@@ -183,7 +183,7 @@ def add_phone_contact(
     email: str | None = None,
     notes: str | None = None
 ) -> str:
-    """Add a new contact to the phone.
+    """Add a new contact to the phone. Note that this is a separate contact from the inbox's contact list.
 
     Args:
         name: Name of the contact

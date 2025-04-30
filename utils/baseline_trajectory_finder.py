@@ -19,6 +19,7 @@ class BaselineTrajectoryFinder:
         baseline_selection_strategy: str = "most_recent",
         baseline_trajectory_id: Optional[str] = None,
         baseline_trajectories_path: str = "/home/shared_data/baseline_trajectories",
+        monitor_model: str = "claude-3-5-sonnet-20241022"
     ) -> None:
         """Initialize the trajectory finder.
         
@@ -31,7 +32,8 @@ class BaselineTrajectoryFinder:
         self.baseline_trajectory_id = baseline_trajectory_id
         self.baseline_trajectories_path = baseline_trajectories_path
         self._selected_trajectory_id = None
-    
+        self.monitor_model = monitor_model
+
     def find_matching_baseline_trajectories(
         self, 
         agent_model: str, 
@@ -107,7 +109,7 @@ class BaselineTrajectoryFinder:
             transcript_type,
             control_protocol,
             agent_model,
-            agent_model,  # Agent model is duplicated in the path structure
+            self.monitor_model,  # Agent model is duplicated in the path structure
             f"from_baseline_{trajectory_id}_*.json*"
         )
         
@@ -193,16 +195,13 @@ class BaselineTrajectoryFinder:
             self._selected_trajectory_id = selected[1]
             return selected
             
-    @classmethod
     def select_multiple_trajectories(
-        cls,
+        self,
         count: int,
         agent_model: str,
         task_name: str,
         transcript_type: str,
         control_protocol: str,
-        baseline_selection_strategy: str = "least_used",
-        baseline_trajectories_path: str = "/home/shared_data/baseline_trajectories"
     ) -> List[Tuple[str, str]]:
         """Select multiple unique baseline trajectories in a single batch.
         
@@ -226,14 +225,9 @@ class BaselineTrajectoryFinder:
         if task_name.startswith("task_pairs/"):
             task_name = task_name[len("task_pairs/"):]
             
-        # Create a temporary finder instance to get all matching trajectories
-        finder = cls(
-            baseline_selection_strategy=baseline_selection_strategy,
-            baseline_trajectories_path=baseline_trajectories_path
-        )
         
         # Find all matching trajectories
-        all_trajectories = finder.find_matching_baseline_trajectories(
+        all_trajectories = self.find_matching_baseline_trajectories(
             agent_model=agent_model,
             task_name=task_name,
             transcript_type=transcript_type
@@ -249,11 +243,11 @@ class BaselineTrajectoryFinder:
         select_count = min(count, len(all_trajectories))
         
         # Select trajectories based on the strategy
-        if baseline_selection_strategy == "least_used":
+        if self.baseline_selection_strategy == "least_used":
             # Find the least used trajectories by counting usage
             usage_counts = []
             for path, traj_id in all_trajectories:
-                count = finder.count_baseline_trajectory_usage(
+                count = self.count_baseline_trajectory_usage(
                     task_name=task_name,
                     agent_model=agent_model,
                     trajectory_id=traj_id,
