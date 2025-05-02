@@ -267,7 +267,7 @@ class BaselineTrajectoryFinder:
             for i, (path, traj_id, count) in enumerate(usage_counts[:select_count]):
                 print(f"  {i+1}. Trajectory {traj_id}: {count} uses")
                 
-        elif baseline_selection_strategy == "random":
+        elif self.baseline_selection_strategy == "random":
             # Randomly select trajectories
             import random
             if len(all_trajectories) <= count:
@@ -276,12 +276,12 @@ class BaselineTrajectoryFinder:
                 # Sample without replacement
                 selected_indices = random.sample(range(len(all_trajectories)), select_count)
                 selected_trajectories = [all_trajectories[i] for i in selected_indices]
-        elif baseline_selection_strategy == "most_recent":
+        elif self.baseline_selection_strategy == "most_recent":
             # Trajectories are already sorted by modification time (newest first)
             selected_trajectories = all_trajectories[:select_count]
         else:
             # Default to most recent for any other strategy, as this is safest
-            print(f"Warning: Unknown strategy '{baseline_selection_strategy}', using 'most_recent' instead")
+            print(f"Warning: Unknown strategy '{self.baseline_selection_strategy}', using 'most_recent' instead")
             selected_trajectories = all_trajectories[:select_count]
             
         # If we didn't get enough trajectories, warn

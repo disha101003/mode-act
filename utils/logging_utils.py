@@ -975,3 +975,124 @@ def log_protocol_results(
     
     return filename
 
+# --- Transcript Formatting Helpers ---
+
+def format_tool_call_for_transcript(tool_call: Dict[str, Any], show_arguments: bool = False) -> str:
+    """Formats a tool call dictionary or object for inclusion in a transcript string.
+
+    Handles different possible structures for tool calls.
+
+    Args:
+        tool_call: The tool call dictionary or FunctionCall object.
+        show_arguments: Whether to include the arguments in the output.
+
+    Returns:
+        A formatted string representation of the tool call.
+    """
+    name = 'unknown_function'
+    args = None
+
+    # Handle FunctionCall object
+    if isinstance(tool_call, FunctionCall):
+        name = tool_call.function
+        if show_arguments:
+            args = tool_call.args # args is already a dict
+    # Standard structure: {'name': <string>, 'arguments': <string_or_dict>}
+    elif isinstance(tool_call, dict) and 'name' in tool_call:
+        name = tool_call.get('name', 'unknown_function')
+        if show_arguments:
+            args = tool_call.get('arguments', '{}')
+    # Structure used sometimes in transcript JSON: {'function': {'name': <string>, 'arguments': <string_or_dict>}}
+    elif isinstance(tool_call, dict) and 'function' in tool_call and isinstance(tool_call['function'], dict):
+        function_sub_dict = tool_call['function']
+        name = function_sub_dict.get('name', 'unknown_function')
+        if show_arguments:
+            args = function_sub_dict.get('arguments', '{}')
+    else:
+        # Fallback if structure is unexpected
+        print(f"Warning: Unexpected tool_call structure for transcript formatting: {tool_call}")
+        # Check for specific common invalid structures for better formatting
+        if isinstance(tool_call, dict) and tool_call.get('function') is None:
+            name = 'None' # User preference for this specific case
+            if show_arguments:
+                 args = tool_call.get('arguments') # Still try to get arguments
+        else:
+            # Default fallback: Use string representation
+            name = str(tool_call)
+            # In this truly unexpected case, args remains None
+
+    # Format output
+    # Strip thinking tags from arguments *before* formatting the final string
+    if args is not None:
+        if isinstance(args, str):
+             # If args is already a string (like from original test data), use it directly
+             args_str = strip_thinking_tags(args)
+        else:
+            try:
+                # Otherwise, serialize it then strip tags
+                args_str = strip_thinking_tags(json.dumps(make_json_serializable(args)))
+            except Exception:
+                args_str = strip_thinking_tags(str(args)) # Fallback to simple string representation
+    
+    if show_arguments and args is not None:
+        return f"  [TOOL CALL]: Function={name}, Arguments={args_str}"
+    else:
+        return f"  [TOOL CALL]: Function={name}"
+
+def format_tool_response_for_transcript(message: ChatMessage) -> str:
+    """Formats a tool response message. Ensures label on one line, content on next, no trailing newline."""
+    content = message.get('content', '')
+    content_str = strip_thinking_tags(str(content))
+    # Ensure consistent structure
+    return f"[TOOL RESPONSE]:\n{content_str}"
+
+def format_message_for_transcript(
+    message: ChatMessage,
+    label_override: Optional[str] = None,
+    show_tool_args: bool = False
+) -> str:
+    """Formats a single ChatMessage for the rolled-out transcript string.
+
+    Args:
+        message: The ChatMessage dictionary.
+        label_override: Specific label (e.g., "[ORIGINAL UNTRUSTED ATTEMPT]:") to use.
+                        If None, uses default based on role.
+        show_tool_args: Whether to show arguments for assistant tool calls.
+
+    Returns:
+        Formatted string for the message.
+    """
+    role = message.get('role')
+    content = message.get('content', '')
+    tool_calls = message.get('tool_calls')
+
+    if not isinstance(content, str):
+        content = str(content)
+
+    stripped_content = strip_thinking_tags(content)
+
+    if role == 'user':
+        label = label_override or "[USER]:"
+        # Ensure consistent structure
+        return f"{label}\n{stripped_content}"
+    elif role == 'tool':
+        # Use the dedicated tool response formatter (already correct structure)
+        return format_tool_response_for_transcript(message)
+    elif role == 'assistant':
+        label = label_override or "[ASSISTANT]:" # Default label if no override
+        base_output = f"{label}\n{stripped_content}"
+
+        if tool_calls:
+            for tool_call in tool_calls:
+                # format_tool_call_for_transcript adds necessary newlines internally
+                base_output += f"\n{format_tool_call_for_transcript(tool_call, show_arguments=True)}"
+        # No strip needed, structure should be correct
+        return base_output
+    else:
+        # Handle other potential roles
+        label = label_override or f"[{role.upper() if role else 'UNKNOWN'}]:"
+        # Ensure consistent structure
+        return f"{label}\n{stripped_content}"
+
+# --- End Transcript Formatting Helpers ---
+

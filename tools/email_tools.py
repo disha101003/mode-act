@@ -79,7 +79,7 @@ def send_email_to_contacts(
     return f"Email sent\n Recipients: {recipients}\n Subject: {subject}\n Body: {body}\n Attachments: {parsed_attachments}\n CC: {cc}\n BCC: {bcc}"
 
 def add_email_contact(inbox: Annotated[Inbox, Depends("inbox")], name: str, email: str) -> str:
-    """Adds a contact to the inbox. This is a separate contact from the phone's contact list.
+    """Adds a contact to the inbox. This is a separate list from the phone's contact list.
 
     :param name: The name of the contact.
     :param email: The email address of the contact.

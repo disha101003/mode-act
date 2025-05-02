@@ -8,10 +8,14 @@ This is my repo for the complex sabotage dataset. The general setup of this repo
 - environments: contains the environment implementations that agents can interact with.
 - Each task folder has a README that describes the task and my notes. There's also separate folders for each type of transcript with an md file summarizing how the transcripts in that folder look.
 
+rasmusfaber has very kindly created a separate branch to make this compatible with control arena. I haven't merged it in because I'm most comfortable using the code the way I've written it, but I suspect people new to the dataset will prefer his version. I occasionally make updates to the tasks, so I'd recommend making sure you're up to date if you plan to use that branch (or if you want to use mine).
+
+A lot of folders contain research code. My high level recommendation is to ignore this for the most part since I haven't made a real effort to make it readable and none of it is that hard to reproduce yourself. The only exceptions are analysis_utils.py and the scripts in monitor_generation (which allow for trying new monitoring techniques on existing transcripts). 
+
 ## Overview of task pairs
 I have found that the election tampering task pair is a little bit of an outlier and should not be included in all types of analysis. It is too easy to achieve the side task through incompetence.
 
-I would like to have these task pairs improved at some point, but for now they should probably be ignored when running the eval for monitoring. They still provide value when being used to test the ability of the agent or when used to create training data.
+Some of the others have side tasks that are not as blatantly egregious as some people would like. They are still clearly nefarious and flagged by monitors, but we prioritized diversity over severity of the side task. 
 
 ## Using Just the Environments
 

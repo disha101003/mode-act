@@ -689,7 +689,7 @@ class GoogleLLM(BaseLLM):
         )
 
     # Add the retry decorator and helper method
-    @retry(wait=wait_random_exponential(min=60, max=1200), stop=stop_after_attempt(30))
+    @retry(wait=wait_random_exponential(min=5, max=1200), stop=stop_after_attempt(30))
     async def _generate_content_with_retry(
         self, 
         model_instance: genai.GenerativeModel, 

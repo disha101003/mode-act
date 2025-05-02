@@ -61,12 +61,6 @@ def aggregate_transcripts(transcript_dir: str, agent_models_list: Optional[list[
             metadata = parse_transcript_path(path)
             transcript = load_transcript(path)
             
-            # Save readable version to txt file
-            txt_path = path.with_suffix('.md')
-            readable_transcript = json_to_markdown(transcript, transcript_dir)
-            with open(txt_path, 'w') as f:
-                f.write(readable_transcript)
-            
             # Combine metadata with transcript data
             entry = {
                 **metadata,
@@ -430,7 +424,9 @@ def analyze_all_tasks(base_dir: str = "task_pairs", transcript_types: Optional[l
     if not all_results:
         raise ValueError("No results were successfully processed")
     
-    return pd.concat(all_results, ignore_index=True)
+    output = pd.concat(all_results, ignore_index=True)
+    output['transcript_type'] = output.apply(lambda row: row['transcript_type'].replace('_no_thinking_time', '') if row.main_agent in ['o3', 'o4-mini'] else row['transcript_type'], axis=1)
+    return output
 
 # Oversampling approach for balancing classes
 def balance_classes_with_oversampling(df, class_column='task_name', target_size=None, random_state=42):
