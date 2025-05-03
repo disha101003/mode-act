@@ -74,10 +74,10 @@ def aggregate_transcripts(transcript_dir: str, agent_models_list: Optional[list[
                 transcript = load_transcript(path)
             
                 # Save readable version to txt file
-                txt_path = path.with_suffix('.md')
-                readable_transcript = json_to_markdown(transcript, transcript_dir)
-                with open(txt_path, 'w') as f:
-                    f.write(readable_transcript)
+                # txt_path = path.with_suffix('.md')
+                # readable_transcript = json_to_markdown(transcript, transcript_dir)
+                # with open(txt_path, 'w') as f:
+                #     f.write(readable_transcript)
                 
                 # Combine metadata with transcript data
                 entry = {

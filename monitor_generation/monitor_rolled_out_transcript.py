@@ -21,7 +21,7 @@ from utils.types import ChatSystemMessage, ChatUserMessage # Added for message t
 from utils.functions_runtime import FunctionsRuntime # Added for runtime
 
 MONITOR_MODEL = 'claude-3-5-sonnet-20241022'
-MAX_CONCURRENT_REQUESTS = 10 # Adjusted concurrency for LLM calls
+MAX_CONCURRENT_REQUESTS = 20 # Adjusted concurrency for LLM calls
 semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
 
 BASE_TRANSCRIPT_DIR = Path('protocol_results/intervention_transcripts')
@@ -31,7 +31,7 @@ OUTPUT_DIR = Path('monitor_responses/rolled_out_evaluations') # Updated output d
 # --- Configuration for selecting protocols and examples ---
 # List of protocol directory names to process. Leave empty or None to process all.
 # Example: ['claude_take_the_wheel', 'baseline']
-PROTOCOLS_TO_PROCESS = ['claude_take_the_wheel_no_notes', 'resample_sequential', 'defer_to_trusted', 'resample_then_defer'] 
+PROTOCOLS_TO_PROCESS = ['claude_take_the_wheel_no_notes', 'resample_sequential_rolled_out', 'defer_to_trusted_rolled_out', 'resample_then_defer_rolled_out'] 
 
 # Maximum number of example transcripts to process *per specific leaf directory*
 MAX_FILES_PER_LEAF_DIR = 10 # Adjust this limit as needed

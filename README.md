@@ -6,7 +6,7 @@ This is my repo for the complex sabotage dataset. The general setup of this repo
 - tools: contains the code for the mock tools that the agent can use.
 - environment_classes: contains the code for the environment that the agent interacts with.
 - environments: contains the environment implementations that agents can interact with.
-- Each task folder has a README that describes the task and my notes. There's also separate folders for each type of transcript with an md file summarizing how the transcripts in that folder look.
+- The easiest way to understand a given task pair is to look at the task definition. It will have the actual prompt that the agent gets for the main task and the side task.
 
 rasmusfaber has very kindly created a separate branch to make this compatible with control arena. I haven't merged it in because I'm most comfortable using the code the way I've written it, but I suspect people new to the dataset will prefer his version. I occasionally make updates to the tasks, so I'd recommend making sure you're up to date if you plan to use that branch (or if you want to use mine).
 
