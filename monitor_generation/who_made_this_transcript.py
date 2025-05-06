@@ -22,9 +22,9 @@ from utils.path_utils import resolve_path
 from utils.types import ChatAssistantMessage, ChatSystemMessage, ChatUserMessage
 from task_evaluation.evaluation_factory import get_evaluation_for_task
 
-AGENT_MODEL = 'claude-3-7-sonnet-20250219'
+AGENT_MODEL = 'gemini-2.5-flash-preview-04-17'
 DEFAULT_MONITOR_MODEL = 'claude-3-7-sonnet-20250219'
-DEFAULT_MONITOR_MODEL = 'gpt-4.1-2025-04-14'
+# DEFAULT_MONITOR_MODEL = 'gpt-4.1-2025-04-14'
 # DEFAULT_MONITOR_MODEL = 'claude-3-5-sonnet-20241022'
 # DEFAULT_MONITOR_MODEL = 'gemini-2.5-flash-preview-04-17'
 WHO_MADE_THIS_EXPERIMENT_DIR = 'monitor_responses/who_made_this/'

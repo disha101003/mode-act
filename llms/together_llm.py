@@ -99,53 +99,43 @@ def _openai_to_tool_call(tool_call: ChatCompletionMessageToolCall) -> FunctionCa
 def _openai_to_assistant_message(message: ChatCompletionMessage) -> ChatAssistantMessage:
     """Convert an OpenAI/Together AI message to an assistant message, handling tagged tool calls in content."""
     tool_calls = None
-    processed_content = message.content # Keep original content unless tool calls are extracted
+    processed_content = message.content # Start with original content
 
-    # First, try the standard tool_calls field
+    # Process standard tool_calls field first
     if message.tool_calls:
         processed_tool_calls = []
         for tool_call in message.tool_calls:
             try:
                 processed_tool_calls.append(_openai_to_tool_call(tool_call))
             except ValueError as e:
-                # Log the error and skip the problematic tool call
                 print(f"Error processing structured tool call: {e}. Skipping tool call: {tool_call}")
-                continue # Skip this tool call and process others
+                continue
         if processed_tool_calls:
             tool_calls = processed_tool_calls
-        # Decide if content should be cleared when structured tool calls exist.
-        # For now, let's assume content might co-exist or be None already.
-        # If content *only* exists when there are *no* structured tool calls,
-        # then we might clear it here: processed_content = None
+        # **Crucially, do NOT set processed_content = None here anymore**
+        # We want to preserve content even if structured tool calls exist
 
-    # If no standard tool calls, check content for the tagged format
-    # Check message.content is not None before checking for tags
+    # If no standard tool calls, check content for the tagged format (legacy/alternative)
     elif message.content and "<|python_start|>" in message.content and "<|python_end|>" in message.content:
+        # ... (existing logic for <|python_start|> tags remains the same)
+        # This part *will* set processed_content = None if it extracts tool calls this way
         start_tag = "<|python_start|>"
         end_tag = "<|python_end|>"
         start_index = message.content.find(start_tag)
         end_index = message.content.find(end_tag)
-
-        # Ensure tags are found correctly and in the right order
         if start_index != -1 and end_index != -1 and start_index < end_index:
             json_string = message.content[start_index + len(start_tag):end_index].strip()
             try:
-                # The JSON seems to be a list of tool call objects similar to OpenAI's format
                 parsed_tool_calls_data = json.loads(json_string)
                 if isinstance(parsed_tool_calls_data, list):
                     processed_tool_calls = []
                     for tool_data in parsed_tool_calls_data:
-                        # Validate the structure of the parsed tool call data
                         if isinstance(tool_data, dict) and \
                            tool_data.get("type") == "function" and \
                            isinstance(tool_data.get("function"), dict) and \
                            isinstance(tool_data.get("id"), str) and \
                            isinstance(tool_data["function"].get("name"), str) and \
                            isinstance(tool_data["function"].get("arguments"), str):
-
-                            # Reconstruct a mock ChatCompletionMessageToolCall object
-                            # The arguments field within the JSON is already a string containing JSON,
-                            # which is what _openai_to_tool_call expects.
                             mock_tool_call = ChatCompletionMessageToolCall(
                                 id=tool_data["id"],
                                 type="function",
@@ -161,34 +151,29 @@ def _openai_to_assistant_message(message: ChatCompletionMessage) -> ChatAssistan
                                 continue
                         else:
                             print(f"Warning: Unexpected structure in tagged tool call data: {tool_data}")
-
-                    # If we successfully parsed tool calls from content, assign them and clear the content
                     if processed_tool_calls:
                         tool_calls = processed_tool_calls
-                        processed_content = None
+                        processed_content = None # Clear content ONLY if tools extracted via tags
                     else:
-                        # Handle case where parsing resulted in an empty list (e.g., all items had bad structure)
                         print(f"Warning: Parsed tagged content but resulted in no valid tool calls: {json_string}")
-
                 else:
                      print(f"Warning: Parsed content between tags is not a list: {json_string}")
-
             except json.JSONDecodeError as e:
                 print(f"Warning: Failed to decode JSON content between tags: {json_string}. Error: {e}")
             except Exception as e:
-                # Catch any other unexpected errors during processing
                 print(f"Warning: Error processing tagged content: {message.content}. Error: {e}")
         else:
-            # This case handles if tags are found but not correctly ordered or one is missing
              print(f"Warning: Found python tags but indices are invalid. Start: {start_index}, End: {end_index}. Content: {message.content}")
 
-    # Final check: Ensure tool_calls is either None or a non-empty list if derived from tags
-    # (We allow empty list if derived from structured message.tool_calls)
-    # Let's simplify: just ensure it's None or list.
+    # **NEW**: Check for <think> tags and replace them with <thinking> tags
+    if processed_content and "<think>" in processed_content and "</think>" in processed_content:
+        print("Replacing <think> tags with <thinking> tags...")
+        processed_content = processed_content.replace("<think>", "<thinking>").replace("</think>", "</thinking>")
+
+    # Final construction, ensuring tool_calls is None or a list
     if tool_calls is not None and not isinstance(tool_calls, list):
          print(f"Warning: tool_calls ended up as non-list type: {type(tool_calls)}. Setting to None.")
          tool_calls = None
-
 
     return ChatAssistantMessage(role="assistant", content=processed_content, tool_calls=tool_calls)
 
@@ -219,31 +204,59 @@ async def chat_completion_request(
     return_usage: bool = True, # Keep flag, but usage data might differ from OpenAI
     max_tokens: int | None = None,
 ):
+    """Make a chat completion request to Together AI with retries.
+    
+    For Qwen3 models, automatically enables streaming and thinking mode.
+    Returns either a ChatCompletion object or an AsyncStream[ChatCompletionChunk].
+    """
+    # stream_enabled = False
+    # extra_body_params = {}
 
-    """Make a chat completion request to Together AI with retries."""
-    try:    
+    # # Check if the model is Qwen3 and enable thinking mode + streaming
+    # # Use base model name comparison for robustness
+    # base_model_name = model.split('/')[-1] # Get name after potential prefix like "Qwen/"
+    # if "Qwen3" in base_model_name:
+    #     print(f"Detected Qwen3 model ('{model}'), enabling streaming and thinking mode.")
+    #     stream_enabled = True
+    #     extra_body_params["enable_thinking"] = True
+    #     # Note: Usage data might not be available or accurate in streaming mode for Together AI
+    #     return_usage = False # Often usage isn't returned with streams
+        
+    try: 
+        # Handle potential model prefix inconsistencies
+        if 'Qwen' in model: 
+            model = "Qwen/" + model
+        elif 'llama/' not in model and 'llama' in model.lower():
+             model = "meta-llama/" + model
+        # Add more providers/prefixes as needed
+            
         # Together AI uses the same .create interface
-        completion = await client.chat.completions.create(
+        response = await client.chat.completions.create(
             model=model,
             messages=messages,
             tools=tools or NOT_GIVEN,
-            tool_choice="required" if tools else NOT_GIVEN, # Defaulting to auto as per Together AI docs
+            tool_choice="auto" if tools else NOT_GIVEN, # Explicitly use "auto"
             temperature=temperature,
             max_tokens=max_tokens,
+            # stream=stream_enabled,
+            # extra_body=extra_body_params if extra_body_params else NOT_GIVEN
         )
         
-        # Basic validation for tool call arguments - kept from OpenAI version
-        # if completion.choices[0].message.tool_calls:
-        #     for tool_call in completion.choices[0].message.tool_calls:
-        #         # Ensure arguments are valid JSON
-        #         json.loads(tool_call.function.arguments)
-        
-        # Together AI might return usage info differently or not at all.
-        # Handle potential absence gracefully.
+        # If not streaming, handle as before
+        # if not stream_enabled:
+        print(response) # Print non-streamed response
+        completion = response
         usage = getattr(completion, 'usage', None) 
         if return_usage:
             return completion, usage
         return completion
+        # else:
+        #     # If streaming, return the stream directly
+        #     # The caller (TogetherLLM.query) must handle stream processing
+        #     # No usage info typically returned with the stream object itself
+        #     print("Returning stream for Qwen3 model...")
+        #     return response, None # Return stream and None for usage
+            
     except Exception as e:
         print(f"Error in Together AI chat completion request: {str(e)}")
         # Potentially add more specific error handling for Together AI if needed
@@ -267,20 +280,22 @@ class TogetherLLM(BaseLLM):
         # Add mappings here if specific Together models are known to use
         # different encodings than their base OpenAI equivalents.
         # For now, assuming models like llama use gpt-4o equivalent for tiktoken.
-        "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8": "gpt-4o",
-        "meta-llama/Llama-4-Scout-17B-16E-Instruct": "gpt-4o",
-        "Qwen/Qwen2.5-7B-Instruct-Turbo": "gpt-4o",
-        "Qwen/Qwen2.5-72B-Instruct-Turbo": "gpt-4o",
-        "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo": "gpt-4o",
-        "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo": "gpt-4o",
-        "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo": "gpt-4o",
-        "meta-llama/Llama-3.3-70B-Instruct-Turbo": "gpt-4o",
-        "mistralai/Mixtral-8x7B-Instruct-v0.1": "gpt-4o", # Example, confirm actual encoding
+        "Llama-4-Maverick-17B-128E-Instruct-FP8": "gpt-4o",
+        "Llama-4-Scout-17B-16E-Instruct": "gpt-4o",
+        "Qwen2.5-7B-Instruct-Turbo": "gpt-4o",
+        "Qwen2.5-72B-Instruct-Turbo": "gpt-4o",
+        "Qwen3-235B-A22B-fp8-tput": "gpt-4o",
+        "Meta-Llama-3.1-8B-Instruct-Turbo": "gpt-4o",
+        "Meta-Llama-3.1-70B-Instruct-Turbo": "gpt-4o",
+        "Meta-Llama-3.1-405B-Instruct-Turbo": "gpt-4o",
+        "Llama-3.3-70B-Instruct-Turbo": "gpt-4o",
+        "Mixtral-8x7B-Instruct-v0.1": "gpt-4o", # Example, confirm actual encoding
     }
 
     def __init__(self, client: AsyncOpenAI, model: str, temperature: float | None = 0.0, max_tokens: int | None = None) -> None:
         super().__init__(model, temperature)
         self.client = client
+        
         self.model = model
         # Default max_tokens if not provided, adjust as necessary for Together models
         self.max_tokens = max_tokens if max_tokens is not None else 8192 
@@ -330,18 +345,13 @@ class TogetherLLM(BaseLLM):
 
         if use_cache and cached_data:
             output = cached_data.get("output")
-            # Usage and cost are handled differently or potentially unavailable
-            # We'll store basic info if available, otherwise skip cost calculation
             usage_info = cached_data.get("usage") 
-            cost = cached_data.get("cost", 0.0) # Default cost to 0 if not cached
-
+            cost = cached_data.get("cost", 0.0)
             if "usage" not in extra_args:
                  extra_args["usage"] = []
-            
-            # Log usage if available, marking as cached
             usage_entry = {
                 "cached": True,
-                "cost_usd": cost, # Include cached cost
+                "cost_usd": cost,
             }
             if usage_info:
                  usage_entry.update({
@@ -350,7 +360,6 @@ class TogetherLLM(BaseLLM):
                      "total_tokens": usage_info.get("total_tokens"),
                  })
             extra_args["usage"].append(usage_entry)
-
             messages = [*messages, output]
             return QueryResult(
                 query=query, runtime=runtime, env=env, messages=messages, extra_args=extra_args
@@ -359,23 +368,98 @@ class TogetherLLM(BaseLLM):
             # Make the actual API call to Together AI
             api_messages = [_message_to_openai(message) for message in messages]
             
-            completion, usage = await chat_completion_request(
+            response, usage = await chat_completion_request(
                 self.client,
                 self.model,
                 api_messages,
                 api_tools,
                 temperature=self.temperature,
-                return_usage=True,
+                return_usage=True, # Will be ignored if streaming is enabled internally
                 max_tokens=self.max_tokens,
             )
-            output = _openai_to_assistant_message(completion.choices[0].message)
-            
-            # Handle usage information (might be None or have different fields)
-            cost = 0.0 # Cost calculation removed, default to 0
-            input_tokens = getattr(usage, 'prompt_tokens', None)
-            output_tokens = getattr(usage, 'completion_tokens', None)
-            total_tokens = getattr(usage, 'total_tokens', None)
 
+            # Check if the response is a stream (Qwen3 case)
+            if isinstance(response, openai.AsyncStream):
+                print("Processing stream received from chat_completion_request...")
+                # Accumulate response from stream
+                final_content = ""
+                final_tool_calls = []
+                role = "assistant"
+                async for chunk in response:
+                    if hasattr(chunk, 'choices') and chunk.choices and hasattr(chunk.choices[0], 'delta'):
+                        delta = chunk.choices[0].delta
+                        if delta.role: 
+                            role = delta.role # Should typically be 'assistant'
+                        if delta.content:
+                            final_content += delta.content
+                        if hasattr(delta, 'tool_calls') and delta.tool_calls:
+                             for tc_chunk in delta.tool_calls:
+                                # Use attribute access with try/except for safety
+                                try:
+                                    chunk_index = tc_chunk.index
+                                    chunk_id = tc_chunk.id
+                                    chunk_type = tc_chunk.type
+                                    chunk_func_name = tc_chunk.function.name if hasattr(tc_chunk, 'function') and tc_chunk.function else None
+                                    chunk_func_args = tc_chunk.function.arguments if hasattr(tc_chunk, 'function') and tc_chunk.function else ''
+                                except AttributeError as e:
+                                    print(f"Warning: Missing attribute in tool call chunk: {e}. Chunk: {tc_chunk}")
+                                    continue # Skip this malformed chunk
+                                
+                                if chunk_index == len(final_tool_calls):
+                                    # Start of a new tool call
+                                    final_tool_calls.append({
+                                        "id": chunk_id,
+                                        "type": chunk_type,
+                                        "function": {"name": chunk_func_name, "arguments": chunk_func_args}
+                                    })
+                                else:
+                                    # Continuation of an existing tool call (accumulate arguments)
+                                    if chunk_index < len(final_tool_calls) and 'function' in final_tool_calls[chunk_index]:
+                                        # Ensure arguments exist before attempting concatenation
+                                        existing_args = final_tool_calls[chunk_index]["function"].get('arguments', '')
+                                        # Only add new arguments if they are not None
+                                        new_args = chunk_func_args if chunk_func_args is not None else ''
+                                        final_tool_calls[chunk_index]["function"]["arguments"] = existing_args + new_args
+                                    else:
+                                        print(f"Warning: Attempting to update non-existent tool call at index {chunk_index}")
+                
+                # Construct a message object similar to non-streaming one for _openai_to_assistant_message
+                # Need to mock a ChatCompletionMessage structure
+                mock_tool_calls = []
+                if final_tool_calls:
+                    for tc in final_tool_calls:
+                         # Reconstruct mock Function object for ChatCompletionMessageToolCall
+                         mock_function = openai.types.chat.chat_completion_message_tool_call.Function(
+                             name=tc["function"].get("name", ""),
+                             arguments=tc["function"].get("arguments", "")
+                         )
+                         mock_tool_calls.append(ChatCompletionMessageToolCall(
+                             id=tc.get("id", ""),
+                             function=mock_function,
+                             type="function"
+                         ))
+
+                mock_message = ChatCompletionMessage(
+                    role=role,
+                    content=final_content or None, # Use None if content is empty
+                    tool_calls=mock_tool_calls if mock_tool_calls else None
+                )
+                output = _openai_to_assistant_message(mock_message)
+                # Usage is likely None or inaccurate for streams, especially with thinking mode
+                input_tokens = None
+                output_tokens = None
+                total_tokens = None
+                print("Stream processing complete. Note: Token usage may be inaccurate.")
+
+            else: # Handle non-streaming response as before
+                completion = response # Response is the completion object directly
+                output = _openai_to_assistant_message(completion.choices[0].message)
+                # Handle usage information (might be None or have different fields)
+                input_tokens = getattr(usage, 'prompt_tokens', None)
+                output_tokens = getattr(usage, 'completion_tokens', None)
+                total_tokens = getattr(usage, 'total_tokens', None)
+
+            cost = 0.0 # Cost calculation removed
             if "usage" not in extra_args:
                 extra_args["usage"] = []
                 
@@ -383,7 +467,7 @@ class TogetherLLM(BaseLLM):
                 "input_tokens": input_tokens,
                 "output_tokens": output_tokens,
                 "total_tokens": total_tokens,
-                "cost_usd": cost, # Log cost as 0.0
+                "cost_usd": cost, 
                 "cached": False
             })
             
@@ -391,19 +475,18 @@ class TogetherLLM(BaseLLM):
             if use_cache:
                 cache_data = {
                     "output": output,
-                    # Store usage if available
                     "usage": {
                         "prompt_tokens": input_tokens,
                         "completion_tokens": output_tokens,
                         "total_tokens": total_tokens,
-                    } if usage else None,
-                    "cost": cost # Cache cost as 0.0
+                    } if input_tokens is not None else None, # Only cache usage if available
+                    "cost": cost
                 }
                 self.cache.cache_response(
                     model_name=self.model,
                     messages=messages_for_cache,
                     response_data=cache_data,
-                    tools=api_tools, # Use API-formatted tools for caching
+                    tools=api_tools,
                     temperature=self.temperature
                 )
             

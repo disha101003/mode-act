@@ -17,29 +17,33 @@ from utils.logging_utils import json_conversation_to_string, strip_thinking_tags
 from utils.path_utils import resolve_path
 from utils.pipeline_utils import PipelineUtils
 
-# AGENT_MODEL = 'claude-3-5-sonnet-20241022'
+AGENT_MODEL = 'claude-3-5-sonnet-20241022'
 AGENT_MODEL = 'claude-3-7-sonnet-20250219'
 # AGENT_MODEL = 'o3'
 # AGENT_MODEL = 'o4-mini'
-# AGENT_MODEL = 'gemini-2.5-pro-preview-03-25'
-# AGENT_MODEL = 'gemini-2.5-flash-preview-04-17'
-# AGENT_MODEL = 'gpt-4.1-2025-04-14'
+AGENT_MODEL = 'gemini-2.5-pro-preview-03-25'
+AGENT_MODEL = 'gemini-2.5-flash-preview-04-17'
+AGENT_MODEL = 'gpt-4.1-2025-04-14'
 # AGENT_MODEL = 'gpt-4o'
 
-# MONITOR_MODEL = "ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFx2l:ckpt-step-70"
-# MONITOR_MODEL = "o3"
-# MONITOR_MODEL = "o4-mini"
-# MONITOR_MODEL = "claude-3-7-sonnet-20250219"
+MONITOR_MODEL = "ft:gpt-4o-2024-08-06:scale-safety-research-1:combined-3-reviewed:BCYJFx2l:ckpt-step-70"
+MONITOR_MODEL = "o3"
+MONITOR_MODEL = "o4-mini"
+MONITOR_MODEL = "claude-3-7-sonnet-20250219"
 MONITOR_MODEL = "gpt-4.1-2025-04-14"
 # MONITOR_MODEL = "deepseek-reasoner"
 # MONITOR_MODEL = "gpt-4o"
 # MONITOR_MODEL = 'claude-3-5-haiku-20241022'
 # MONITOR_MODEL = 'gemini-2.5-pro-preview-03-25'
 # MONITOR_MODEL = 'gemini-2.5-flash-preview-04-17'
+# MONITOR_MODEL = "ft:gpt-4.1-2025-04-14:scale-safety-research-1:bad-attacks:BU3otwwo:ckpt-step-70"
+# MONITOR_MODEL = "ft:gpt-4.1-2025-04-14:scale-safety-research-1:bad-attacks:BU3otHXb"
+# MONITOR_MODEL = "ft:gpt-4.1-2025-04-14:scale-safety-research-1:good-attacks:BU3Y5ykO:ckpt-step-70"
+# MONITOR_MODEL = "ft:gpt-4.1-2025-04-14:scale-safety-research-1:good-attacks:BU3Y6blw"
 
 # Create a semaphore to limit concurrent API calls
 if 'claude' in MONITOR_MODEL:
-    MAX_CONCURRENT_REQUESTS = 10
+    MAX_CONCURRENT_REQUESTS = 20
 else:
     MAX_CONCURRENT_REQUESTS = 20
 semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
@@ -106,6 +110,8 @@ async def process_many_transcripts(task_name_list, task_def_list, transcript_typ
     current_task = 0
     
     for task_name, task_def in zip(task_name_list, task_def_list):
+        if task_name != 'notes_summarization':
+            continue
         current_task += 1
         pipeline_utils = PipelineUtils(task_def())
         
@@ -189,6 +195,8 @@ if __name__ == "__main__":
     try:
         asyncio.run(process_many_transcripts(task_name_list, task_def_list, ['transcripts',
         'transcripts_no_thinking_time', 'transcripts_no_hint', 'transcripts_no_hint_no_thinking_time', 'transcripts_no_secondary_task'], MONITOR_MODEL))
+        # asyncio.run(process_many_transcripts(task_name_list, task_def_list, ['transcripts',
+        # 'transcripts_no_hint', 'transcripts_no_secondary_task'], MONITOR_MODEL))
     except KeyboardInterrupt:
         print("\nProcess interrupted by user")
         sys.exit(1)

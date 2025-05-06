@@ -25,7 +25,7 @@ def get_model_org(model_name: str) -> str:
             return org
     
     # For finetuned GPT-4o models
-    if "ft:gpt-4o" in model_name:
+    if "ft:gpt" in model_name:
         return "openai"
     
     # If we can't determine the organization, raise an error

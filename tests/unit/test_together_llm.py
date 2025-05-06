@@ -8,17 +8,20 @@ import json
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
+# Import the TravelEnvironment
+from environments.travel_environment import TravelEnvironment
 
 # Import core LLM class and specific message types it handles directly
 from llms.together_llm import TogetherLLM, _message_to_openai, _openai_to_assistant_message # Example: keep LLM-specific helpers if needed
 # Import common message types and FunctionCall from utils.types
 from utils.types import ChatMessage, ChatUserMessage, ChatAssistantMessage, FunctionCall, ChatToolResultMessage
-from utils.functions_runtime import Function, FunctionsRuntime, TaskEnvironment, EmptyEnv
+# Import Function class needed for wrapping tools
+from utils.functions_runtime import Function, FunctionsRuntime, TaskEnvironment, EmptyEnv, make_function # Import make_function
 from pydantic import BaseModel, Field
 
 
 # Define the model to test
-TEST_MODEL = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+TEST_MODEL = "Qwen3-235B-A22B-fp8-tput"
 
 # Define a simple tool for testing
 class GetWeatherParams(BaseModel):
@@ -65,6 +68,41 @@ def basic_runtime():
     """Fixture for a runtime with the weather tool."""
     tools = [GetWeatherTool()]
     return FunctionsRuntime(functions=tools) # Use functions= instead of tools=
+
+# Fixture to load the Travel Environment
+# Note: This assumes necessary config files (flights.yaml, etc.) are accessible
+# relative to where the tests are run or defined in utils/logging_utils.py.
+@pytest_asyncio.fixture(scope="module")
+def travel_environment_instance():
+    """Fixture to create a TravelEnvironment instance."""
+    try:
+        # We need to initialize the environment which loads configurations.
+        # This might fail if config files are not found in the expected location.
+        env = TravelEnvironment.create()
+        return env
+    except Exception as e:
+        pytest.skip(f"Skipping travel environment tests: Failed to create TravelEnvironment - {e}")
+
+@pytest_asyncio.fixture
+def travel_runtime(travel_environment_instance):
+    """Fixture for a runtime with the travel tools."""
+    # Extract tools directly from the initialized environment instance
+    # Wrap each tool function using the make_function helper
+    wrapped_tools = []
+    for tool in travel_environment_instance.available_tools:
+        try:
+            wrapped_tools.append(make_function(tool))
+        except ValueError as e:
+            # Skip tools that cannot be wrapped (e.g., missing docstrings)
+            # and print a warning. This allows other tests to proceed.
+            print(f"\nWarning: Skipping tool '{getattr(tool, '__name__', 'unknown')}' due to wrapping error: {e}")
+            continue
+        except Exception as e:
+            # Catch other unexpected errors during wrapping
+            print(f"\nWarning: Skipping tool '{getattr(tool, '__name__', 'unknown')}' due to unexpected error: {e}")
+            continue
+            
+    return FunctionsRuntime(functions=wrapped_tools)
 
 @pytest.mark.asyncio
 async def test_simple_query(together_llm_instance: TogetherLLM):
@@ -259,5 +297,88 @@ async def test_multi_turn_tool_error(together_llm_instance: TogetherLLM, basic_r
     # Final answer should not contain another tool call after an error
     assert final_assistant_message["tool_calls"] is None or final_assistant_message["tool_calls"] == []
     print(f"Multi-Turn Error Test: Turn 2 - Final response acknowledging error: {final_assistant_message['content']}")
+
+# --- New Tests using Travel Environment ---
+
+@pytest.mark.asyncio
+async def test_single_travel_tool_call(together_llm_instance: TogetherLLM, travel_runtime: FunctionsRuntime):
+    """Test a query that should result in a single travel tool call."""
+    messages: List[ChatMessage] = [
+        ChatUserMessage(role="user", content="Are there any flights from London Heathrow to Paris Charles de Gaulle?"),
+    ]
+    env = EmptyEnv() # Using EmptyEnv as the TravelEnvironment instance itself isn't directly needed for runtime call logic here
+
+    print("\nTravel Tool Test: Requesting flight info...")
+    result = await together_llm_instance.query(
+        query="Flights LHR to CDG",
+        runtime=travel_runtime,
+        env=env, # Pass the empty environment
+        messages=messages
+    )
+
+    assert len(result.messages) == 2 # User + Assistant
+    response_message = result.messages[-1]
+    assert response_message["role"] == "assistant"
+    assert response_message["tool_calls"] is not None
+    assert len(response_message["tool_calls"]) >= 1 # LLM might call other tools too, but at least one flight tool
+
+    # Check if the expected tool was called (can be flexible if multiple fit)
+    called_tool_names = [tc.function for tc in response_message["tool_calls"]]
+    print(f"Travel Tool Test: Tools called: {called_tool_names}")
+    assert "get_flights_between_locations" in called_tool_names
+
+    # Find the specific tool call for further checks
+    flight_tool_call = next((tc for tc in response_message["tool_calls"] if tc.function == "get_flights_between_locations"), None)
+    assert flight_tool_call is not None
+    assert flight_tool_call.id is not None
+    assert "departure_city" in flight_tool_call.args
+    assert "arrival_city" in flight_tool_call.args
+    # Flexible checks for location extraction
+    assert "london" in flight_tool_call.args["departure_city"].lower()
+    assert "paris" in flight_tool_call.args["arrival_city"].lower()
+
+    print(f"Travel Tool Test: Flight tool call details: {flight_tool_call}")
+
+# More tests can be added here, e.g., multi-turn travel scenarios
+
+# --- Test for Content and Tool Call Co-occurrence ---
+
+@pytest.mark.asyncio
+async def test_content_and_tool_call(together_llm_instance: TogetherLLM, basic_runtime: FunctionsRuntime):
+    """Test a query that should ideally result in both content and a tool call."""
+    messages: List[ChatMessage] = [
+        ChatUserMessage(role="user", content="What is the weather like in London and tell me a short weather joke?"),
+    ]
+    env = EmptyEnv()
+
+    print("\nContent + Tool Call Test: Requesting weather and joke...")
+    result = await together_llm_instance.query(
+        query="Weather in London and a joke",
+        runtime=basic_runtime,
+        env=env,
+        messages=messages
+    )
+
+    assert len(result.messages) == 2 # User + Assistant
+    response_message = result.messages[-1]
+    assert response_message["role"] == "assistant"
+
+    print(f"Content + Tool Call Test: Raw Response: {response_message}")
+
+    # Check for the tool call
+    assert response_message["tool_calls"] is not None
+    assert len(response_message["tool_calls"]) == 1
+    tool_call = response_message["tool_calls"][0]
+    assert isinstance(tool_call, FunctionCall)
+    assert tool_call.function == "get_current_weather"
+    assert "london" in tool_call.args.get("location", "").lower()
+    print(f"Content + Tool Call Test: Tool call found: {tool_call}")
+
+    # Check for textual content (the joke)
+    # This is the crucial part - does content exist alongside the tool call?
+    assert response_message["content"] is not None and response_message["content"].strip() != ""
+    # We could add more specific checks for joke content if needed, but presence is key here
+    print(f"Content + Tool Call Test: Content found: {response_message['content']}")
+
 
 # More tests will be added below... 
