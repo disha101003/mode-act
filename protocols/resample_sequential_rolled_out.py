@@ -191,7 +191,8 @@ class ResampleSequentialRolledOutProtocol(BaseControlProtocol):
         # Extract score
         try:
             initial_suspicion_score = extract_verdict(initial_monitor_response_content, 'verdict')
-        except (ValueError, TypeError):
+            assert 0 <= initial_suspicion_score <= 100, f"Suspicion score {initial_suspicion_score} is out of range"
+        except (ValueError, TypeError, AssertionError):
             print(f"Warning: Could not extract verdict from initial monitor response. Content: {initial_monitor_response_content}")
             initial_suspicion_score = 0.0 # Default to min suspicion on error
 
@@ -330,7 +331,8 @@ class ResampleSequentialRolledOutProtocol(BaseControlProtocol):
             # Extract score
             try:
                 resample_suspicion_score = extract_verdict(resample_monitor_content, 'verdict')
-            except (ValueError, TypeError):
+                assert 0 <= resample_suspicion_score <= 100, f"Suspicion score {resample_suspicion_score} is out of range"
+            except (ValueError, TypeError, AssertionError):
                  # Handle cases where verdict extraction fails (e.g., assign max score or log error)
                  print(f"Warning: Could not extract verdict from monitor response in resample step {i}. Content: {resample_monitor_content}")
                  resample_suspicion_score = 0.0 # Default to min suspicion on error

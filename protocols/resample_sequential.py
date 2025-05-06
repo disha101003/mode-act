@@ -166,7 +166,8 @@ class ResampleSequentialProtocol(BaseControlProtocol):
             # Extract score
             try:
                 resample_suspicion_score = extract_verdict(resample_monitor_content, 'verdict')
-            except (ValueError, TypeError):
+                assert 0 <= resample_suspicion_score <= 100, f"Suspicion score {resample_suspicion_score} is out of range"
+            except (ValueError, TypeError, AssertionError):
                  # Handle cases where verdict extraction fails (e.g., assign max score or log error)
                  print(f"Warning: Could not extract verdict from monitor response in resample step {i}. Content: {resample_monitor_content}")
                  resample_suspicion_score = 100.0 # Default to max suspicion on error

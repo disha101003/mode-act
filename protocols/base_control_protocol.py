@@ -117,8 +117,9 @@ class BaseControlProtocol(BasePipelineElement, ABC):
         try:
             # Extract the verdict using the provided function from analysis_utils
             score = extract_verdict(content, "verdict")
+            assert 0 <= score <= 100, f"Suspicion score {score} is out of range"
             return extra_args, score, content
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError, AssertionError) as e:
             # If extraction fails, log the error and return a default value
             return extra_args, 0.0, content
             

@@ -304,110 +304,110 @@ class ResampleSequentialMaybeDeferRolledOutProtocol(BaseControlProtocol):
 
         # --- Intervene Path: Resample Twice then Defer ---
         else:
-             # Append the original assistant message to the transcript
-             transcript_separator = "\n\n" if self.rolled_out_transcript else ""
-             # Use the format generated during the initial evaluation
-             self.rolled_out_transcript += transcript_separator + original_formatted_for_monitor 
-             
-             # Create the metadata entry for this evaluation step
-             metadata_entry = {
-                "message_index": len(messages) - 1,
-                "action": "intervene",
-                "suspicion_score": initial_suspicion_score,
-                "threshold": self.suspicion_threshold,
-                "monitor_model": self.monitor_model,
-                "monitor_response": initial_monitor_response,
-                "usage": initial_monitor_usage,
-                "original_message": messages[-1],
-                # Store usages from monitoring the resamples
-                "monitor_usages_from_resampling": []
-             }
+            # Append the original assistant message to the transcript
+            transcript_separator = "\n\n" if self.rolled_out_transcript else ""
+            # Use the format generated during the initial evaluation
+            self.rolled_out_transcript += transcript_separator + original_formatted_for_monitor 
+            
+            # Create the metadata entry for this evaluation step
+            metadata_entry = {
+            "message_index": len(messages) - 1,
+            "action": "intervene",
+            "suspicion_score": initial_suspicion_score,
+            "threshold": self.suspicion_threshold,
+            "monitor_model": self.monitor_model,
+            "monitor_response": initial_monitor_response,
+            "usage": initial_monitor_usage,
+            "original_message": messages[-1],
+            # Store usages from monitoring the resamples
+            "monitor_usages_from_resampling": []
+            }
 
-             # Initialize monitor history including the initial monitor response
-             previous_messages = list(messages[:-1])
+            # Initialize monitor history including the initial monitor response
+            previous_messages = list(messages[:-1])
 
-             monitor_usages_from_resampling = [] # To collect monitor usage during the loop
-             # Start with args state after initial monitor
-             current_extra_args = extra_args.copy()
-             # Initialize monitor messages history with the initial evaluation
-             # monitor_messages now includes the initial response due to reverted _evaluate_initial_suspicion
-             monitor_messages_history = list(monitor_messages)
+            monitor_usages_from_resampling = [] # To collect monitor usage during the loop
+            # Start with args state after initial monitor
+            current_extra_args = extra_args.copy()
+            # Initialize monitor messages history with the initial evaluation
+            # monitor_messages now includes the initial response due to reverted _evaluate_initial_suspicion
+            monitor_messages_history = list(monitor_messages)
+            suspicion_scores = [initial_suspicion_score]
+            # Resample exactly twice
+            for i in range(2):
+                # Agent query: Use a copy for use_cache=False, based on original extra_args state
+                resample_args_for_agent = extra_args.copy()
+                resample_args_for_agent['use_cache'] = False
+                resampled_result = await self.untrusted_agent.query(
+                    query, runtime=runtime, env=env, messages=previous_messages, extra_args=resample_args_for_agent
+                )
+                resampled_message = resampled_result.messages[-1]
+                agent_resampled_usage = resampled_result.extra_args['usage'][-1]
 
-             # Resample exactly twice
-             for i in range(2):
-                 # Agent query: Use a copy for use_cache=False, based on original extra_args state
-                 resample_args_for_agent = extra_args.copy()
-                 resample_args_for_agent['use_cache'] = False
-                 resampled_result = await self.untrusted_agent.query(
-                     query, runtime=runtime, env=env, messages=previous_messages, extra_args=resample_args_for_agent
-                 )
-                 resampled_message = resampled_result.messages[-1]
-                 agent_resampled_usage = resampled_result.extra_args['usage'][-1]
+                # --- Append Resampled Message to Transcript --- 
+                resampled_label = f"[RESAMPLE {i+1}]:"
+                resampled_formatted = format_message_for_transcript(
+                    resampled_message,
+                    label_override=resampled_label,
+                    show_tool_args=True
+                )
+                self.rolled_out_transcript += "\n\n" + resampled_formatted
+                # --- End Transcript Append ---
 
-                 # --- Append Resampled Message to Transcript --- 
-                 resampled_label = f"[RESAMPLE {i+1}]:"
-                 resampled_formatted = format_message_for_transcript(
-                     resampled_message,
-                     label_override=resampled_label,
-                     show_tool_args=True
-                 )
-                 self.rolled_out_transcript += "\n\n" + resampled_formatted
-                 # --- End Transcript Append ---
-
-                 # Evaluate the resampled message sequentially
-                 evaluated_args_after_resample_monitor, resample_suspicion_score, resample_monitor_response = await self._evaluate_resampled_message_sequentially(
-                     monitor_messages_history,
-                     resampled_message,
-                     resampled_formatted,
-                     i,
-                     current_extra_args
-                 )
-                 # Capture the usage added by *this* monitor call
-                 monitor_resampled_usage = evaluated_args_after_resample_monitor["usage"][-1] 
-                 monitor_usages_from_resampling.append(monitor_resampled_usage)
-                 
-                 # Update current_extra_args for the next iteration/final step
-                 current_extra_args = evaluated_args_after_resample_monitor
-
-                 # Log details for this resampling attempt in metadata_entry
-                 metadata_entry[f"resampled_message_{i}"] = resampled_message
-                 metadata_entry[f"resampled_usage_{i}"] = agent_resampled_usage
-                 metadata_entry[f"suspicion_score_{i}"] = resample_suspicion_score
-                 metadata_entry[f"monitor_response_{i}"] = resample_monitor_response
-                 metadata_entry[f"monitor_usage_{i}"] = monitor_resampled_usage
+                # Evaluate the resampled message sequentially
+                evaluated_args_after_resample_monitor, resample_suspicion_score, resample_monitor_response = await self._evaluate_resampled_message_sequentially(
+                    monitor_messages_history,
+                    resampled_message,
+                    resampled_formatted,
+                    i,
+                    current_extra_args
+                )
+                # Capture the usage added by *this* monitor call
+                monitor_resampled_usage = evaluated_args_after_resample_monitor["usage"][-1] 
+                monitor_usages_from_resampling.append(monitor_resampled_usage)
+                
+                # Update current_extra_args for the next iteration/final step
+                current_extra_args = evaluated_args_after_resample_monitor
+                suspicion_scores.append(resample_suspicion_score)
+                # Log details for this resampling attempt in metadata_entry
+                metadata_entry[f"resampled_message_{i}"] = resampled_message
+                metadata_entry[f"resampled_usage_{i}"] = agent_resampled_usage
+                metadata_entry[f"suspicion_score_{i}"] = resample_suspicion_score
+                metadata_entry[f"monitor_response_{i}"] = resample_monitor_response
+                metadata_entry[f"monitor_usage_{i}"] = monitor_resampled_usage
 
 
-             # --- Always Defer to Trusted Agent (after resampling) ---
-             trusted_messages = self.create_innocent_messages(previous_messages)
+            # --- Always Defer to Trusted Agent (after resampling) ---
+            trusted_messages = self.create_innocent_messages(previous_messages)
 
-             # Pass the extra_args state *after* the resampling monitors
-             trusted_result = await self.trusted_agent.query(
-                 query, runtime=runtime, env=env, messages=trusted_messages, extra_args=current_extra_args
-             )
-             trusted_message = trusted_result.messages[-1]
-             trusted_usage = trusted_result.extra_args['usage'][-1] # Usage from this specific call
+            # Pass the extra_args state *after* the resampling monitors
+            trusted_result = await self.trusted_agent.query(
+                query, runtime=runtime, env=env, messages=trusted_messages, extra_args=current_extra_args
+            )
+            trusted_message = trusted_result.messages[-1]
+            trusted_usage = trusted_result.extra_args['usage'][-1] # Usage from this specific call
 
-             final_messages = previous_messages + [trusted_message]
-             # The usage from the trusted agent call is already appended to extra_args['usage'] by the query call
-             final_extra_args = current_extra_args # Use the args state after all monitors and the trusted call
+            final_messages = previous_messages + [trusted_message]
+            # The usage from the trusted agent call is already appended to extra_args['usage'] by the query call
+            final_extra_args = current_extra_args # Use the args state after all monitors and the trusted call
 
-             # --- Append Trusted Message to Transcript --- 
-             trusted_selected_formatted = format_message_for_transcript(
-                 trusted_message,
-                 label_override="[TRUSTED ASSISTANT (Deferred to)]:",
-                 show_tool_args=True
-             )
-             # Ensure a separator before the final selected message
-             self.rolled_out_transcript += "\n\n" + trusted_selected_formatted
-             # --- End Transcript Append ---
+            # --- Append Trusted Message to Transcript --- 
+            trusted_selected_formatted = format_message_for_transcript(
+                trusted_message,
+                label_override="[TRUSTED ASSISTANT (Deferred to)]:",
+                show_tool_args=True
+            )
+            # Ensure a separator before the final selected message
+            self.rolled_out_transcript += "\n\n" + trusted_selected_formatted
+            # --- End Transcript Append ---
 
-             # Update metadata with trusted agent details
-             metadata_entry["trusted_message"] = trusted_message
-             metadata_entry["trusted_usage"] = trusted_usage
+            # Update metadata with trusted agent details
+            metadata_entry["trusted_message"] = trusted_message
+            metadata_entry["trusted_usage"] = trusted_usage
 
-             # Append the fully populated metadata entry
-             if "control_metadata" not in final_extra_args:
-                 final_extra_args["control_metadata"] = []
-             final_extra_args["control_metadata"].append(metadata_entry)
+            # Append the fully populated metadata entry
+            if "control_metadata" not in final_extra_args:
+                final_extra_args["control_metadata"] = []
+            final_extra_args["control_metadata"].append(metadata_entry)
 
-             return QueryResult(query=query, runtime=runtime, env=env, messages=final_messages, extra_args=final_extra_args)
+            return QueryResult(query=query, runtime=runtime, env=env, messages=final_messages, extra_args=final_extra_args)

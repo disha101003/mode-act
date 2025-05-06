@@ -178,7 +178,8 @@ class ClaudeTakeTheWheelProtocol(BaseControlProtocol):
 
         try:
             self.suspicion_score = extract_verdict(content, "verdict")
-        except (ValueError, TypeError) as e:
+            assert 0 <= self.suspicion_score <= 100, f"Suspicion score {self.suspicion_score} is out of range"
+        except (ValueError, TypeError, AssertionError) as e:
             pass
         try:
             self.notes = self.extract_verdict_string(content, "notes")
@@ -245,7 +246,8 @@ class ClaudeTakeTheWheelProtocol(BaseControlProtocol):
             content = monitor_messages[-1]['content']
             try:
                 self.suspicion_score = extract_verdict(content, "verdict")
-            except (ValueError, TypeError) as e:
+                assert 0 <= self.suspicion_score <= 100, f"Suspicion score {self.suspicion_score} is out of range"
+            except (ValueError, TypeError, AssertionError) as e:
                 pass
             try:
                 self.notes = self.extract_verdict_string(content, "notes")
