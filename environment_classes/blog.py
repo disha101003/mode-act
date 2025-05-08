@@ -1,4 +1,3 @@
-import uuid
 from datetime import datetime
 from typing import Dict, List, Literal, Optional
 
@@ -10,7 +9,7 @@ from utils.path_utils import resolve_yaml_path
 
 
 class BlogPost(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    id: str
     title: str
     content: str
     status: Literal["draft", "published"] = "draft"

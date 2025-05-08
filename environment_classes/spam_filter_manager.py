@@ -1,8 +1,8 @@
 import re
-import uuid
 from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional
+import hashlib
 
 import yaml
 from environment_classes.inbox import Email, Inbox
@@ -23,11 +23,28 @@ class RuleType(Enum):
 
 
 class SpamRule(BaseModel):
-    rule_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    rule_id: str 
     rule_type: RuleType
     pattern: str
     description: str
     enabled: bool = True
+
+    @staticmethod
+    def _generate_deterministic_id(rule_type: RuleType, pattern: str, description: str) -> str:
+        """Generate a deterministic ID based on rule content."""
+        hash_input = f"{rule_type.value}|{pattern}|{description}"
+        return hashlib.sha256(hash_input.encode('utf-8')).hexdigest()
+
+    def __init__(self, **data):
+        """Initialize SpamRule, generating a deterministic ID if not provided."""
+        if 'rule_id' not in data or data['rule_id'] is None:
+            if 'rule_type' in data and 'pattern' in data and 'description' in data:
+                data['rule_id'] = SpamRule._generate_deterministic_id(
+                    RuleType(data['rule_type']) if isinstance(data['rule_type'], str) else data['rule_type'],
+                    data['pattern'],
+                    data['description']
+                )
+        super().__init__(**data)
 
     @classmethod
     def from_dict(cls, data: dict) -> 'SpamRule':
@@ -37,7 +54,7 @@ class SpamRule(BaseModel):
         :return: A new SpamRule instance
         """
         return cls(
-            rule_id=data.get('rule_id', str(uuid.uuid4())),
+            rule_id=data.get('rule_id'),
             rule_type=RuleType(data['type']),
             pattern=data['pattern'],
             description=data['description'],

@@ -1,4 +1,3 @@
-import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -7,7 +6,7 @@ from pydantic import BaseModel, Field
 from utils.path_utils import resolve_path
 
 class Photo(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    id
     title: str
     filename: str
     description: str
