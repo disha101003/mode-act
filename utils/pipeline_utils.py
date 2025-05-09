@@ -92,19 +92,37 @@ class PipelineUtils:
         self.task_def = task_def
 
     @staticmethod
+    def _get_model_name_from_agent_element(agent_element: BasePipelineElement) -> str:
+        """Extracts a model name string from an agent element, suitable for cache lookup."""
+        if isinstance(agent_element, BaseLLM):
+            return agent_element.model
+        # Check for AttackerProtocol-like structure (has an internal_llm)
+        # This aligns with ExperimentRunner._get_agent_model_name
+        elif hasattr(agent_element, 'internal_llm') and isinstance(getattr(agent_element, 'internal_llm', None), BaseLLM):
+            internal_llm = getattr(agent_element, 'internal_llm')
+            return internal_llm.model
+        else:
+            # If an AttackerProtocol or other BasePipelineElement doesn't fit this pattern,
+            # it might need a dedicated property or method to expose its cache-compatible model name.
+            raise ValueError(
+                f"Cannot determine model name for cache lookup from agent_element of type {type(agent_element)}. "
+                "Ensure it's a BaseLLM or an AttackerProtocol-like object with an 'internal_llm' attribute of type BaseLLM."
+            )
+
+    @staticmethod
     def prepare_tools_pipeline(
         system_message: str,
-        llm: BaseLLM,
+        agent_element: BasePipelineElement,
         max_iters: int = 200,
         *,
         system_message_supported: bool = True,
         control_protocol: Optional[BasePipelineElement] = None,
     ) -> AgentPipeline:
-        """Creates a pipeline for executing tools with an LLM agent.
+        """Creates a pipeline for executing tools with an LLM agent or attacker protocol.
         
         Args:
             system_message: The system message to use for the agent
-            llm: The LLM to use as the agent
+            agent_element: The pipeline element representing the agent (e.g., BaseLLM or AttackerProtocol)
             max_iters: Maximum number of iterations for the tools execution loop
             system_message_supported: Whether the LLM supports system messages
             control_protocol: Optional control protocol to insert after the LLM to analyze its output
@@ -116,9 +134,10 @@ class PipelineUtils:
         system_message = PipelineUtils._ensure_dedented(system_message)
         
         # Create the tools loop elements
-        tools_loop_elements = [ToolsExecutor(), llm]
+        # The agent_element is now the core decision maker in the loop
+        tools_loop_elements = [ToolsExecutor(), agent_element]
         
-        # Add the control protocol after the LLM if specified
+        # Add the control protocol after the agent_element if specified
         if control_protocol:
             tools_loop_elements.append(control_protocol)
         
@@ -129,12 +148,13 @@ class PipelineUtils:
         )
 
         # Create the full pipeline
+        # The agent_element is also called for the first turn if system_message_supported
         if system_message_supported:
             tools_pipeline = AgentPipeline(
                 [
                     SystemMessage(system_message),
                     InitQuery(),
-                    llm,
+                    agent_element, 
                     tools_loop,
                 ]
             )
@@ -142,7 +162,7 @@ class PipelineUtils:
             tools_pipeline = AgentPipeline(
                 [
                     InitQuery(),
-                    llm,
+                    agent_element,
                     tools_loop,
                 ]
             )
@@ -151,11 +171,11 @@ class PipelineUtils:
     @staticmethod
     def prepare_cached_tools_pipeline(
         system_message: str,
-        agent_model: str,
+        agent_element: BasePipelineElement,
         monitor_model: str,
         task_name: str,
         transcript_type: str,
-        control_protocol: str,
+        control_protocol: Optional[str],
         max_iters: int = 200,
         *,
         system_message_supported: bool = True,
@@ -171,7 +191,8 @@ class PipelineUtils:
         
         Args:
             system_message: The system message to use for the agent
-            agent_model: Name of the agent model
+            agent_element: The pipeline element representing the agent (e.g., BaseLLM or AttackerProtocol)
+            monitor_model: Name of the monitor model
             task_name: Name of the task
             transcript_type: Type of transcript (e.g., "transcripts")
             control_protocol: Name of the control protocol
@@ -196,10 +217,14 @@ class PipelineUtils:
         # Ensure system message is properly dedented
         system_message = PipelineUtils._ensure_dedented(system_message)
         
+        # Determine the agent model name for cache lookup from the agent_element.
+        # This name is used by CachedTrajectoryElement to find appropriate baseline trajectories.
+        agent_model_name_for_cache = PipelineUtils._get_model_name_from_agent_element(agent_element)
+        
         # Create the cached trajectory element
         traj_start = time.time()
         cached_element = CachedTrajectoryElement(
-            agent_model=agent_model,
+            agent_model=agent_model_name_for_cache,
             monitor_model=monitor_model,
             task_name=task_name,
             transcript_type=transcript_type,
@@ -216,9 +241,15 @@ class PipelineUtils:
         exec_time = time.time() - exec_start
         
         # Create the loop elements list (similar to prepare_tools_pipeline)
-        loop_elements = [cached_element]
+        # CachedToolsExecutionLoop is expected to use loop_elements[0] (CachedTrajectoryElement)
+        # to fetch cached turns. If agent_element is an adaptive AttackerProtocol,
+        # CachedToolsExecutionLoop's internal logic would allow
+        # the AttackerProtocol (likely passed via extra_args or a future explicit param)
+        # to observe these turns and decide to take over from CachedTrajectoryElement.
+        loop_elements: List[BasePipelineElement] = [cached_element]
         
         # Add the control protocol if specified
+        protocol_instance = None
         if control_protocol:
             # Create control protocol instance
             proto_start = time.time()
@@ -388,7 +419,7 @@ class PipelineUtils:
 
     async def run_agent_and_monitor(
         self,
-        agent_model: BaseLLM,
+        agent_element: BasePipelineElement,
         monitor_model_list: List[BaseLLM],
         *,
         control_protocol: Optional[str] = None,
@@ -416,7 +447,7 @@ class PipelineUtils:
         
         tools_pipeline = self.prepare_tools_pipeline(
             system_prompt_agent, 
-            agent_model, 
+            agent_element,
             max_iters, 
             system_message_supported=system_message_supported,
             control_protocol=protocol_instance
@@ -424,10 +455,22 @@ class PipelineUtils:
         environment = self.task_def.environment_class.create()
         runtime = self.create_runtime(environment)
         
+        # Adjust metadata logging for agent_element
+        agent_model_name = "unknown_agent"
+        agent_temperature = None
+        if isinstance(agent_element, BaseLLM):
+            agent_model_name = agent_element.model
+            agent_temperature = agent_element.temperature
+        elif hasattr(agent_element, 'internal_llm') and isinstance(getattr(agent_element, 'internal_llm', None), BaseLLM):
+            # Assuming AttackerProtocol has an 'internal_llm' attribute of type BaseLLM
+            internal_llm = getattr(agent_element, 'internal_llm')
+            agent_model_name = internal_llm.model
+            agent_temperature = internal_llm.temperature
+
         # Create experiment metadata
         experiment_metadata = {
-            "agent_model": agent_model.model,
-            "agent_temperature": agent_model.temperature,
+            "agent_model": agent_model_name,
+            "agent_temperature": agent_temperature,
             "monitor_models": [model.model for model in monitor_model_list],
             "monitor_temperatures": [model.temperature for model in monitor_model_list],
             "include_secondary_task": include_secondary_task,

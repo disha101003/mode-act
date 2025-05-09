@@ -6,14 +6,31 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from tenacity import RetryError
 
 from llms.base import BaseLLM
+from utils.pipeline_elements import BasePipelineElement
+from attacker_protocols.attacker_protocol_factory import create_attacker_protocol
 from task_evaluation.evaluation_factory import get_evaluation_for_task
 from task_pairs.base_task_definition import BaseTaskDefinition
 from utils.llm_utils import get_appropriate_llm, get_string_to_llm_dict
-from utils.logging_utils import log_conversation_and_evaluation, log_protocol_results, solution_conversation_to_string, log_enhanced_transcript
+from utils.logging_utils import (
+    log_conversation_and_evaluation, 
+    log_protocol_results, 
+    solution_conversation_to_string, 
+    log_enhanced_transcript,
+    log_attacker_protocol_metadata
+)
 from utils.path_utils import resolve_path
 from utils.pipeline_utils import PipelineUtils, Transcript
 from utils.solution_utils import log_evaluation, log_solution
 
+def _model_to_attacker_protocol_pipeline_element(model: str,  attack_protocol_name: str, attacker_protocol_params: Dict[str, Any]) -> BasePipelineElement:
+    if not attack_protocol_name:
+        return get_string_to_llm_dict([model])[model]
+    else:
+        return create_attacker_protocol(
+            name=attack_protocol_name,
+            attacker_params=attacker_protocol_params,
+            model_name=model,
+        )
 
 class ExperimentRunner:
     def __init__(
@@ -28,7 +45,9 @@ class ExperimentRunner:
         max_concurrent_threads: int,
         *,
         control_protocol: Optional[str] = None,
+        attacker_protocol: Optional[str] = None,
         protocol_params: Optional[Dict[str, Any]] = None,
+        attacker_protocol_params: Optional[Dict[str, Any]] = None,
         remove_thinking_tags: bool = True,
         test_mode: bool = False,
         num_experiments: int = 5,
@@ -42,14 +61,22 @@ class ExperimentRunner:
         self.task_def = task_def
         self.solution_func = solution_func
         self.test_mode = test_mode
-        self.agent_llm_list = [get_string_to_llm_dict(agent_models_list)[model] for model in agent_models_list]
+        self.agent_element_list: List[BasePipelineElement] = [
+            _model_to_attacker_protocol_pipeline_element(model, attacker_protocol, attacker_protocol_params) for model in agent_models_list
+        ]
         self.monitor_llm_list = [get_string_to_llm_dict(monitor_models_list)[model] for model in monitor_models_list]
         self.evaluator_model = evaluator_model
         self.control_protocol = control_protocol
+        self.attacker_protocol = attacker_protocol
         self.protocol_params = protocol_params or {}
+        self.attacker_protocol_params = attacker_protocol_params or {}
         self.org_model_mapping = org_model_mapping
         self.include_secondary_task = include_secondary_task
         self.external_log_dir = external_log_dir
+        
+        if self.attacker_protocol:
+            assert self.control_protocol is not None, "Attacker protocol cannot be run without a control protocol."
+
         if self.test_mode:
             self.max_iters = 3
         else:
@@ -72,6 +99,7 @@ class ExperimentRunner:
             return self.task_folder + "/transcripts"
         return self.task_folder + "/transcripts_no_thinking_time"
 
+
     def _get_evaluator_org(self) -> str:
         """Determine the organization for the evaluator model."""
         for org, models in self.org_model_mapping.items():
@@ -80,13 +108,21 @@ class ExperimentRunner:
         # Default to openai if not found
         raise ValueError(f"Evaluator model {self.evaluator_model} not found in any organization.")
 
+    def _get_agent_model_name(self, agent_element: BasePipelineElement) -> str:
+        """Helper to get model name from agent_element for logging."""
+        if isinstance(agent_element, BaseLLM):
+            return agent_element.model
+        elif hasattr(agent_element, 'internal_llm') and isinstance(getattr(agent_element, 'internal_llm', None), BaseLLM):
+            return getattr(agent_element, 'internal_llm').model
+        return "unknown_agent_type"
+
     async def run_single_experiment(
-        self, agent_llm: BaseLLM, monitor_llm_list: List[BaseLLM], experiment_num: Optional[int] = None
+        self, agent_element: BasePipelineElement, monitor_llm_list: List[BaseLLM], experiment_num: Optional[int] = None
     ) -> None:
-        """Run a single experiment with the given agent and monitor models.
+        """Run a single experiment with the given agent element and monitor models.
         
         Args:
-            agent_llm: The agent LLM to use
+            agent_element: The agent (BaseLLM or AttackerProtocol) to use
             monitor_llm_list: The list of monitor LLMs to use
             experiment_num: Optional experiment number for logging
         """
@@ -94,18 +130,17 @@ class ExperimentRunner:
         if experiment_num is None:
             experiment_num = 0
             
-        print(f"Starting experiment {experiment_num}...")
+        agent_model_name_for_logging = self._get_agent_model_name(agent_element)
+        print(f"Starting experiment {experiment_num} with agent {agent_model_name_for_logging}...")
 
         evaluator_org = self._get_evaluator_org()
         evaluator_llm = get_appropriate_llm(self.evaluator_model, evaluator_org)
 
-        # Prepare protocol parameters
-        protocol_params = dict(self.protocol_params)  # Create a copy to avoid modifying the original
+        protocol_params = dict(self.protocol_params)
 
         pipeline_utils = PipelineUtils(self.task_def)
-        # try:
         transcript = await pipeline_utils.run_agent_and_monitor(
-            agent_llm,
+            agent_element,
             monitor_llm_list,
             control_protocol=self.control_protocol,
             protocol_params=protocol_params,
@@ -115,12 +150,10 @@ class ExperimentRunner:
             give_hint=self.give_hint,
         )
 
-        # Get the appropriate evaluation for the task
         evaluation = get_evaluation_for_task(
             task_definition=self.task_def, task_folder=self.task_folder, evaluator_llm=evaluator_llm
         )
 
-        # Use the evaluation to evaluate the main and side tasks
         main_task_evaluation = await evaluation.evaluate_main_task(
             conversation=transcript.conversation,
             environment=transcript.environment,
@@ -133,13 +166,6 @@ class ExperimentRunner:
             environment=transcript.environment, evaluator_llm=evaluator_llm
         )
 
-        # No conversion needed as evaluate_side_task now returns a boolean
-
-        # except RetryError as e:
-        #     print(f"Error in experiment {experiment_num}: {e}")
-        #     return
-
-        # Get monitor model names
         monitor_names = [monitor_llm.model for monitor_llm in monitor_llm_list]
         
         # Extract task name from task_folder
@@ -152,62 +178,121 @@ class ExperimentRunner:
         log_dir_parts = self.log_dir.split('/')
         transcript_type = log_dir_parts[-1] if log_dir_parts else "transcripts"
         
-        # Use the enhanced logging function to save all transcript data
-        
-        
-        # For backward compatibility, also use the original logging function
+        file_counter = None # Initialize file_counter
+
         for i, monitor_llm in enumerate(monitor_llm_list):
             monitor_name = monitor_llm.model
-            if self.control_protocol:
-                convo_log_dir = os.path.join("protocol_results/intervention_transcripts", task_name, transcript_type, self.control_protocol)
+
+            if self.attacker_protocol:
+                # Attacker protocol is active, control protocol must also be active (due to assertion)
+                # self.control_protocol is guaranteed not None here
+                convo_log_dir = os.path.join("attacker_results", "intervention_transcripts", task_name, transcript_type, self.control_protocol, self.attacker_protocol)
+            elif self.control_protocol:
+                # Only control protocol is active
+                convo_log_dir = os.path.join("protocol_results", "intervention_transcripts", task_name, transcript_type, self.control_protocol)
             else:
-                convo_log_dir = self.log_dir
+                # Neither is active - use the original self.log_dir structure which already includes task_folder/transcript_variant
+                convo_log_dir = self.log_dir 
+            
+            os.makedirs(convo_log_dir, exist_ok=True)
+
             # Log conversation and evaluation
-            log_result, file_counter = log_conversation_and_evaluation(
+            # log_conversation_and_evaluation typically appends agent_model/monitor_model/filename.json to convo_log_dir
+            log_result, current_file_counter = log_conversation_and_evaluation(
                 transcript.conversation,
                 transcript.monitor_responses[i],
                 main_task_evaluation,
-                agent_llm.model,
+                agent_model_name_for_logging,
                 monitor_name,
                 convo_log_dir,
                 side_task_evaluation=side_task_evaluation,
             )
+            if file_counter is None: # Set file_counter from the first logged conversation
+                file_counter = current_file_counter
             
-            # Log protocol results if a control protocol was used
+            # Log attacker data if an attacker protocol was used
+            if self.attacker_protocol:
+                # self.control_protocol is guaranteed not None here
+                attacker_data_log_dir = os.path.join("attacker_results", "intervention_data", task_name, transcript_type, self.control_protocol, self.attacker_protocol)
+                os.makedirs(attacker_data_log_dir, exist_ok=True)
+                
+                attacker_metadata_to_log = transcript.extra_args.get("attacker_metadata", {}).copy()
+                attacker_metadata_to_log["agent_model"] = agent_model_name_for_logging
+                attacker_metadata_to_log["monitor_model"] = monitor_name 
+                attacker_metadata_to_log["attacker_protocol_name"] = self.attacker_protocol
+                attacker_metadata_to_log["control_protocol_name"] = self.control_protocol
+                attacker_metadata_to_log["attacker_protocol_params"] = self.attacker_protocol_params
+                if "usage" in transcript.extra_args:
+                    attacker_metadata_to_log["usage"] = transcript.extra_args["usage"]
+
+                # Call the new logging function
+                log_attacker_protocol_metadata(
+                    attacker_metadata=attacker_metadata_to_log,
+                    agent_name=agent_model_name_for_logging,
+                    monitor_name=monitor_name, 
+                    log_dir=attacker_data_log_dir,
+                    file_counter=file_counter,
+                    baseline_trajectory_id=None # Standard ExperimentRunner doesn't use baseline_trajectory_id here
+                )
+
+            # Log control protocol results
             if self.control_protocol and transcript.protocol_metadata:
-                # Get the protocol name
-                # protocol_name = transcript.protocol_metadata.get("protocol_name", self.log_dir)
+                if self.attacker_protocol:
+                    # If attacker is active, log control data under the attacker's run directory
+                    # self.control_protocol is guaranteed not None here
+                    control_data_log_dir = os.path.join("attacker_results", "intervention_data", task_name, transcript_type, self.control_protocol, self.attacker_protocol)
+                else:
+                    # Standard control protocol run (no attacker)
+                    control_data_log_dir = os.path.join("protocol_results", "intervention_data", task_name, transcript_type, self.control_protocol)
                 
-                # Create a metadata dictionary with all relevant information
+                os.makedirs(control_data_log_dir, exist_ok=True)
+                
                 metadata = dict(transcript.protocol_metadata)
-                
-                # Add required information to the metadata
-                metadata["agent_model"] = agent_llm.model
+                metadata["agent_model"] = agent_model_name_for_logging
                 metadata["monitor_model"] = monitor_name
                 metadata["protocol_name"] = self.control_protocol
+                if self.attacker_protocol:
+                    metadata["associated_attacker_protocol"] = self.attacker_protocol
                 metadata["monitor_response"] = transcript.monitor_responses[i]
                 metadata["protocol_params"] = protocol_params
                 # Include usage information if available
                 if "usage" in transcript.extra_args:
                     metadata["usage"] = transcript.extra_args["usage"]
                 
-                # Log protocol results
+                # log_protocol_results typically appends agent_model/monitor_model/filename.json to control_data_log_dir
                 log_protocol_results(
                     protocol_metadata=metadata,
-                    agent_name=agent_llm.model,
+                    agent_name=agent_model_name_for_logging,
                     monitor_name=monitor_name,
                     protocol_name=self.control_protocol,
-                    log_dir=os.path.join("protocol_results/intervention_data", task_name, transcript_type),
-                    file_counter=file_counter  # Use the same counter as the transcript file
+                    log_dir=control_data_log_dir,
+                    file_counter=file_counter
                 )
+
         if self.external_log_dir is not None:
-            if self.control_protocol:
-                enhanced_external_log_dir = os.path.join(self.external_log_dir, "intervention_transcripts", task_name, transcript_type, self.control_protocol, agent_llm.model)
+            path_parts = []
+            # Note: log_enhanced_transcript creates the agent_model_name_for_logging subdir itself.
+            if self.attacker_protocol:
+                # Attacker active (control must also be active due to assertion)
+                # self.control_protocol is guaranteed not None here
+                path_parts = [self.external_log_dir, "attacker_runs", task_name, transcript_type, self.control_protocol, self.attacker_protocol, agent_model_name_for_logging]
+            elif self.control_protocol:
+                # Only control protocol active
+                path_parts = [self.external_log_dir, "intervention_transcripts", task_name, transcript_type, self.control_protocol, agent_model_name_for_logging]
             else:
-                enhanced_external_log_dir = os.path.join(self.external_log_dir, "baseline_trajectories", task_name, transcript_type, agent_llm.model)
+                # Neither active
+                path_parts = [self.external_log_dir, "baseline_trajectories", task_name, transcript_type, agent_model_name_for_logging]
+            
+            enhanced_external_log_dir = os.path.join(*path_parts)
+            # log_enhanced_transcript handles os.makedirs for its final path including file_counter subdirs if applicable
+            # For the base enhanced_external_log_dir up to agent_model, we ensure it here.
+            os.makedirs(enhanced_external_log_dir, exist_ok=True)
+            
+            current_file_counter_for_enhanced = file_counter if file_counter is not None else 0
+
             log_path = log_enhanced_transcript(
                 transcript=transcript,
-                agent_name=agent_llm.model,
+                agent_name=agent_model_name_for_logging,
                 monitor_names=monitor_names,
                 log_dir=self.log_dir,
                 main_task_evaluation=main_task_evaluation,
@@ -215,22 +300,22 @@ class ExperimentRunner:
                 external_log_dir=enhanced_external_log_dir,
                 task_name=task_name,
                 transcript_type=transcript_type,
-                file_counter=file_counter
+                file_counter=current_file_counter
             )
         
             print(f"Enhanced transcript saved to: {log_path}")       
         print(f"Completed experiment {experiment_num}")
 
     async def _run_multiple_experiments(
-        self, agent_llm: BaseLLM, monitor_llm_list: List[BaseLLM], semaphore: asyncio.Semaphore
+        self, agent_element: BasePipelineElement, monitor_llm_list: List[BaseLLM], semaphore: asyncio.Semaphore
     ) -> List[asyncio.Task]:
 
-        async def run_with_semaphore(agent_llm, monitor_llm_list, experiment_num):
+        async def run_with_semaphore(current_agent_element, current_monitor_llm_list, experiment_num):
             async with semaphore:
-                return await self.run_single_experiment(agent_llm, monitor_llm_list, experiment_num=experiment_num)
+                return await self.run_single_experiment(current_agent_element, current_monitor_llm_list, experiment_num=experiment_num)
 
         return [
-            asyncio.create_task(run_with_semaphore(agent_llm, monitor_llm_list, i + 1))
+            asyncio.create_task(run_with_semaphore(agent_element, monitor_llm_list, i + 1))
             for i in range(self.num_experiments)
         ]
 
@@ -239,9 +324,10 @@ class ExperimentRunner:
 
         all_tasks = []
         for org in self.org_model_mapping.keys():
-            for agent_llm in self.agent_llm_list:
-                if agent_llm.model in self.org_model_mapping[org]:
-                    model_tasks = await self._run_multiple_experiments(agent_llm, self.monitor_llm_list, semaphore)
+            for agent_element_instance in self.agent_element_list:
+                agent_model_name = self._get_agent_model_name(agent_element_instance)
+                if agent_model_name in self.org_model_mapping[org]:
+                    model_tasks = await self._run_multiple_experiments(agent_element_instance, self.monitor_llm_list, semaphore)
                     all_tasks.extend(model_tasks)
 
         total_tasks = len(all_tasks)

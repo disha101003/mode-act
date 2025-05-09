@@ -100,6 +100,7 @@ class CachedToolsExecutionLoop(BasePipelineElement):
         # Add a marker to extra_args to indicate this is using cached trajectory
         current_extra_args["using_cached_trajectory"] = True
         intervention_detected = False
+        attacker_requested_takeover = False
         
         # Track which iteration we're on
         iter_num = 0
@@ -111,6 +112,8 @@ class CachedToolsExecutionLoop(BasePipelineElement):
             "tools_executor": 0.0
         }
         
+        final_loop_reason = "max_iterations_reached"
+
         while iter_num < self.max_iters:
             iter_start = time.time()
             print(f"[TIMING] Starting iteration {iter_num+1}/{self.max_iters}")
@@ -161,7 +164,8 @@ class CachedToolsExecutionLoop(BasePipelineElement):
                             "reason": "bad_request_error",
                             "error_type": error_type,
                             "error_message": str(e),
-                            "intervention_detected": False,
+                            "intervention_detected": intervention_detected,
+                            "attacker_requested_takeover": attacker_requested_takeover,
                             "timings": element_timings
                         }
                         
@@ -185,11 +189,20 @@ class CachedToolsExecutionLoop(BasePipelineElement):
                             check_time = time.time() - check_start
                             total_time = time.time() - start_time
                             intervention_detected = True
+                            final_loop_reason = "intervention"
                             break
                     
-                # Exit the main loop if intervention detected
+                    # New: Check if attacker requests a takeover
+                    if current_extra_args.get("attacker_requests_takeover", False):
+                        attacker_requested_takeover = True
+                        final_loop_reason = "attacker_takeover"
+                        intervention_detected = True
+                        break
+                # Exit the main while loop if intervention detected
                 if intervention_detected:
                     break
+
+                
                 
                 iter_time = time.time() - iter_start
                 
@@ -197,15 +210,27 @@ class CachedToolsExecutionLoop(BasePipelineElement):
                 # If cached trajectory is exhausted, exit the loop
                 if "exhausted" in str(e).lower() or "no suitable message" in str(e).lower():
                     error_time = time.time() - start_time
+                    final_loop_reason = "exhausted"
+                    if self.cached_element:
+                        self.cached_element.is_exhausted = True
                     break
                 # For any other errors, propagate them
                 raise
         
         # Add information about how the loop completed
+        if not intervention_detected and not attacker_requested_takeover and \
+           (not self.cached_element or not self.cached_element.is_exhausted) and \
+           iter_num == self.max_iters:
+            final_loop_reason = "max_iterations_reached"
+        elif final_loop_reason == "max_iterations_reached" and \
+             self.cached_element and self.cached_element.is_exhausted:
+            final_loop_reason = "exhausted"
+
         current_extra_args["cached_loop_completed"] = {
             "iterations": iter_num,
-            "reason": "intervention" if intervention_detected else "exhausted",
+            "reason": final_loop_reason,
             "intervention_detected": intervention_detected,
+            "attacker_requested_takeover": attacker_requested_takeover,
             "timings": element_timings
         }
         

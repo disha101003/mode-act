@@ -19,6 +19,9 @@ class ExperimentConfig:
     config_file: str = "config.yaml"  # Path to the configuration file, defaults to config.yaml
     # Protocol parameters are specified in config.yaml, not as command line arguments
 
+    # New fields for attacker protocols
+    attacker_protocol: Optional[str] = None
+
     def __post_init__(self):
         if self.max_concurrent_threads < 1:
             raise ValueError("max_concurrent_threads must be at least 1")

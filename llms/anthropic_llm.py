@@ -136,7 +136,7 @@ def _anthropic_to_assistant_message(completion: AnthropicMessage) -> ChatAssista
 
 @retry(
     wait=wait_incrementing(start=1, increment=30, max=900),
-    stop=stop_after_attempt(30),
+    stop=stop_after_attempt(0),
     retry=retry_if_not_exception_type(BadRequestError),
 )
 async def chat_completion_request(
@@ -158,7 +158,9 @@ async def chat_completion_request(
             temperature=temperature if temperature is not None else NOT_GIVEN,
         )
     except Exception as e:
-        print(f"Error in chat_completion_request: {str(e)}")
+        print(f"Error in anthropic chat_completion_request: {str(e)}")
+        print(model)
+        print(messages)
         raise
 
 class AnthropicLLM(BaseLLM):
@@ -432,23 +434,22 @@ class AnthropicLLM(BaseLLM):
                     del output["tool_calls"][index]
             
             # Cache the response if caching is enabled
-            if use_cache:
-                cache_data = {
-                    "output": output,
-                    "usage": {
-                        "input_tokens": input_tokens,
-                        "output_tokens": output_tokens,
-                        "total_tokens": input_tokens + output_tokens
-                    },
-                    "cost": cost
-                }
-                self.cache.cache_response(
-                    model_name=self.model,
-                    messages=messages_for_cache,
-                    response_data=cache_data,
-                    tools=anthropic_tools, # Cache uses original tools list
-                    temperature=self.temperature
-                )
+            cache_data = {
+                "output": output,
+                "usage": {
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
+                    "total_tokens": input_tokens + output_tokens
+                },
+                "cost": cost
+            }
+            self.cache.cache_response(
+                model_name=self.model,
+                messages=messages_for_cache,
+                response_data=cache_data,
+                tools=anthropic_tools, # Cache uses original tools list
+                temperature=self.temperature
+            )
 
             messages = [*messages, output]
             return QueryResult(

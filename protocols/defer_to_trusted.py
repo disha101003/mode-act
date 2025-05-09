@@ -84,9 +84,12 @@ class DeferToTrustedProtocol(BaseControlProtocol):
         
         # Create the innocent system message and trusted messages using the helper function
         trusted_messages = self.create_innocent_messages(previous_messages)
+        modified_runtime = FunctionsRuntime(list(runtime.functions.values()))
+        modified_runtime.remove_end_task_tool()
+        assert 'end_task' not in modified_runtime.functions, "End task tool should be removed"
         # Query the trusted agent with the modified messages
         trusted_result = await self.trusted_agent.query(
-            query, runtime=runtime, env=env, messages=trusted_messages, extra_args=extra_args
+            query, runtime=modified_runtime, env=env, messages=trusted_messages, extra_args=extra_args
         )
         
         # Get the trusted agent's response

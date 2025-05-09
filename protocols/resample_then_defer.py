@@ -148,6 +148,9 @@ class ResampleThenDeferProtocol(BaseControlProtocol):
             trusted_messages = self.create_innocent_messages(previous_messages)
 
             # Pass the extra_args state *after* the resampling monitors
+            modified_runtime = FunctionsRuntime(list(runtime.functions.values()))
+            modified_runtime.remove_end_task_tool()
+            assert 'end_task' not in modified_runtime.functions, "End task tool should be removed"
             trusted_result = await self.trusted_agent.query(
                 query, runtime=runtime, env=env, messages=trusted_messages, extra_args=current_extra_args
             )

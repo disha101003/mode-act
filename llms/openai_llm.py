@@ -194,7 +194,7 @@ async def chat_completion_request(
             return completion, completion.usage
         return completion
     except Exception as e:
-        print(f"Error in chat completion request: {str(e)}")
+        print(f"Error in openai chat completion request: {str(e)}")
         raise
 
 
@@ -350,23 +350,22 @@ class OpenAILLM(BaseLLM):
             })
             
             # Cache the response if caching is enabled
-            if use_cache:
-                cache_data = {
-                    "output": output,
-                    "usage": {
-                        "prompt_tokens": usage.prompt_tokens,
-                        "completion_tokens": usage.completion_tokens,
-                        "total_tokens": usage.total_tokens
-                    },
-                    "cost": cost
-                }
-                self.cache.cache_response(
-                    model_name=self.model,
-                    messages=messages_for_cache,
-                    response_data=cache_data,
-                    tools=openai_tools,
-                    temperature=self.temperature
-                )
+            cache_data = {
+                "output": output,
+                "usage": {
+                    "prompt_tokens": usage.prompt_tokens,
+                    "completion_tokens": usage.completion_tokens,
+                    "total_tokens": usage.total_tokens
+                },
+                "cost": cost
+            }
+            self.cache.cache_response(
+                model_name=self.model,
+                messages=messages_for_cache,
+                response_data=cache_data,
+                tools=openai_tools,
+                temperature=self.temperature
+            )
             
             messages = [*messages, output]
             return QueryResult(

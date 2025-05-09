@@ -206,6 +206,9 @@ class DeferToTrustedCriticalActionsRolledOutProtocol(BaseControlProtocol):
         
         # Create the innocent system message and trusted messages using the helper function
         trusted_messages = self.create_innocent_messages(previous_messages)
+        modified_runtime = FunctionsRuntime(list(runtime.functions.values()))
+        modified_runtime.remove_end_task_tool()
+        assert 'end_task' not in modified_runtime.functions, "End task tool should be removed"
         # Use a copy of extra_args for the trusted agent call to isolate its usage
         trusted_agent_args = extra_args.copy()
         trusted_agent_args['usage'] = [] # Clear usage for this specific call

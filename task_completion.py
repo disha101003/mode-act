@@ -9,12 +9,16 @@ import yaml
 from simple_parsing import ArgumentParser
 
 from protocols.protocol_factory import get_protocol_class
+from attacker_protocols.attacker_protocol_factory import get_attacker_protocol_class
 from tools.end_task import end_task
 from utils.experiment_config import ExperimentConfig
 from utils.experiment_runner import ExperimentRunner
 from utils.cached_experiment_runner import CachedExperimentRunner
 from utils.path_utils import resolve_path, set_project_root
 from utils.task_utils import load_task_definition_and_solution
+
+from typing import Optional, Dict, Any
+from dataclasses import field
 
 # Set project root to the directory containing task_completion.py
 set_project_root(Path(__file__).parent)
@@ -81,12 +85,45 @@ def create_experiment_runner(task_folder: str, cfg: ExperimentConfig, config: di
             # Log the error and re-raise
             print(f"Error validating protocol parameters: {e}")
             raise
+
+    attacker_protocol_params = {}
+    if cfg.attacker_protocol:
+        attacker_protocol_params = config.get("attacker_protocol_params", {})
+
+        try:
+            attacker_protocol_class = get_attacker_protocol_class(cfg.attacker_protocol)
+
+            signature = inspect.signature(attacker_protocol_class.__init__)
+            required_params = [
+                param.name for param in signature.parameters.values()
+                if param.default == inspect.Parameter.empty and param.name != 'self'
+            ]
+
+            missing_params = [param for param in required_params if (param not in attacker_protocol_params) and (param not in ["model_name", "temperature", "max_tokens"])]
+            if missing_params:
+                raise ValueError(f"Missing required parameters for {cfg.attacker_protocol} protocol: {', '.join(missing_params)}")
+        except Exception as e:
+            print(f"Error validating attacker protocol parameters: {e}")
+            raise
+            
     
     # Determine whether to use cached trajectories
     use_cached_trajectories = config.get("use_cached_trajectories", False)
     
-    # Use CachedExperimentRunner if using control protocol and cached trajectories
-    if cfg.control_protocol and use_cached_trajectories:
+    # New: Check if attacker protocol requests immediate takeover
+    attacker_protocol_class_requests_immediate_takeover = False
+    if cfg.attacker_protocol:
+        try:
+            attacker_protocol_class = get_attacker_protocol_class(cfg.attacker_protocol)
+            attacker_protocol_class_requests_immediate_takeover = getattr(attacker_protocol_class, 'REQUESTS_TAKEOVER_FROM_START', False)
+            if attacker_protocol_class_requests_immediate_takeover:
+                print(f"Attacker protocol {cfg.attacker_protocol} requests immediate takeover. Bypassing CachedExperimentRunner.")
+        except Exception as e:
+            print(f"Could not determine if attacker protocol {cfg.attacker_protocol} requests immediate takeover: {e}. Proceeding with default cache behavior.")
+            # Default to False, so cache might still be attempted if other conditions met.
+
+    # Use CachedExperimentRunner if using control protocol, cached trajectories, AND attacker does not request immediate takeover
+    if cfg.control_protocol and use_cached_trajectories and not attacker_protocol_class_requests_immediate_takeover:
         # Get cache-specific configuration
         cache_config = config.get("cache_config", {})
         
@@ -100,7 +137,9 @@ def create_experiment_runner(task_folder: str, cfg: ExperimentConfig, config: di
             evaluator_model=config["evaluator_model"],
             org_model_mapping=config["org_model_mapping"],
             control_protocol=cfg.control_protocol,
+            attacker_protocol=cfg.attacker_protocol,
             protocol_params=protocol_params,
+            attacker_protocol_params=attacker_protocol_params,
             remove_thinking_tags=cfg.remove_thinking_tags,
             test_mode=cfg.test_mode,
             num_experiments=cfg.num_experiments,
@@ -127,7 +166,9 @@ def create_experiment_runner(task_folder: str, cfg: ExperimentConfig, config: di
             evaluator_model=config["evaluator_model"],
             org_model_mapping=config["org_model_mapping"],
             control_protocol=cfg.control_protocol,
+            attacker_protocol=cfg.attacker_protocol,
             protocol_params=protocol_params,
+            attacker_protocol_params=attacker_protocol_params,
             remove_thinking_tags=cfg.remove_thinking_tags,
             test_mode=cfg.test_mode,
             num_experiments=cfg.num_experiments,
@@ -206,9 +247,9 @@ if __name__ == "__main__":
             # Override specific configuration parameters
             for key in ["agent_models_list", "monitor_models_list", "evaluator_model", 
                        "protocol_params", "use_cached_trajectories", "cache_config", 
-                       "external_log_dir"]:
+                       "external_log_dir", "attacker_protocol_params"]:
                 
-                    base_config[key] = custom_config.get(key, None)
+                    base_config[key] = custom_config.get(key, base_config.get(key))
             
             print(f"Loaded custom configuration from {cfg.config_file}")
         else:

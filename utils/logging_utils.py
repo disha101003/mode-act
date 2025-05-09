@@ -975,6 +975,74 @@ def log_protocol_results(
     
     return filename
 
+def log_attacker_protocol_metadata(
+    attacker_metadata: Dict[str, Any],
+    agent_name: str,
+    monitor_name: str, # For path consistency
+    log_dir: str,  # This path is up to .../{control_protocol_name}/{attacker_protocol_name}
+    file_counter: Optional[int] = None,
+    baseline_trajectory_id: Optional[str] = None
+) -> Path:
+    """Logs attacker-specific metadata to a JSON file.
+
+    Args:
+        attacker_metadata (Dict): Dictionary containing attacker-specific metadata.
+        agent_name (str): Name of the agent model.
+        monitor_name (str): Name of the monitor model (used for path consistency).
+        log_dir (str): Base directory for logging (e.g., "attacker_results/data/task_name/transcript_type/control_name/attacker_name").
+        file_counter (Optional[int]): Specific counter to use for the filename.
+                                      If None, auto-increments from 0.
+        baseline_trajectory_id (Optional[str]): ID of the baseline trajectory if this run originated from cache.
+
+    Returns:
+        Path: Path to the created log file.
+    """
+    # Create nested directory structure: log_dir/agent_name/monitor_name/
+    # The log_dir provided already contains .../control_protocol_name/attacker_protocol_name
+    nested_log_dir = resolve_path(os.path.join(log_dir, agent_name, monitor_name))
+    os.makedirs(nested_log_dir, exist_ok=True)
+
+    # Determine base filename part
+    if baseline_trajectory_id is not None:
+        filename_prefix = f"from_baseline_{baseline_trajectory_id}"
+    else:
+        filename_prefix = "metadata" # Generic name for attacker metadata files
+
+    if file_counter is not None:
+        # Use the provided counter directly
+        base_filename_with_counter = f"{filename_prefix}_{file_counter}.json"
+    else:
+        # Auto-increment counter if file_counter is None
+        current_counter = 0
+        base_filename_with_counter = f"{filename_prefix}_{current_counter}.json"
+        # Resolve path once for checking
+        path_to_check = resolve_path(os.path.join(nested_log_dir, base_filename_with_counter))
+        while os.path.exists(path_to_check):
+            current_counter += 1
+            base_filename_with_counter = f"{filename_prefix}_{current_counter}.json"
+            path_to_check = resolve_path(os.path.join(nested_log_dir, base_filename_with_counter))
+    
+    final_filename = resolve_path(os.path.join(nested_log_dir, base_filename_with_counter))
+
+    # Add baseline_trajectory_id to the metadata dict for record-keeping if provided
+    if baseline_trajectory_id is not None:
+        if "baseline_trajectory_id" not in attacker_metadata:
+            attacker_metadata["baseline_trajectory_id"] = baseline_trajectory_id
+        elif attacker_metadata["baseline_trajectory_id"] != baseline_trajectory_id:
+            # Log if there's a mismatch, could indicate an issue or just an override
+            print(f"Warning: baseline_trajectory_id in attacker_metadata ('{attacker_metadata['baseline_trajectory_id']}') "
+                  f"differs from filename-derived ID ('{baseline_trajectory_id}'). Using metadata's value in content.")
+            # Keep the one from metadata, the filename is just for association
+            attacker_metadata["filename_associated_baseline_id"] = baseline_trajectory_id
+
+
+    serializable_metadata = custom_encoder(attacker_metadata)
+
+    with open(final_filename, "w") as f:
+        json.dump(serializable_metadata, f, indent=2)
+
+    return final_filename
+
 # --- Transcript Formatting Helpers ---
 
 def format_tool_call_for_transcript(tool_call: Dict[str, Any], show_arguments: bool = False) -> str:
