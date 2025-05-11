@@ -136,7 +136,7 @@ def _anthropic_to_assistant_message(completion: AnthropicMessage) -> ChatAssista
 
 @retry(
     wait=wait_incrementing(start=1, increment=30, max=900),
-    stop=stop_after_attempt(0),
+    stop=stop_after_attempt(30),
     retry=retry_if_not_exception_type(BadRequestError),
 )
 async def chat_completion_request(

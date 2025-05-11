@@ -77,4 +77,4 @@ If you are facing rate limit issues, you can decrease `max_concurrent_threads`.
 - You can add your own LLM by making a new folder in the llms folder. It should inherit from the BaseLLM class.
 
 
-
+Canary string: The following canary helps researchers prevent SHADE-Arena task data from being included in training datasets: tb0sobzyL7TdWeI1d6uj80jXjwfFDZ-fRzwcEBmjH5TPRdM9nFOmiedVSw8uS

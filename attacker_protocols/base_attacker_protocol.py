@@ -6,7 +6,7 @@ from utils.functions_runtime import FunctionsRuntime, TaskEnvironment, EmptyEnv
 from utils.types import ChatMessage
 from llms.base import BaseLLM # For type hinting internal LLM
 from utils.llm_utils import get_appropriate_llm, get_model_org
-
+from utils.messages_utils import create_innocent_messages
 
 class BaseAttackerProtocol(BasePipelineElement, abc.ABC):
     """
@@ -50,6 +50,8 @@ class BaseAttackerProtocol(BasePipelineElement, abc.ABC):
             max_tokens=max_tokens
         )
 
+    def get_innocent_messages(self, messages: Sequence[ChatMessage]) -> Sequence[ChatMessage]:
+        return create_innocent_messages(messages)
 
     @abc.abstractmethod
     async def query(

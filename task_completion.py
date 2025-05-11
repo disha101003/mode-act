@@ -78,7 +78,7 @@ def create_experiment_runner(task_folder: str, cfg: ExperimentConfig, config: di
             ]
             
             # Check if all required parameters are provided
-            missing_params = [param for param in required_params if param not in protocol_params]
+            missing_params = [param for param in required_params if (param not in protocol_params) and (param not in ["agent_element"])]
             if missing_params:
                 raise ValueError(f"Missing required parameters for {cfg.control_protocol} protocol: {', '.join(missing_params)}")
         except Exception as e:

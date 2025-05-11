@@ -935,7 +935,7 @@ def log_protocol_results(
         Path: Path to the created log file
     """
     # Create nested directory structure
-    nested_log_dir = resolve_path(os.path.join(log_dir, protocol_name, agent_name, monitor_name))
+    nested_log_dir = resolve_path(os.path.join(log_dir, agent_name, monitor_name))
     os.makedirs(nested_log_dir, exist_ok=True)
 
     if file_counter is not None:

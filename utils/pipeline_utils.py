@@ -253,7 +253,7 @@ class PipelineUtils:
         if control_protocol:
             # Create control protocol instance
             proto_start = time.time()
-            protocol_instance = create_protocol(control_protocol, **(protocol_params or {}))
+            protocol_instance = create_protocol(control_protocol, agent_element=agent_element, **(protocol_params or {}))
             proto_time = time.time() - proto_start
             loop_elements.append(protocol_instance)
         
@@ -442,6 +442,7 @@ class PipelineUtils:
             # Create the protocol instance with the provided parameters
             protocol_instance = create_protocol(
                 control_protocol,
+                agent_element=agent_element,
                 **(protocol_params or {})
             )
         

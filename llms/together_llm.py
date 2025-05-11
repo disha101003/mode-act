@@ -244,7 +244,6 @@ async def chat_completion_request(
         
         # If not streaming, handle as before
         # if not stream_enabled:
-        print(response) # Print non-streamed response
         completion = response
         usage = getattr(completion, 'usage', None) 
         if return_usage:

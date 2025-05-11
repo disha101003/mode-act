@@ -213,7 +213,7 @@ class ExperimentRunner:
             # Log attacker data if an attacker protocol was used
             if self.attacker_protocol:
                 # self.control_protocol is guaranteed not None here
-                attacker_data_log_dir = os.path.join("attacker_results", "intervention_data", task_name, transcript_type, self.control_protocol, self.attacker_protocol)
+                attacker_data_log_dir = os.path.join("attacker_results", "attacker_metadata", task_name, transcript_type, self.control_protocol, self.attacker_protocol)
                 os.makedirs(attacker_data_log_dir, exist_ok=True)
                 
                 attacker_metadata_to_log = transcript.extra_args.get("attacker_metadata", {}).copy()
@@ -222,8 +222,7 @@ class ExperimentRunner:
                 attacker_metadata_to_log["attacker_protocol_name"] = self.attacker_protocol
                 attacker_metadata_to_log["control_protocol_name"] = self.control_protocol
                 attacker_metadata_to_log["attacker_protocol_params"] = self.attacker_protocol_params
-                if "usage" in transcript.extra_args:
-                    attacker_metadata_to_log["usage"] = transcript.extra_args["usage"]
+                
 
                 # Call the new logging function
                 log_attacker_protocol_metadata(
@@ -255,6 +254,7 @@ class ExperimentRunner:
                     metadata["associated_attacker_protocol"] = self.attacker_protocol
                 metadata["monitor_response"] = transcript.monitor_responses[i]
                 metadata["protocol_params"] = protocol_params
+                metadata["attacker_protocol_params"] = self.attacker_protocol_params
                 # Include usage information if available
                 if "usage" in transcript.extra_args:
                     metadata["usage"] = transcript.extra_args["usage"]

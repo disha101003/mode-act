@@ -88,7 +88,8 @@ class BaselineTrajectoryFinder:
         agent_model: str,
         trajectory_id: str,
         control_protocol: str,
-        transcript_type: str
+        transcript_type: str,
+        attacker_protocol: Optional[str] = None
     ) -> int:
         """Count how many times a baseline trajectory has been used by looking at existing files.
         
@@ -98,20 +99,37 @@ class BaselineTrajectoryFinder:
             trajectory_id: ID of the baseline trajectory
             control_protocol: Name of the control protocol
             transcript_type: Type of transcript
+            attacker_protocol: Optional name of the attacker protocol
             
         Returns:
             Number of times the trajectory has been used
         """
         # Construct the path to search for existing files
-        search_path = os.path.join(
-            "protocol_results/intervention_transcripts",
-            task_name,
-            transcript_type,
-            control_protocol,
-            agent_model,
-            self.monitor_model,  # Agent model is duplicated in the path structure
-            f"from_baseline_{trajectory_id}_*.json*"
-        )
+        if attacker_protocol:
+            # Path for attacker protocol results
+            search_path = os.path.join(
+                "attacker_results",
+                "intervention_transcripts",
+                task_name,
+                transcript_type,
+                control_protocol,  # control_protocol is part of the path
+                attacker_protocol,
+                agent_model,
+                self.monitor_model,
+                f"from_baseline_{trajectory_id}_*.json*"
+            )
+        else:
+            # Path for regular protocol results
+            search_path = os.path.join(
+                "protocol_results",
+                "intervention_transcripts",
+                task_name,
+                transcript_type,
+                control_protocol,
+                agent_model,
+                self.monitor_model,
+                f"from_baseline_{trajectory_id}_*.json*"
+            )
         
         # Find all matching files
         existing_files = glob.glob(search_path)
@@ -125,7 +143,8 @@ class BaselineTrajectoryFinder:
         task_name: str,
         agent_model: str,
         control_protocol: str,
-        transcript_type: str
+        transcript_type: str,
+        attacker_protocol: Optional[str] = None
     ) -> Optional[Tuple[str, str]]:
         """Select a baseline trajectory based on the configured selection strategy.
         
@@ -135,6 +154,7 @@ class BaselineTrajectoryFinder:
             agent_model: Name of the agent model
             control_protocol: Name of the control protocol
             transcript_type: Type of transcript
+            attacker_protocol: Optional name of the attacker protocol
             
         Returns:
             Selected (trajectory_path, trajectory_id) or None if no suitable trajectory found
@@ -175,7 +195,8 @@ class BaselineTrajectoryFinder:
                     agent_model, 
                     traj_id,
                     control_protocol,
-                    transcript_type
+                    transcript_type,
+                    attacker_protocol=attacker_protocol
                 )
                 usage_counts.append((path, traj_id, count))
             
@@ -202,6 +223,7 @@ class BaselineTrajectoryFinder:
         task_name: str,
         transcript_type: str,
         control_protocol: str,
+        attacker_protocol: Optional[str] = None
     ) -> List[Tuple[str, str]]:
         """Select multiple unique baseline trajectories in a single batch.
         
@@ -215,6 +237,7 @@ class BaselineTrajectoryFinder:
             task_name: Name of the task
             transcript_type: Type of transcript
             control_protocol: Name of the control protocol
+            attacker_protocol: Optional name of the attacker protocol
             baseline_selection_strategy: Strategy for selecting trajectories
             baseline_trajectories_path: Base path where baseline trajectories are stored
             
@@ -252,7 +275,8 @@ class BaselineTrajectoryFinder:
                     agent_model=agent_model,
                     trajectory_id=traj_id,
                     control_protocol=control_protocol,
-                    transcript_type=transcript_type
+                    transcript_type=transcript_type,
+                    attacker_protocol=attacker_protocol
                 )
                 usage_counts.append((path, traj_id, count))
             

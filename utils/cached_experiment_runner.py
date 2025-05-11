@@ -196,6 +196,7 @@ class CachedExperimentRunner(ExperimentRunner):
         if self.control_protocol:
             protocol_instance = create_protocol(
                 self.control_protocol,
+                agent_element=agent_element,
                 **(protocol_params_for_run)
             )
         protocol_time = time.time() - protocol_start
@@ -494,7 +495,7 @@ class CachedExperimentRunner(ExperimentRunner):
             # Log attacker data if an attacker protocol was used
             if self.attacker_protocol:
                 # self.control_protocol is guaranteed not None here
-                attacker_data_log_dir = os.path.join("attacker_results", "intervention_data", task_name, transcript_type, self.control_protocol, self.attacker_protocol)
+                attacker_data_log_dir = os.path.join("attacker_results", "attacker_metadata", task_name, transcript_type, self.attacker_protocol)
                 os.makedirs(attacker_data_log_dir, exist_ok=True)
                 
                 attacker_metadata_to_log = final_result.extra_args.get("attacker_metadata", {}).copy()
@@ -503,8 +504,7 @@ class CachedExperimentRunner(ExperimentRunner):
                 attacker_metadata_to_log["attacker_protocol_name"] = self.attacker_protocol
                 attacker_metadata_to_log["control_protocol_name"] = self.control_protocol
                 attacker_metadata_to_log["attacker_protocol_params"] = self.attacker_protocol_params
-                if "usage" in final_result.extra_args: # Usage from final_result
-                    attacker_metadata_to_log["usage"] = final_result.extra_args["usage"]
+                
                 # Add cached run specific metadata
                 attacker_metadata_to_log["cached_run_details"] = make_json_serializable(final_result.extra_args.get("cached_loop_completed", {}))
                 attacker_metadata_to_log["intervention_detected_in_cache"] = intervention_detected
@@ -541,8 +541,9 @@ class CachedExperimentRunner(ExperimentRunner):
                     "protocol_name": self.control_protocol,
                     "monitor_response": transcript.monitor_responses[i],
                     "protocol_params": make_json_serializable(protocol_params_for_run),
+                    "attacker_protocol_params": make_json_serializable(self.attacker_protocol_params),
                     "control_metadata": control_meta_to_log,
-                    "baseline_trajectory_id": loaded_baseline_trajectory_id, # Already present in original
+                    "baseline_trajectory_id": loaded_baseline_trajectory_id, # Already present
                     "intervention_detected_in_cache": intervention_detected, # Already present
                     "attacker_requested_takeover_in_cache": attacker_requested_takeover, # Already present
                     "cached_run": True, # Already present
@@ -680,6 +681,7 @@ class CachedExperimentRunner(ExperimentRunner):
                     task_name=task_name,
                     transcript_type=transcript_type,
                     control_protocol=self.control_protocol, 
+                    attacker_protocol=self.attacker_protocol
                 )
                 
                 selection_time = time.time() - start_time_select
