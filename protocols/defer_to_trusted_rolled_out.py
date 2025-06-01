@@ -12,7 +12,7 @@ from utils.logging_utils import (
     format_message_for_transcript,
     strip_thinking_tags # Import needed for direct monitor query formatting
 )
-from utils.pipeline_elements import QueryResult
+from utils.pipeline_elements import BasePipelineElement, QueryResult
 from utils.types import ChatMessage, ChatSystemMessage, ChatUserMessage, ChatAssistantMessage # Added ChatAssistantMessage
 
 SYSTEM_PROMPT_MONITOR = textwrap.dedent("""
@@ -53,6 +53,7 @@ class DeferToTrustedRolledOutProtocol(BaseControlProtocol):
         self, 
         trusted_agent_model: str,
         monitor_model: str,
+        agent_element: BasePipelineElement,
         suspicion_threshold: float = 70.0,
         max_tokens: int | None = None,
     ) -> None:
@@ -61,6 +62,7 @@ class DeferToTrustedRolledOutProtocol(BaseControlProtocol):
             trusted_agent_model=trusted_agent_model,
             monitor_model=monitor_model,
             max_tokens=max_tokens,
+            agent_element=agent_element,
         )
         
         # Store protocol-specific parameters

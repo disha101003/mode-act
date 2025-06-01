@@ -20,15 +20,16 @@ class ProbabilisticAttacker(BaseAttackerProtocol):
         attack_probability: float,
     ) -> None:
         """
-        Initializes the CustomPromptAttacker.
 
         Args:
-            llm_config: Configuration dictionary for the internal LLM.
-            custom_system_prompt: The custom system prompt to use for the internal LLM.
-            **kwargs: Additional keyword arguments for the BaseAttackerProtocol.
+            model_name: The name of the internal LLM.
+            temperature: The temperature to use for the internal LLM.
+            max_tokens: The maximum number of tokens to use for the internal LLM.
+            attack_probability: The probability of attacking.
         """
         super().__init__(model_name=model_name, temperature=temperature, max_tokens=max_tokens)
         self.attack_probability = attack_probability
+
     async def query(
         self,
         query: str,

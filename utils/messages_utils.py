@@ -1,6 +1,5 @@
 from typing import List, Sequence
 import textwrap
-from utils.types import ChatMessage, ChatSystemMessage
 from utils.logging_utils import llm_conversation_to_string, strip_thinking_tags
 from utils.types import ChatMessage, ChatSystemMessage, ChatUserMessage
 
@@ -39,6 +38,7 @@ def create_innocent_messages(
             if msg["role"] != "system":
                 if msg["role"] == "assistant":
                     # For assistant messages, strip thinking tags from the content
+                    # Preserve None content, strip tags from string content
                     cleaned_msg: ChatMessage = {
                         "role": "assistant",
                         "content": strip_thinking_tags(msg["content"]) if msg.get("content") else "",

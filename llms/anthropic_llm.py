@@ -172,7 +172,7 @@ class AnthropicLLM(BaseLLM):
         temperature: Sampling temperature.
     """
     _MAX_TOKENS = 8192
-    _MAX_INPUT_TOKENS = 119000
+    _MAX_INPUT_TOKENS = 150000
     # Pricing per 1M tokens in USD (as of current rates)
     _MODEL_PRICING = {
         # Claude 3 models

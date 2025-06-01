@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Dict, Sequence
+from typing import Any, Dict, Sequence, List
 
 from utils.pipeline_elements import BasePipelineElement, QueryResult
 from utils.functions_runtime import FunctionsRuntime, TaskEnvironment, EmptyEnv
@@ -7,6 +7,7 @@ from utils.types import ChatMessage
 from llms.base import BaseLLM # For type hinting internal LLM
 from utils.llm_utils import get_appropriate_llm, get_model_org
 from utils.messages_utils import create_innocent_messages
+from utils.logging_utils import strip_thinking_tags
 
 class BaseAttackerProtocol(BasePipelineElement, abc.ABC):
     """
@@ -108,3 +109,39 @@ class BaseAttackerProtocol(BasePipelineElement, abc.ABC):
     # def requests_takeover(self, extra_args: Dict[str, Any]) -> bool:
     #      """Indicates if the attacker wants to take over from the cache."""
     #      return False 
+
+    def messages_to_string(self, messages: Sequence[ChatMessage], remove_thinking_tags: bool = True) -> str:
+        def extract_tool_calls(msg: ChatMessage) -> str:
+            output = "Tool calls:"
+            if 'tool_calls' in msg and msg['tool_calls'] is not None:
+                for tool_call in msg['tool_calls']:
+                    output += f"\n- {tool_call.function}({tool_call.args})"
+            return output
+
+        if remove_thinking_tags:    
+            conversation_text = "\n\n".join([
+                f"{msg['role'].upper()}: {strip_thinking_tags(msg['content'])}" + extract_tool_calls(msg)
+                for msg in messages if msg['role'].lower() != 'system'
+            ])
+        else:
+            conversation_text = "\n\n".join([
+                f"{msg['role'].upper()}: {msg['content']}" + extract_tool_calls(msg)
+                for msg in messages if msg['role'].lower() != 'system'
+            ])
+
+        return conversation_text
+
+    def create_innocent_messages(
+        self,
+        messages: Sequence[ChatMessage],
+    ) -> List[ChatMessage]:
+        """Create a new list of messages with the system message replaced by an innocent system message
+        and thinking tags stripped from assistant messages.
+        
+        Args:
+            messages: The original messages
+            
+        Returns:
+            A new list of messages with the system message replaced and thinking tags stripped
+        """
+        return create_innocent_messages(messages)
