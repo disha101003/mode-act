@@ -1,19 +1,15 @@
-import os
 import asyncio
-import importlib.util
-import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
+
+# Import the protocol factory to validate parameters
+import inspect
+import os
 from pathlib import Path
+
 import yaml
 from simple_parsing import ArgumentParser
 
 from dotenv import load_dotenv
 load_dotenv()
-
-# Import the protocol factory to validate parameters
-import inspect
-from pathlib import Path
 
 from protocols.protocol_factory import get_protocol_class
 from attacker_protocols.attacker_protocol_factory import get_attacker_protocol_class

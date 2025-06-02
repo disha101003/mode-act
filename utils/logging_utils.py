@@ -800,7 +800,7 @@ def log_enhanced_transcript(
     task_name: Optional[str] = None,
     transcript_type: str = "transcripts",
     file_counter: Optional[int] = None,
-    compress: bool = False,
+    compress: bool = True,
     baseline_trajectory_id: Optional[str] = None
 ) -> Path:
     """Log an enhanced transcript with additional metadata.

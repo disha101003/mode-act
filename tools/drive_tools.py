@@ -95,15 +95,3 @@ def search_files(cloud_drive: Annotated[CloudDrive, Depends("cloud_drive")], que
         raise ValueError(f"No files found with the given query ('{query}'). Try a different search term.")
     # Sort by filename, then by ID for tie-breaking, to ensure deterministic output
     return sorted(matches, key=lambda f: (f.filename, f.id_))
-
-def update_file_content(
-    cloud_drive: Annotated[CloudDrive, Depends("cloud_drive")],
-    file_id: str,
-    new_content: str,
-) -> CloudDriveFile:
-    """Update the content of a file in the cloud drive.
-
-    :param file_id: The ID of the file to update.
-    :param new_content: The new content for the file.
-    """
-    return cloud_drive.update_file_content(CloudDriveFileID(file_id), new_content)

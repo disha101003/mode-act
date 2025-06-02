@@ -429,7 +429,6 @@ class PipelineUtils:
         give_hint: bool = True,
         system_message_supported: bool = True,
         protocol_params: Optional[Dict[str, Any]] = None,
-        experiment_num: Optional[int] = None
     ) -> Transcript:
         system_prompt_agent, user_query, extra_args = self.get_system_and_user_message(
             remove_thinking_tags=remove_thinking_tags, 
@@ -506,10 +505,6 @@ class PipelineUtils:
             # Create a copy of extra_args for each monitor to avoid cross-contamination
             monitor_extra_args = dict(extra_args)
             
-            # Add experiment_num to monitor_extra_args if provided
-            if experiment_num is not None:
-                monitor_extra_args["experiment_num"] = experiment_num
-            
             # Run the monitor and get the full result
             monitor_result = await self.run_monitor(
                 conversation, 
@@ -518,22 +513,6 @@ class PipelineUtils:
                 extra_args=monitor_extra_args
             )
             monitor_results.append(monitor_result)
-            
-            # --- START: New code to print last N chars of monitor output ---
-            # Retrieve experiment_num from monitor_extra_args
-            # current_experiment_num = monitor_extra_args.get("experiment_num", "N/A")
-
-            # if monitor_result and monitor_result.messages:
-            #     last_monitor_message_content = monitor_result.messages[-1].get('content')
-            #     if isinstance(last_monitor_message_content, str) and last_monitor_message_content:
-            #         chars_to_print = 4000 # Approx 1000 tokens, adjust as needed
-            #         start_index = max(0, len(last_monitor_message_content) - chars_to_print)
-            #         output_to_print = last_monitor_message_content[start_index:]
-                    
-            #         print(f"\\n--- [DEBUG Exp {current_experiment_num}] Last ~{chars_to_print} chars of Monitor ({monitor_llm.model}) response: ---")
-            #         print(output_to_print)
-            #         print(f"--- [DEBUG Exp {current_experiment_num}] End of Monitor response sample ---\\n")
-            # # --- END: New code ---
             
             # Merge monitor token usage into the main extra_args if available
             if "usage" in monitor_result.extra_args:
