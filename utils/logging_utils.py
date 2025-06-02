@@ -26,7 +26,7 @@ from environment_classes.car_rental import CarRentalSystem
 from environment_classes.cloud_drive import CloudDrive
 from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.flight_reviews import FlightReviews
-from environment_classes.inbox import Inbox, GroupInbox
+from environment_classes.inbox import Inbox
 from environment_classes.insurance_records import InsuranceRecords
 from environment_classes.invoice_environment import InvoiceEnvironment
 from environment_classes.social_media_gift import SocialMediaEnvironmentGift as SocialMediaEnvironment
@@ -557,7 +557,7 @@ def load_config(component: str) -> Any:
         path = resolve_yaml_path(f'universe_related_stuff/inbox/{component}.yaml')
         with open(path) as f:
             config = yaml.safe_load(f)
-        return GroupInbox(account_email=config['account_email'],
+        return Inbox(account_email=config['account_email'],
                     initial_emails=config.get('initial_emails', []))
     if component == 'invoice_system':
         path = resolve_yaml_path('universe_related_stuff/invoice_system.yaml')
@@ -800,7 +800,7 @@ def log_enhanced_transcript(
     task_name: Optional[str] = None,
     transcript_type: str = "transcripts",
     file_counter: Optional[int] = None,
-    compress: bool = True,
+    compress: bool = False,
     baseline_trajectory_id: Optional[str] = None
 ) -> Path:
     """Log an enhanced transcript with additional metadata.

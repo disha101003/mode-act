@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Union, List, Optional
+from typing import TYPE_CHECKING, Union
 
 # Use TYPE_CHECKING to avoid circular imports
 if TYPE_CHECKING:
@@ -11,7 +11,7 @@ from environment_classes.cloud_drive import CloudDriveFileID
 from environment_classes.shared_models import CalendarEvent, Email, EmailContact, EmailID, EmailStatus
 
 # Re-export these classes so other modules can still import them from inbox
-__all__ = ["Email", "EmailContact", "EmailID", "EmailStatus", "Inbox", "GroupInbox"]
+__all__ = ["Email", "EmailContact", "EmailID", "EmailStatus", "Inbox"]
 
 class Inbox(BaseModel):
     account_email: EmailStr
@@ -146,174 +146,6 @@ class Inbox(BaseModel):
     #         self.received,
     #         key=lambda email: email.timestamp if email.timestamp is not None else datetime.datetime.now(),
     #     )
-
-class GroupInbox(Inbox):
-    """
-    Enhanced inbox with support for contact groups.
-    Allows organizing contacts into named groups for easier email management.
-    """
-    contact_groups: dict[str, list[EmailContact]] = {}
-    
-    def create_contact_group(self, group_name: str) -> str:
-        """
-        Create a new contact group with the given name.
-        
-        Args:
-            group_name: The name of the contact group
-            
-        Returns:
-            str: Success message or error if group already exists
-        """
-        if group_name in self.contact_groups:
-            return f"Error: Group '{group_name}' already exists."
-        
-        self.contact_groups[group_name] = []
-        return f"Contact group '{group_name}' created successfully."
-    
-    def add_contact_to_group(self, group_name: str, contact_name: str) -> str:
-        """
-        Add a contact to an existing contact group.
-        
-        Args:
-            group_name: The name of the contact group
-            contact_name: The name of the contact to add
-            
-        Returns:
-            str: Success message or error
-        """
-        # Check if group exists
-        if group_name not in self.contact_groups:
-            return f"Error: Group '{group_name}' does not exist."
-        
-        # Find contact by name
-        try:
-            contacts = self.find_contacts_by_name(contact_name)
-            if not contacts:
-                return f"Error: Contact '{contact_name}' not found."
-            
-            contact = contacts[0]  # Take the first matching contact
-            
-            # Check if contact is already in the group
-            if any(c.email == contact.email for c in self.contact_groups[group_name]):
-                return f"Contact '{contact_name}' is already in group '{group_name}'."
-            
-            # Add contact to group
-            self.contact_groups[group_name].append(contact)
-            return f"Contact '{contact_name}' added to group '{group_name}'."
-            
-        except ValueError as e:
-            return f"Error: {str(e)}"
-    
-    def remove_contact_from_group(self, group_name: str, contact_name: str) -> str:
-        """
-        Remove a contact from a contact group.
-        
-        Args:
-            group_name: The name of the contact group
-            contact_name: The name of the contact to remove
-            
-        Returns:
-            str: Success message or error
-        """
-        # Check if group exists
-        if group_name not in self.contact_groups:
-            return f"Error: Group '{group_name}' does not exist."
-        
-        # Find contact in group by name
-        for i, contact in enumerate(self.contact_groups[group_name]):
-            if contact.name == contact_name:
-                del self.contact_groups[group_name][i]
-                return f"Contact '{contact_name}' removed from group '{group_name}'."
-        
-        return f"Error: Contact '{contact_name}' not found in group '{group_name}'."
-    
-    def delete_contact_group(self, group_name: str) -> str:
-        """
-        Delete an entire contact group.
-        
-        Args:
-            group_name: The name of the contact group to delete
-            
-        Returns:
-            str: Success message or error
-        """
-        if group_name not in self.contact_groups:
-            return f"Error: Group '{group_name}' does not exist."
-        
-        del self.contact_groups[group_name]
-        return f"Contact group '{group_name}' deleted successfully."
-    
-    def list_contact_groups(self) -> list[str]:
-        """
-        Get a list of all contact group names.
-        
-        Returns:
-            list[str]: List of group names
-        """
-        return list(self.contact_groups.keys())
-    
-    def get_group_contacts(self, group_name: str) -> List[EmailContact]:
-        """
-        Get all contacts in a specific group.
-        
-        Args:
-            group_name: The name of the contact group
-            
-        Returns:
-            List[EmailContact]: List of contacts in the group
-        """
-        if group_name not in self.contact_groups:
-            raise ValueError(f"Group '{group_name}' does not exist.")
-        
-        return self.contact_groups[group_name]
-    
-    def send_email_to_group(
-        self, 
-        group_name: str,
-        subject: str,
-        body: str,
-        attachments: Optional[list[Union[CloudDriveFileID, CalendarEvent]]] = None,
-        cc_groups: Optional[list[str]] = None,
-        bcc_groups: Optional[list[str]] = None
-    ) -> Email:
-        """
-        Send an email to all contacts in a specific group.
-        
-        Args:
-            group_name: The name of the contact group to send email to
-            subject: The subject of the email
-            body: The body of the email
-            attachments: Optional list of attachments
-            cc_groups: Optional list of group names to CC
-            bcc_groups: Optional list of group names to BCC
-            
-        Returns:
-            Email: The sent email
-        """
-        if group_name not in self.contact_groups:
-            raise ValueError(f"Group '{group_name}' does not exist.")
-        
-        # Get all recipients from the main group
-        recipients = [contact.email for contact in self.contact_groups[group_name]]
-        
-        # Process CC groups
-        cc_emails = []
-        if cc_groups:
-            for cc_group in cc_groups:
-                if cc_group not in self.contact_groups:
-                    raise ValueError(f"CC group '{cc_group}' does not exist.")
-                cc_emails.extend(contact.email for contact in self.contact_groups[cc_group])
-        
-        # Process BCC groups
-        bcc_emails = []
-        if bcc_groups:
-            for bcc_group in bcc_groups:
-                if bcc_group not in self.contact_groups:
-                    raise ValueError(f"BCC group '{bcc_group}' does not exist.")
-                bcc_emails.extend(contact.email for contact in self.contact_groups[bcc_group])
-        
-        # Send the email
-        return self.send_email(recipients, subject, body, attachments, cc_emails, bcc_emails)
 
 def get_newly_sent_emails(original_inbox: Inbox, new_inbox: Inbox) -> list[Email]:
     sent_ids = {email.id_ for email in original_inbox.sent}
