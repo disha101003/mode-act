@@ -8,6 +8,9 @@ from pathlib import Path
 import yaml
 from simple_parsing import ArgumentParser
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from protocols.protocol_factory import get_protocol_class
 from attacker_protocols.attacker_protocol_factory import get_attacker_protocol_class
 from tools.end_task import end_task

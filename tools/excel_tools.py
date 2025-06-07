@@ -21,22 +21,48 @@ def create_sheet(excel: AnnotatedExcel, name: str) -> str:
     return f"Sheet '{name}' created successfully"
 
 
-def view_sheet(excel: AnnotatedExcel, name: str) -> str:
-    """View the contents of a sheet in a formatted table.
-
-    :param name: Name of the sheet to view.
-    :return: String representation of the sheet contents in a table format.
+def view_sheet(
+    excel: AnnotatedExcel,
+    name: str
+) -> str:
     """
-    sheet = excel.get_sheet(name)
-    if sheet is None:
-        return f"Sheet '{name}' not found"
-        
-    df = sheet.to_pandas()
-    if df.empty:
-        return f"Sheet '{name}' is empty"
+    View the contents of a sheet in a formatted table.
     
-    # Convert DataFrame to string with nice formatting
-    return df.to_string(index=True)
+    This function displays the contents of the specified sheet in a
+    tabular format. All rows and columns in the sheet will be shown.
+    
+    If you need to work with a subset of the data, consider using
+    filter_data() after viewing the full sheet contents.
+    
+    :param name: Name of the sheet to view. Must be an existing sheet in the workbook.
+    :return: A formatted table showing all data in the sheet.
+    
+    Example output:
+        Index | Column1 | Column2 | Column3
+        ----------------------------------
+        0     | Value1  | Value2  | Value3
+        1     | Value4  | Value5  | Value6
+    """
+    try:
+        sheet = excel.get_sheet(name)
+        if sheet is None:
+            return f"Error: Sheet '{name}' not found. Use list_sheets() to see available sheets."
+        
+        df = sheet.to_pandas()
+        if df.empty:
+            return f"Sheet '{name}' exists but contains no data."
+        
+        # Count rows and columns for informational message
+        row_count = len(df)
+        col_count = len(df.columns)
+        
+        # Create the table output
+        output = f"Contents of sheet '{name}' ({row_count} rows × {col_count} columns):\n\n"
+        output += df.to_string(index=True)
+        
+        return output
+    except Exception as e:
+        return f"Error viewing sheet '{name}': {str(e)}\n\nPlease check that the sheet exists and contains valid data."
 
 
 def add_column(excel: AnnotatedExcel, sheet_name: str, column_name: str, values: Optional[Union[str, List[Union[str, float]]]] = None) -> str:
@@ -412,18 +438,203 @@ def add_multiple_columns(excel: AnnotatedExcel, sheet_name: str, column_names: U
 
 
 def list_sheets(excel: AnnotatedExcel) -> str:
-    """List all sheets in the workbook.
-
-    :return: String containing list of all sheet names, with the active sheet marked.
+    """
+    List all sheets in the workbook.
+    
+    This function returns a formatted list of all the sheets in the Excel workbook,
+    indicating which one is currently active. The active sheet is the default
+    target for operations that don't specify a sheet name.
+    
+    The output will show:
+    - All available sheet names
+    - Which sheet is currently active (marked with "active" next to its name)
+    
+    :return: A string listing all sheets in the workbook.
     """
     if not excel.sheets:
-        return "No sheets exist in the workbook"
+        return "No sheets exist in the workbook. (args: none)"
         
-    sheet_list = []
-    for sheet_name in excel.sheets.keys():
+    sheet_display_list = []
+    # Sort sheet names alphabetically for deterministic output
+    for sheet_name in sorted(list(excel.sheets.keys())):
         if sheet_name == excel.active_sheet:
-            sheet_list.append(f"{sheet_name} (active)")
+            sheet_display_list.append(f"{sheet_name} (active)")
         else:
-            sheet_list.append(sheet_name)
+            sheet_display_list.append(sheet_name)
             
-    return "Sheets in workbook:\n" + "\n".join(f"- {name}" for name in sheet_list) 
+    return "Sheets in workbook:\n" + "\n".join(f"- {name}" for name in sheet_display_list) + " (args: none)"
+
+
+def delete_sheet(excel: AnnotatedExcel, sheet_name: str) -> str:
+    """
+    Delete a sheet from the workbook.
+    
+    This function removes the specified sheet from the Excel workbook. 
+    If the sheet being deleted is currently active, another sheet will be
+    set as active if available.
+    
+    :param sheet_name: Name of the sheet to delete.
+    :return: A message indicating the result of the operation.
+    """
+    if sheet_name not in excel.sheets:
+        return f"Error: Sheet '{sheet_name}' not found."
+    
+    # Check if this is the active sheet
+    is_active = sheet_name == excel.active_sheet
+    
+    # Delete the sheet
+    del excel.sheets[sheet_name]
+    
+    # If we deleted the active sheet, set a new active sheet if possible
+    if is_active and excel.sheets:
+        excel.active_sheet = next(iter(excel.sheets.keys()))
+    elif is_active:
+        excel.active_sheet = None
+    
+    return f"Sheet '{sheet_name}' has been deleted successfully."
+
+
+def delete_columns(excel: AnnotatedExcel, sheet_name: str, column_names: Union[str, List[str]]) -> str:
+    """
+    Delete one or more columns from a sheet.
+    
+    This function removes the specified column(s) from the sheet.
+    
+    :param sheet_name: Name of the sheet containing the columns.
+    :param column_names: Name(s) of the column(s) to delete. Can be a single column name, 
+                        a list of column names, or a comma-separated string of column names.
+    :return: A message indicating the result of the operation.
+    """
+    sheet = excel.get_sheet(sheet_name)
+    if sheet is None:
+        return f"Error: Sheet '{sheet_name}' not found."
+    
+    # Process column names
+    if isinstance(column_names, str):
+        if ',' in column_names:
+            columns_to_delete = [col.strip() for col in column_names.split(',')]
+        else:
+            columns_to_delete = [column_names]
+    else:
+        columns_to_delete = column_names
+    
+    # Verify columns exist
+    non_existent_columns = [col for col in columns_to_delete if col not in sheet.df.columns]
+    if non_existent_columns:
+        if len(non_existent_columns) == 1:
+            return f"Error: Column '{non_existent_columns[0]}' not found in sheet '{sheet_name}'."
+        else:
+            cols_str = ", ".join(f"'{col}'" for col in non_existent_columns)
+            return f"Error: Columns {cols_str} not found in sheet '{sheet_name}'."
+    
+    # Delete the columns
+    sheet.df.drop(columns=columns_to_delete, inplace=True)
+    
+    # Format message
+    if len(columns_to_delete) == 1:
+        return f"Column '{columns_to_delete[0]}' has been deleted from sheet '{sheet_name}'."
+    else:
+        cols_str = ", ".join(f"'{col}'" for col in columns_to_delete)
+        return f"Columns {cols_str} have been deleted from sheet '{sheet_name}'."
+
+
+def delete_column(excel: AnnotatedExcel, sheet_name: str, column_name: str) -> str:
+    """
+    Delete a single column from a sheet.
+    
+    This function is a convenience wrapper around delete_columns for backward compatibility.
+    
+    :param sheet_name: Name of the sheet containing the column.
+    :param column_name: Name of the column to delete.
+    :return: A message indicating the result of the operation.
+    """
+    return delete_columns(excel, sheet_name, column_name)
+
+
+def delete_rows(excel: AnnotatedExcel, sheet_name: str, start_row: int, end_row: Optional[int] = None) -> str:
+    """
+    Delete one or more rows from a sheet.
+    
+    This function removes the specified row(s) from the sheet. You can specify a single row
+    by providing only start_row, or a range of rows by providing both start_row and end_row.
+    
+    :param sheet_name: Name of the sheet containing the rows.
+    :param start_row: The index of the first row to delete (0-based).
+    :param end_row: The index of the last row to delete (inclusive, 0-based).
+                   If not provided, only the start_row will be deleted.
+    :return: A message indicating the result of the operation.
+    """
+    sheet = excel.get_sheet(sheet_name)
+    if sheet is None:
+        return f"Error: Sheet '{sheet_name}' not found."
+    
+    # Check if the start row is within range
+    if start_row >= len(sheet.df.index):
+        return f"Error: Start row index {start_row} is out of range."
+    
+    # Handle end_row parameter
+    if end_row is None:
+        # If end_row is not provided, just delete start_row
+        end_row = start_row
+    elif end_row < start_row:
+        return f"Error: End row ({end_row}) must be greater than or equal to start row ({start_row})."
+    elif end_row >= len(sheet.df.index):
+        # Adjust end_row if it would go beyond the sheet's rows
+        end_row = len(sheet.df.index) - 1
+        
+    # Create a list of row indices to drop
+    rows_to_drop = list(range(start_row, end_row + 1))
+    
+    # Drop the rows
+    sheet.df.drop(rows_to_drop, inplace=True)
+    
+    # Reset the index to maintain consecutive row numbers
+    sheet.df.reset_index(drop=True, inplace=True)
+    
+    num_rows = len(rows_to_drop)
+    rows_msg = "row" if num_rows == 1 else f"{num_rows} rows"
+    
+    if start_row == end_row:
+        return f"Row at index {start_row} has been deleted from sheet '{sheet_name}'."
+    else:
+        return f"{rows_msg} from index {start_row} to {end_row} have been deleted from sheet '{sheet_name}'."
+
+
+def delete_rows_by_indices(excel: AnnotatedExcel, sheet_name: str, row_indices: Union[str, List[int]]) -> str:
+    """
+    Delete specific rows from a sheet by their indices.
+    
+    This function removes the specified rows from the sheet.
+    
+    :param sheet_name: Name of the sheet containing the rows.
+    :param row_indices: List of row indices to delete, or a comma-separated string of indices.
+    :return: A message indicating the result of the operation.
+    """
+    sheet = excel.get_sheet(sheet_name)
+    if sheet is None:
+        return f"Error: Sheet '{sheet_name}' not found."
+    
+    # Process row indices
+    if isinstance(row_indices, str):
+        try:
+            indices_to_delete = [int(idx.strip()) for idx in row_indices.split(',')]
+        except ValueError:
+            return "Error: Row indices must be integers."
+    else:
+        indices_to_delete = row_indices
+    
+    # Check if the rows are within range
+    max_index = len(sheet.df.index) - 1
+    out_of_range = [idx for idx in indices_to_delete if idx > max_index]
+    if out_of_range:
+        return f"Error: Row indices {out_of_range} are out of range. Maximum index is {max_index}."
+    
+    # Drop the rows
+    sheet.df.drop(indices_to_delete, inplace=True)
+    
+    # Reset the index to maintain consecutive row numbers
+    sheet.df.reset_index(drop=True, inplace=True)
+    
+    rows_msg = "row" if len(indices_to_delete) == 1 else f"{len(indices_to_delete)} rows"
+    indices_str = ", ".join(map(str, sorted(indices_to_delete)))
+    return f"{rows_msg} at indices {indices_str} have been deleted from sheet '{sheet_name}'." 

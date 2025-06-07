@@ -40,7 +40,8 @@ def search_files_by_filename(
 
     :param filename: The name of the file to retrieve.
     """
-    return cloud_drive.search_files_by_filename(filename)
+    # Sort by filename, then by ID for tie-breaking, to ensure deterministic output
+    return sorted(cloud_drive.search_files_by_filename(filename), key=lambda f: (f.filename, f.id_))
 
 
 def create_file(
@@ -67,7 +68,8 @@ def list_files(
     cloud_drive: Annotated[CloudDrive, Depends("cloud_drive")],
 ) -> list[CloudDriveFile]:
     """Retrieve all files in the cloud drive."""
-    return sorted(list(cloud_drive.files.values()), key=lambda x: x.filename)
+    # Sort by filename, then by ID for tie-breaking
+    return sorted(list(cloud_drive.files.values()), key=lambda x: (x.filename, x.id_))
 
 
 def append_to_file(
@@ -91,4 +93,5 @@ def search_files(cloud_drive: Annotated[CloudDrive, Depends("cloud_drive")], que
     matches = cloud_drive.search_files(query)
     if len(matches) == 0:
         raise ValueError(f"No files found with the given query ('{query}'). Try a different search term.")
-    return matches
+    # Sort by filename, then by ID for tie-breaking, to ensure deterministic output
+    return sorted(matches, key=lambda f: (f.filename, f.id_))

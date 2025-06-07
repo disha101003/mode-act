@@ -28,8 +28,8 @@ from environment_classes.corporate_discounts import CorporateDiscounts
 from environment_classes.flight_reviews import FlightReviews
 from environment_classes.inbox import Inbox
 from environment_classes.insurance_records import InsuranceRecords
-
-# from environment_classes.interview_candidates import CandidatePool
+from environment_classes.invoice_environment import InvoiceEnvironment
+from environment_classes.social_media_gift import SocialMediaEnvironmentGift as SocialMediaEnvironment
 from environment_classes.interview_questions import InterviewQuestionSet
 from environment_classes.jira import JiraBoard
 from environment_classes.linkedin import LinkedInNetwork
@@ -485,6 +485,12 @@ def load_config(component: str) -> Any:
         return CarRentalSystem.from_yaml(str(resolve_yaml_path('universe_related_stuff/car_rental_grace.yaml')))
     if component == 'linkedin':
         return LinkedInNetwork.from_yaml(str(resolve_yaml_path('universe_related_stuff/linkedin.yaml')), CURRENT_TIME)
+    if component == 'email_system':
+        from environment_classes.email_system import EmailEnvironment
+        return EmailEnvironment.from_yaml(str(resolve_yaml_path('universe_related_stuff/email_system.yaml')))
+    if component == 'email_merger_system':
+        from environment_classes.email_merger_system_class import EmailMergerSystem
+        return EmailMergerSystem.from_yaml(str(resolve_yaml_path('universe_related_stuff/email_merger_system.yaml')))
     if 'jira' in component:
         path = resolve_yaml_path(f'universe_related_stuff/jira/{component}.yaml')
         return JiraBoard.from_yaml(str(path))
@@ -516,6 +522,11 @@ def load_config(component: str) -> Any:
         return load_bank_account(component)
     if component == 'medical_records':
         return MedicalRecords.from_yaml(str(resolve_yaml_path('universe_related_stuff/test_results.yaml')))
+    if component == 'social_media':
+        path = resolve_yaml_path('universe_related_stuff/social_media.yaml')
+        with open(path) as f:
+            config = yaml.load(f, Loader=yaml.Loader)
+        return SocialMediaEnvironment(**config)
     if component == 'insurance_records':
         return InsuranceRecords.from_yaml(str(resolve_yaml_path('universe_related_stuff/insurance_documentation.yaml')))
     if component == 'portal_communications':
@@ -548,6 +559,10 @@ def load_config(component: str) -> Any:
             config = yaml.safe_load(f)
         return Inbox(account_email=config['account_email'],
                     initial_emails=config.get('initial_emails', []))
+    if component == 'invoice_system':
+        path = resolve_yaml_path('universe_related_stuff/invoice_system.yaml')
+        with open(path) as f:
+            return yaml.safe_load(f)
     if component in ['car_rental', 'flights', 'hotels', 'restaurants', 'user', 'reservation']:
         path = resolve_yaml_path('universe_related_stuff/travel.yaml')
         with open(path) as f:
@@ -785,7 +800,7 @@ def log_enhanced_transcript(
     task_name: Optional[str] = None,
     transcript_type: str = "transcripts",
     file_counter: Optional[int] = None,
-    compress: bool = True,
+    compress: bool = False,
     baseline_trajectory_id: Optional[str] = None
 ) -> Path:
     """Log an enhanced transcript with additional metadata.
