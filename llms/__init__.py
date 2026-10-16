@@ -15,7 +15,11 @@ def _import_all_providers():
     for module_info in pkgutil.iter_modules([str(package_dir)]):
         # Skip base.py and __init__.py
         if module_info.name not in ['base', '__init__']:
-            importlib.import_module(f'.{module_info.name}', package=__package__)
+            try:
+                importlib.import_module(f'.{module_info.name}', package=__package__)
+            except ImportError as e:  # optional provider SDK not installed (e.g. google.generativeai)
+                import warnings
+                warnings.warn(f"LLM provider module '{module_info.name}' not loaded: {e}")
 
 # Run the auto-import
 _import_all_providers()

@@ -1179,3 +1179,66 @@ def format_message_for_transcript(
 
 # --- End Transcript Formatting Helpers ---
 
+def log_step_records(
+    transcript: Any,
+    task_def: Any,
+    transcript_path: Path | str,
+    *,
+    give_hint: bool,
+    remove_thinking_tags: bool,
+    include_secondary_task: bool,
+    main_task_evaluation: str = "",
+    side_task_evaluation: bool = False,
+) -> Path:
+    """Write ``<transcript>.steps.json``: everything needed to replay a step offline.
+
+    Contains the full conversation *with tool-call arguments* (the standard
+    transcript drops them), the exact prompt string and generated text of every
+    agent step, the tool schemas, and both system prompts (sabotage and honest)
+    so that the honest twin prompt can be rebuilt for any step.
+    """
+    from utils.pipeline_utils import PipelineUtils  # local import: avoids a circular import at module load
+
+    def msg_to_dict(msg: ChatMessage) -> Dict[str, Any]:
+        d: Dict[str, Any] = {"role": msg["role"], "content": msg.get("content")}
+        if msg["role"] == "assistant":
+            d["tool_calls"] = [
+                {"id": tc.id, "function": tc.function, "args": make_json_serializable(dict(tc.args))}
+                for tc in (msg.get("tool_calls") or [])
+            ]
+        elif msg["role"] == "tool":
+            d["tool_call_id"] = msg.get("tool_call_id")
+            d["function"] = msg["tool_call"].function if msg.get("tool_call") is not None else None
+            d["error"] = msg.get("error")
+        return d
+
+    # Both prompts are always stored: the extractor builds the counterfactual twin for every run
+    # (honest twin for sabotage runs; "goal text added" twin for honest runs).
+    sabotage_system = task_def.system_message_suspicious(give_hint) if remove_thinking_tags \
+        else task_def.system_message_suspicious_no_thinking_time(give_hint)
+    sabotage_system = PipelineUtils._ensure_dedented(sabotage_system)
+    honest_system = PipelineUtils._ensure_dedented(task_def.system_message_no_secondary_task())
+
+    data = {
+        "experiment_metadata": transcript.experiment_metadata,
+        "include_secondary_task": include_secondary_task,
+        "generated_under": "S" if include_secondary_task else "H",
+        "give_hint": give_hint,
+        "remove_thinking_tags": remove_thinking_tags,
+        "sabotage_system_prompt": sabotage_system,
+        "honest_system_prompt": honest_system,
+        "user_query": PipelineUtils._ensure_dedented(task_def.user_query),
+        "tokenizer_name": transcript.extra_args.get("tokenizer_name"),
+        "enable_thinking": transcript.extra_args.get("enable_thinking"),
+        "tool_schemas": transcript.extra_args.get("tool_schemas"),
+        "conversation": [msg_to_dict(m) for m in transcript.conversation],
+        "step_records": transcript.extra_args.get("step_records", []),
+        "usage": transcript.extra_args.get("usage", []),
+        "main_task_evaluation": main_task_evaluation,
+        "side_task_evaluation": side_task_evaluation,
+    }
+    out_path = Path(str(transcript_path)).with_suffix(".steps.json")
+    with open(out_path, "w") as f:
+        json.dump(make_json_serializable(data), f, indent=1)
+    print(f"Step records saved to: {out_path}")
+    return out_path

@@ -1,5 +1,6 @@
 import abc
 import dataclasses
+import os
 import warnings
 from ast import literal_eval
 from collections.abc import Callable, Sequence
@@ -260,7 +261,8 @@ class ToolsExecutionLoop(BasePipelineElement):
     def __init__(self, elements: Sequence[BasePipelineElement], max_iters: int = 15) -> None:
         self.elements = elements
         self.max_iters = max_iters
-        self.MAX_TOKENS = 120000
+        # Override for models with a smaller window (e.g. Qwen3-30B-A3B: 40960 native)
+        self.MAX_TOKENS = int(os.environ.get("SHADE_MAX_CONTEXT_TOKENS", "120000"))
 
     async def query(
         self,

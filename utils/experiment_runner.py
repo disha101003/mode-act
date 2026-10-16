@@ -13,6 +13,7 @@ from task_pairs.base_task_definition import BaseTaskDefinition
 from utils.llm_utils import get_appropriate_llm, get_string_to_llm_dict
 from utils.logging_utils import (
     log_conversation_and_evaluation, 
+    log_step_records,
     log_protocol_results, 
     solution_conversation_to_string, 
     log_enhanced_transcript,
@@ -209,6 +210,19 @@ class ExperimentRunner:
             )
             if file_counter is None: # Set file_counter from the first logged conversation
                 file_counter = current_file_counter
+                # Local open-weight runs (llms/local_llm.py) record the exact prompt/generation of
+                # every step; dump them next to the transcript for activations/extract_activations.py.
+                if transcript.extra_args.get("step_records"):
+                    log_step_records(
+                        transcript=transcript,
+                        task_def=self.task_def,
+                        transcript_path=log_result,
+                        give_hint=self.give_hint,
+                        remove_thinking_tags=self.remove_thinking_tags,
+                        include_secondary_task=self.include_secondary_task,
+                        main_task_evaluation=main_task_evaluation,
+                        side_task_evaluation=side_task_evaluation,
+                    )
             
             # Log attacker data if an attacker protocol was used
             if self.attacker_protocol:

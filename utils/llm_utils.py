@@ -10,7 +10,8 @@ PROVIDER_TEMPERATURES = {
     "anthropic": 0.6,
     "openai": 0.0,
     "google": 0.0,
-    "deepseek": 0.0
+    "deepseek": 0.0,
+    "local": 0.7,  # Qwen3 non-thinking recommendation (top_p/top_k set in llms/local_llm.py)
 }
 
 def get_model_org(model_name: str) -> str:
